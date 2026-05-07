@@ -15,12 +15,29 @@ import "./models/subject.model";
 import "./models/role.model";
 import "./models/permission.model";
 import "./models/role-permission.model";
+import "./models/school.model";
+import "./models/section.model";
+import "./models/teacher.model";
+import "./models/parent.model";
+import "./models/parent-student.model";
+import "./models/teacher-class.model";
+import "./models/attendance.model";
+import "./models/exam.model";
+import "./models/mark.model";
+import "./models/student-document.model";
+import "./models/assignment.model";
+import "./models/assignment-submission.model";
+import "./models/timetable.model";
+import "./models/fee.model";
+import "./models/fee-payment.model";
+import "./models/mock-test.model";
 
 // routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
 import permissionRoutes from "./routes/permission.routes";
+import erpRoutes from "./routes/erp.routes";
 import {
   errorHandler,
   notFoundHandler,
@@ -55,6 +72,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
+app.use("/api", erpRoutes);
 // app.use("/api/students", studentRoutes);
 // app.use("/api/classes", classRoutes);
 

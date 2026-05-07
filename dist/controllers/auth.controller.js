@@ -31,9 +31,9 @@ const generateTokens = (user) => {
         throw new Error("JWT_REFRESH_SECRET is not configured");
     }
     const payload = { id: user.id, role: user.role };
-    const accessToken = jsonwebtoken_1.default.sign(payload, jwtSecret, { expiresIn: "15m" });
+    const accessToken = jsonwebtoken_1.default.sign(payload, jwtSecret, { expiresIn: "30m" });
     const refreshToken = jsonwebtoken_1.default.sign(payload, refreshTokenSecret, {
-        expiresIn: "7d",
+        expiresIn: "30d",
     });
     return { accessToken, refreshToken };
 };

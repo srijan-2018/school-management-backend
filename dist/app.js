@@ -26,11 +26,28 @@ require("./models/subject.model");
 require("./models/role.model");
 require("./models/permission.model");
 require("./models/role-permission.model");
+require("./models/school.model");
+require("./models/section.model");
+require("./models/teacher.model");
+require("./models/parent.model");
+require("./models/parent-student.model");
+require("./models/teacher-class.model");
+require("./models/attendance.model");
+require("./models/exam.model");
+require("./models/mark.model");
+require("./models/student-document.model");
+require("./models/assignment.model");
+require("./models/assignment-submission.model");
+require("./models/timetable.model");
+require("./models/fee.model");
+require("./models/fee-payment.model");
+require("./models/mock-test.model");
 // routes
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const role_routes_1 = __importDefault(require("./routes/role.routes"));
 const permission_routes_1 = __importDefault(require("./routes/permission.routes"));
+const erp_routes_1 = __importDefault(require("./routes/erp.routes"));
 const error_middleware_1 = require("./middlewares/error.middleware");
 // (later)
 // import studentRoutes from "./routes/student.routes";
@@ -57,6 +74,7 @@ app.use("/api/auth", auth_routes_1.default);
 app.use("/api/users", user_routes_1.default);
 app.use("/api/roles", role_routes_1.default);
 app.use("/api/permissions", permission_routes_1.default);
+app.use("/api", erp_routes_1.default);
 // app.use("/api/students", studentRoutes);
 // app.use("/api/classes", classRoutes);
 app.get("/", (req, res) => {
