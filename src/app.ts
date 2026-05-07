@@ -15,7 +15,10 @@ import "./models/subject.model";
 
 // routes
 import authRoutes from "./routes/auth.routes";
-import { errorHandler } from "./middlewares/error.middleware";
+import {
+  errorHandler,
+  notFoundHandler,
+} from "./middlewares/error.middleware";
 // (later)
 // import studentRoutes from "./routes/student.routes";
 // import classRoutes from "./routes/class.routes";
@@ -50,6 +53,7 @@ app.get("/", (req, res) => {
   res.send("School Backend Running 🚀");
 });
 
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;

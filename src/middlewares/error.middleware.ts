@@ -2,23 +2,46 @@ import { NextFunction, Request, Response } from "express";
 
 export class AppError extends Error {
   public statusCode: number;
+  public isOperational: boolean;
 
   constructor(message: string, statusCode = 500) {
     super(message);
     this.statusCode = statusCode;
+    this.isOperational = true;
+
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-export const errorHandler = (
-  err: Error | AppError,
+export const notFoundHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  const statusCode = err instanceof AppError ? err.statusCode : 500;
+  next(new AppError(`Route not found: ${req.originalUrl}`, 404));
+};
 
-  res.status(statusCode).json({
+export const errorHandler = (
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const error = err instanceof Error ? err : new Error("Internal Server Error");
+  const statusCode = err instanceof AppError ? err.statusCode : 500;
+  const message =
+    statusCode === 500 && process.env.NODE_ENV === "production"
+      ? "Internal Server Error"
+      : error.message || "Internal Server Error";
+
+  const response: Record<string, unknown> = {
     success: false,
-    message: err.message || "Internal Server Error",
-  });
+    message,
+  };
+
+  if (process.env.NODE_ENV !== "production") {
+    response.stack = error.stack;
+  }
+
+  res.status(statusCode).json(response);
 };

@@ -20,6 +20,14 @@ User.init({
         type: sequelize_1.DataTypes.ENUM(...roles_1.USER_ROLES),
         allowNull: false,
     },
+    resetPasswordToken: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+    },
+    resetPasswordExpires: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+    },
 }, {
     sequelize: db_1.sequelize,
     modelName: "User",

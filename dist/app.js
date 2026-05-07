@@ -53,6 +53,7 @@ app.use("/api/auth", auth_routes_1.default);
 app.get("/", (req, res) => {
     res.send("School Backend Running 🚀");
 });
+app.use(error_middleware_1.notFoundHandler);
 app.use(error_middleware_1.errorHandler);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

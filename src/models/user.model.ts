@@ -8,6 +8,8 @@ class User extends Model {
   public email!: string;
   public password!: string;
   public role!: UserRole;
+  public resetPasswordToken?: string | null;
+  public resetPasswordExpires?: Date | null;
 }
 
 User.init(
@@ -25,6 +27,14 @@ User.init(
     role: {
       type: DataTypes.ENUM(...USER_ROLES),
       allowNull: false,
+    },
+    resetPasswordToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    resetPasswordExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {
