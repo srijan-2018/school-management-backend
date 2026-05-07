@@ -12,9 +12,15 @@ import "./models/user.model";
 import "./models/class.model";
 import "./models/student.model";
 import "./models/subject.model";
+import "./models/role.model";
+import "./models/permission.model";
+import "./models/role-permission.model";
 
 // routes
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
+import roleRoutes from "./routes/role.routes";
+import permissionRoutes from "./routes/permission.routes";
 import {
   errorHandler,
   notFoundHandler,
@@ -46,6 +52,9 @@ syncDatabase();
 
 // routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/roles", roleRoutes);
+app.use("/api/permissions", permissionRoutes);
 // app.use("/api/students", studentRoutes);
 // app.use("/api/classes", classRoutes);
 

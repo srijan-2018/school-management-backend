@@ -5,6 +5,9 @@ export const USER_ROLES = [
   "teacher",
   "staff",
   "student",
+  "parent",
+  "accountant",
+  "driver",
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
@@ -21,6 +24,9 @@ const ROLE_ALIASES: Record<string, UserRole> = {
   teacher: "teacher",
   staff: "staff",
   student: "student",
+  parent: "parent",
+  accountant: "accountant",
+  driver: "driver",
 };
 
 export const normalizeRole = (value: unknown): UserRole | null => {

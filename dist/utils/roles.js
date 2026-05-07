@@ -8,6 +8,9 @@ exports.USER_ROLES = [
     "teacher",
     "staff",
     "student",
+    "parent",
+    "accountant",
+    "driver",
 ];
 const ROLE_ALIASES = {
     admin: "admin",
@@ -21,6 +24,9 @@ const ROLE_ALIASES = {
     teacher: "teacher",
     staff: "staff",
     student: "student",
+    parent: "parent",
+    accountant: "accountant",
+    driver: "driver",
 };
 const normalizeRole = (value) => {
     var _a;

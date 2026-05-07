@@ -23,8 +23,14 @@ require("./models/user.model");
 require("./models/class.model");
 require("./models/student.model");
 require("./models/subject.model");
+require("./models/role.model");
+require("./models/permission.model");
+require("./models/role-permission.model");
 // routes
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
+const user_routes_1 = __importDefault(require("./routes/user.routes"));
+const role_routes_1 = __importDefault(require("./routes/role.routes"));
+const permission_routes_1 = __importDefault(require("./routes/permission.routes"));
 const error_middleware_1 = require("./middlewares/error.middleware");
 // (later)
 // import studentRoutes from "./routes/student.routes";
@@ -48,6 +54,9 @@ const syncDatabase = () => __awaiter(void 0, void 0, void 0, function* () {
 syncDatabase();
 // routes
 app.use("/api/auth", auth_routes_1.default);
+app.use("/api/users", user_routes_1.default);
+app.use("/api/roles", role_routes_1.default);
+app.use("/api/permissions", permission_routes_1.default);
 // app.use("/api/students", studentRoutes);
 // app.use("/api/classes", classRoutes);
 app.get("/", (req, res) => {
