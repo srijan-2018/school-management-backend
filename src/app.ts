@@ -4,8 +4,10 @@ dotenv.config(); // ✅ MUST BE FIRST
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
 
 import { connectDB, sequelize } from "./config/db";
+import swaggerSpec from "./config/swagger";
 
 // ✅ Import ALL models (VERY IMPORTANT)
 import "./models/user.model";
@@ -75,6 +77,12 @@ app.use("/api/permissions", permissionRoutes);
 app.use("/api", erpRoutes);
 // app.use("/api/students", studentRoutes);
 // app.use("/api/classes", classRoutes);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 app.get("/", (req, res) => {
   res.send("School Backend Running 🚀");

@@ -17,7 +17,9 @@ dotenv_1.default.config(); // ✅ MUST BE FIRST
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const db_1 = require("./config/db");
+const swagger_1 = __importDefault(require("./config/swagger"));
 // ✅ Import ALL models (VERY IMPORTANT)
 require("./models/user.model");
 require("./models/class.model");
@@ -77,6 +79,11 @@ app.use("/api/permissions", permission_routes_1.default);
 app.use("/api", erp_routes_1.default);
 // app.use("/api/students", studentRoutes);
 // app.use("/api/classes", classRoutes);
+app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.default));
+app.get("/api-docs.json", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swagger_1.default);
+});
 app.get("/", (req, res) => {
     res.send("School Backend Running 🚀");
 });
