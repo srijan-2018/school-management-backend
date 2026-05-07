@@ -32,8 +32,7 @@ const verifyToken = (req, res, next) => {
 exports.verifyToken = verifyToken;
 const allowRoles = (...roles) => {
     return (req, res, next) => {
-        var _a;
-        const currentRole = (0, roles_1.normalizeRole)((_a = req.user) === null || _a === void 0 ? void 0 : _a.role);
+        const currentRole = (0, roles_1.normalizeRole)(req.user?.role);
         if (!currentRole || !roles.includes(currentRole)) {
             return res.status(403).json({ message: "Access denied" });
         }

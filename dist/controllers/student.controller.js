@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -24,9 +15,9 @@ exports.createStudent = (0, crud_helpers_1.create)(student_model_1.default, "stu
 exports.getStudentById = (0, crud_helpers_1.getById)(student_model_1.default, "student");
 exports.updateStudent = (0, crud_helpers_1.update)(student_model_1.default, "student");
 exports.deleteStudent = (0, crud_helpers_1.remove)(student_model_1.default, "student");
-const getStudentAttendance = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getStudentAttendance = async (req, res, next) => {
     try {
-        const attendance = yield attendance_model_1.default.findAll({
+        const attendance = await attendance_model_1.default.findAll({
             where: { studentId: req.params.id },
             order: [["date", "DESC"]],
         });
@@ -35,31 +26,31 @@ const getStudentAttendance = (req, res, next) => __awaiter(void 0, void 0, void 
     catch (err) {
         next(err);
     }
-});
+};
 exports.getStudentAttendance = getStudentAttendance;
-const getStudentResults = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getStudentResults = async (req, res, next) => {
     try {
-        const marks = yield mark_model_1.default.findAll({ where: { studentId: req.params.id } });
+        const marks = await mark_model_1.default.findAll({ where: { studentId: req.params.id } });
         res.json({ marks });
     }
     catch (err) {
         next(err);
     }
-});
+};
 exports.getStudentResults = getStudentResults;
-const getStudentFees = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getStudentFees = async (req, res, next) => {
     try {
-        const fees = yield fee_model_1.default.findAll({ where: { studentId: req.params.id } });
+        const fees = await fee_model_1.default.findAll({ where: { studentId: req.params.id } });
         res.json({ fees });
     }
     catch (err) {
         next(err);
     }
-});
+};
 exports.getStudentFees = getStudentFees;
-const getStudentDocuments = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getStudentDocuments = async (req, res, next) => {
     try {
-        const documents = yield student_document_model_1.default.findAll({
+        const documents = await student_document_model_1.default.findAll({
             where: { studentId: req.params.id },
         });
         res.json({ documents });
@@ -67,5 +58,5 @@ const getStudentDocuments = (req, res, next) => __awaiter(void 0, void 0, void 0
     catch (err) {
         next(err);
     }
-});
+};
 exports.getStudentDocuments = getStudentDocuments;

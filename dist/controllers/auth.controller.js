@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -38,10 +29,9 @@ const generateTokens = (user) => {
     return { accessToken, refreshToken };
 };
 // REGISTER
-const register = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const register = async (req, res, next) => {
     try {
-        const { name, email, password, role } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { name, email, password, role } = req.body ?? {};
         if (!name || !email || !password || !role) {
             return res.status(400).json({
                 message: "name, email, password and role are required",
@@ -54,12 +44,12 @@ const register = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
                 message: `Invalid role. Allowed roles: ${roles_1.USER_ROLES.join(", ")}`,
             });
         }
-        const exist = yield user_model_1.default.findOne({ where: { email: normalizedEmail } });
+        const exist = await user_model_1.default.findOne({ where: { email: normalizedEmail } });
         if (exist) {
             return res.status(400).json({ message: "User already exists" });
         }
-        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-        const user = yield user_model_1.default.create({
+        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
+        const user = await user_model_1.default.create({
             name: String(name).trim(),
             email: normalizedEmail,
             password: hashedPassword,
@@ -85,23 +75,22 @@ const register = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
     catch (err) {
         next(err);
     }
-});
+};
 exports.register = register;
 // LOGIN
-const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const login = async (req, res, next) => {
     try {
-        const { email, password } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { email, password } = req.body ?? {};
         if (!email || !password) {
             return res.status(400).json({
                 message: "email and password are required",
             });
         }
         const normalizedEmail = String(email).trim().toLowerCase();
-        const user = yield user_model_1.default.findOne({ where: { email: normalizedEmail } });
+        const user = await user_model_1.default.findOne({ where: { email: normalizedEmail } });
         if (!user)
             return res.status(404).json({ message: "User not found" });
-        const isMatch = yield bcryptjs_1.default.compare(password, user.password);
+        const isMatch = await bcryptjs_1.default.compare(password, user.password);
         if (!isMatch)
             return res.status(400).json({ message: "Wrong password" });
         const { accessToken, refreshToken } = generateTokens(user);
@@ -121,12 +110,11 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
     catch (err) {
         next(err);
     }
-});
+};
 exports.login = login;
-const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const refreshToken = async (req, res, next) => {
     try {
-        const { refreshToken } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { refreshToken } = req.body ?? {};
         if (!refreshToken) {
             return res.status(400).json({ message: "refreshToken is required" });
         }
@@ -145,7 +133,7 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             typeof decoded.role !== "string") {
             return res.status(401).json({ message: "Invalid refresh token" });
         }
-        const user = yield user_model_1.default.findByPk(decoded.id);
+        const user = await user_model_1.default.findByPk(decoded.id);
         if (!user) {
             return res.status(401).json({ message: "Invalid refresh token" });
         }
@@ -160,12 +148,11 @@ const refreshToken = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     catch (err) {
         return res.status(401).json({ message: "Invalid refresh token" });
     }
-});
+};
 exports.refreshToken = refreshToken;
-const logout = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const logout = async (req, res, next) => {
     try {
-        const { refreshToken } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { refreshToken } = req.body ?? {};
         if (!refreshToken) {
             return res.status(400).json({ message: "refreshToken is required" });
         }
@@ -177,13 +164,12 @@ const logout = (req, res, next) => __awaiter(void 0, void 0, void 0, function* (
     catch (err) {
         next(err);
     }
-});
+};
 exports.logout = logout;
-const changePassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+const changePassword = async (req, res, next) => {
     try {
-        const { currentPassword, newPassword } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
-        const userId = (_b = req.user) === null || _b === void 0 ? void 0 : _b.id;
+        const { currentPassword, newPassword } = req.body ?? {};
+        const userId = req.user?.id;
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized" });
         }
@@ -197,16 +183,16 @@ const changePassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 message: "newPassword must be at least 6 characters",
             });
         }
-        const user = yield user_model_1.default.findByPk(userId);
+        const user = await user_model_1.default.findByPk(userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        const isMatch = yield bcryptjs_1.default.compare(currentPassword, user.password);
+        const isMatch = await bcryptjs_1.default.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Current password is wrong" });
         }
-        user.password = yield bcryptjs_1.default.hash(newPassword, 10);
-        yield user.save();
+        user.password = await bcryptjs_1.default.hash(newPassword, 10);
+        await user.save();
         res.json({
             message: "Password changed successfully",
         });
@@ -214,17 +200,16 @@ const changePassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     catch (err) {
         next(err);
     }
-});
+};
 exports.changePassword = changePassword;
-const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const forgotPassword = async (req, res, next) => {
     try {
-        const { email } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { email } = req.body ?? {};
         if (!email) {
             return res.status(400).json({ message: "email is required" });
         }
         const normalizedEmail = String(email).trim().toLowerCase();
-        const user = yield user_model_1.default.findOne({ where: { email: normalizedEmail } });
+        const user = await user_model_1.default.findOne({ where: { email: normalizedEmail } });
         if (!user) {
             return res.json({
                 message: "If the email exists, a password reset token has been created",
@@ -237,7 +222,7 @@ const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
             .digest("hex");
         user.resetPasswordToken = hashedResetToken;
         user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
-        yield user.save();
+        await user.save();
         const response = {
             message: "Password reset token created",
         };
@@ -250,12 +235,11 @@ const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     catch (err) {
         next(err);
     }
-});
+};
 exports.forgotPassword = forgotPassword;
-const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const resetPassword = async (req, res, next) => {
     try {
-        const { resetToken, newPassword } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { resetToken, newPassword } = req.body ?? {};
         if (!resetToken || !newPassword) {
             return res.status(400).json({
                 message: "resetToken and newPassword are required",
@@ -270,7 +254,7 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
             .createHash("sha256")
             .update(String(resetToken))
             .digest("hex");
-        const user = yield user_model_1.default.findOne({
+        const user = await user_model_1.default.findOne({
             where: {
                 resetPasswordToken: hashedResetToken,
             },
@@ -282,10 +266,10 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
                 message: "Invalid or expired reset token",
             });
         }
-        user.password = yield bcryptjs_1.default.hash(newPassword, 10);
+        user.password = await bcryptjs_1.default.hash(newPassword, 10);
         user.resetPasswordToken = null;
         user.resetPasswordExpires = null;
-        yield user.save();
+        await user.save();
         res.json({
             message: "Password reset successfully",
         });
@@ -293,5 +277,5 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     catch (err) {
         next(err);
     }
-});
+};
 exports.resetPassword = resetPassword;

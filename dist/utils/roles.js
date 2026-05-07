@@ -29,7 +29,6 @@ const ROLE_ALIASES = {
     driver: "driver",
 };
 const normalizeRole = (value) => {
-    var _a;
     if (typeof value !== "string") {
         return null;
     }
@@ -40,7 +39,7 @@ const normalizeRole = (value) => {
     if (normalizedValue in ROLE_ALIASES) {
         return ROLE_ALIASES[normalizedValue];
     }
-    return (_a = ROLE_ALIASES[value.trim().toLowerCase()]) !== null && _a !== void 0 ? _a : null;
+    return ROLE_ALIASES[value.trim().toLowerCase()] ?? null;
 };
 exports.normalizeRole = normalizeRole;
 const isUserRole = (value) => {

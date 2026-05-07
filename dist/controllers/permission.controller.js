@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -16,9 +7,9 @@ exports.assignPermissions = exports.createPermission = exports.getPermissions = 
 const permission_model_1 = __importDefault(require("../models/permission.model"));
 const role_model_1 = __importDefault(require("../models/role.model"));
 const role_permission_model_1 = __importDefault(require("../models/role-permission.model"));
-const getPermissions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getPermissions = async (req, res, next) => {
     try {
-        const permissions = yield permission_model_1.default.findAll({
+        const permissions = await permission_model_1.default.findAll({
             order: [["id", "DESC"]],
         });
         res.json({ permissions });
@@ -26,16 +17,15 @@ const getPermissions = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     catch (err) {
         next(err);
     }
-});
+};
 exports.getPermissions = getPermissions;
-const createPermission = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const createPermission = async (req, res, next) => {
     try {
-        const { name, description } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { name, description } = req.body ?? {};
         if (!name) {
             return res.status(400).json({ message: "name is required" });
         }
-        const permission = yield permission_model_1.default.create({
+        const permission = await permission_model_1.default.create({
             name: String(name).trim().toLowerCase(),
             description,
         });
@@ -47,22 +37,21 @@ const createPermission = (req, res, next) => __awaiter(void 0, void 0, void 0, f
     catch (err) {
         next(err);
     }
-});
+};
 exports.createPermission = createPermission;
-const assignPermissions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const assignPermissions = async (req, res, next) => {
     try {
-        const { roleId, permissionIds } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { roleId, permissionIds } = req.body ?? {};
         if (!roleId || !Array.isArray(permissionIds)) {
             return res.status(400).json({
                 message: "roleId and permissionIds array are required",
             });
         }
-        const role = yield role_model_1.default.findByPk(roleId);
+        const role = await role_model_1.default.findByPk(roleId);
         if (!role) {
             return res.status(404).json({ message: "Role not found" });
         }
-        const permissions = yield permission_model_1.default.findAll({
+        const permissions = await permission_model_1.default.findAll({
             where: { id: permissionIds },
         });
         if (permissions.length !== permissionIds.length) {
@@ -70,12 +59,12 @@ const assignPermissions = (req, res, next) => __awaiter(void 0, void 0, void 0, 
                 message: "One or more permissionIds are invalid",
             });
         }
-        yield role_permission_model_1.default.destroy({ where: { roleId } });
-        yield role_permission_model_1.default.bulkCreate(permissionIds.map((permissionId) => ({
+        await role_permission_model_1.default.destroy({ where: { roleId } });
+        await role_permission_model_1.default.bulkCreate(permissionIds.map((permissionId) => ({
             roleId,
             permissionId,
         })));
-        const updatedRole = yield role_model_1.default.findByPk(roleId, {
+        const updatedRole = await role_model_1.default.findByPk(roleId, {
             include: [permission_model_1.default],
         });
         res.json({
@@ -86,5 +75,5 @@ const assignPermissions = (req, res, next) => __awaiter(void 0, void 0, void 0, 
     catch (err) {
         next(err);
     }
-});
+};
 exports.assignPermissions = assignPermissions;

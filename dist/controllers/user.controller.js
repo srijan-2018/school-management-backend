@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,9 +10,9 @@ const roles_1 = require("../utils/roles");
 const userSafeAttributes = {
     exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
 };
-const getUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getUsers = async (req, res, next) => {
     try {
-        const users = yield user_model_1.default.findAll({
+        const users = await user_model_1.default.findAll({
             attributes: userSafeAttributes,
             order: [["id", "DESC"]],
         });
@@ -30,12 +21,11 @@ const getUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
     catch (err) {
         next(err);
     }
-});
+};
 exports.getUsers = getUsers;
-const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const createUser = async (req, res, next) => {
     try {
-        const { name, email, password, role } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        const { name, email, password, role } = req.body ?? {};
         if (!name || !email || !password || !role) {
             return res.status(400).json({
                 message: "name, email, password and role are required",
@@ -48,17 +38,17 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             });
         }
         const normalizedEmail = String(email).trim().toLowerCase();
-        const exist = yield user_model_1.default.findOne({ where: { email: normalizedEmail } });
+        const exist = await user_model_1.default.findOne({ where: { email: normalizedEmail } });
         if (exist) {
             return res.status(400).json({ message: "User already exists" });
         }
-        const user = yield user_model_1.default.create({
+        const user = await user_model_1.default.create({
             name: String(name).trim(),
             email: normalizedEmail,
-            password: yield bcryptjs_1.default.hash(password, 10),
+            password: await bcryptjs_1.default.hash(password, 10),
             role: normalizedRole,
         });
-        const createdUser = yield user_model_1.default.findByPk(user.get("id"), {
+        const createdUser = await user_model_1.default.findByPk(user.get("id"), {
             attributes: userSafeAttributes,
         });
         res.status(201).json({
@@ -69,11 +59,11 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     catch (err) {
         next(err);
     }
-});
+};
 exports.createUser = createUser;
-const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const getUserById = async (req, res, next) => {
     try {
-        const user = yield user_model_1.default.findByPk(String(req.params.id), {
+        const user = await user_model_1.default.findByPk(String(req.params.id), {
             attributes: userSafeAttributes,
         });
         if (!user) {
@@ -84,13 +74,12 @@ const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
     catch (err) {
         next(err);
     }
-});
+};
 exports.getUserById = getUserById;
-const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const updateUser = async (req, res, next) => {
     try {
-        const { name, email, password, role } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
-        const user = yield user_model_1.default.findByPk(String(req.params.id));
+        const { name, email, password, role } = req.body ?? {};
+        const user = await user_model_1.default.findByPk(String(req.params.id));
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -101,7 +90,7 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             user.name = String(name).trim();
         }
         if (password) {
-            user.password = yield bcryptjs_1.default.hash(password, 10);
+            user.password = await bcryptjs_1.default.hash(password, 10);
         }
         if (role) {
             const normalizedRole = (0, roles_1.normalizeRole)(role);
@@ -112,8 +101,8 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             }
             user.role = normalizedRole;
         }
-        yield user.save();
-        const updatedUser = yield user_model_1.default.findByPk(user.id, {
+        await user.save();
+        const updatedUser = await user_model_1.default.findByPk(user.id, {
             attributes: userSafeAttributes,
         });
         res.json({
@@ -124,19 +113,19 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     catch (err) {
         next(err);
     }
-});
+};
 exports.updateUser = updateUser;
-const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const deleteUser = async (req, res, next) => {
     try {
-        const user = yield user_model_1.default.findByPk(String(req.params.id));
+        const user = await user_model_1.default.findByPk(String(req.params.id));
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        yield user.destroy();
+        await user.destroy();
         res.json({ message: "User deleted successfully" });
     }
     catch (err) {
         next(err);
     }
-});
+};
 exports.deleteUser = deleteUser;

@@ -213,7 +213,8 @@ const options = {
                 },
             },
         },
-        paths: Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({ "/auth/register": {
+        paths: {
+            "/auth/register": {
                 post: {
                     tags: ["Auth"],
                     summary: "Register a user",
@@ -232,7 +233,8 @@ const options = {
                         400: messageResponse("Validation error"),
                     },
                 },
-            }, "/auth/login": {
+            },
+            "/auth/login": {
                 post: {
                     tags: ["Auth"],
                     summary: "Log in",
@@ -252,7 +254,8 @@ const options = {
                         404: messageResponse("User not found"),
                     },
                 },
-            }, "/auth/refresh-token": {
+            },
+            "/auth/refresh-token": {
                 post: {
                     tags: ["Auth"],
                     summary: "Refresh access token",
@@ -264,7 +267,8 @@ const options = {
                         401: messageResponse("Invalid refresh token"),
                     },
                 },
-            }, "/auth/logout": {
+            },
+            "/auth/logout": {
                 post: {
                     tags: ["Auth"],
                     summary: "Log out",
@@ -276,7 +280,8 @@ const options = {
                         400: messageResponse("Validation error"),
                     },
                 },
-            }, "/auth/change-password": {
+            },
+            "/auth/change-password": {
                 put: {
                     tags: ["Auth"],
                     summary: "Change password",
@@ -295,7 +300,8 @@ const options = {
                         401: messageResponse("Unauthorized"),
                     },
                 },
-            }, "/auth/forgot-password": {
+            },
+            "/auth/forgot-password": {
                 post: {
                     tags: ["Auth"],
                     summary: "Create password reset token",
@@ -311,7 +317,8 @@ const options = {
                         400: messageResponse("Validation error"),
                     },
                 },
-            }, "/auth/reset-password": {
+            },
+            "/auth/reset-password": {
                 post: {
                     tags: ["Auth"],
                     summary: "Reset password",
@@ -328,21 +335,22 @@ const options = {
                         400: messageResponse("Validation error"),
                     },
                 },
-            } }, protectedCrudPaths("Users", "user", "users", "/users", [
-            "list",
-            "create",
-            "get",
-            "update",
-            "delete",
-        ])), protectedCrudPaths("Roles", "role", "roles", "/roles", [
-            "list",
-            "create",
-            "update",
-            "delete",
-        ])), protectedCrudPaths("Permissions", "permission", "permissions", "/permissions", [
-            "list",
-            "create",
-        ])), { "/permissions/assign": {
+            },
+            ...protectedCrudPaths("Users", "user", "users", "/users", [
+                "list",
+                "create",
+                "get",
+                "update",
+                "delete",
+            ]),
+            ...protectedCrudPaths("Roles", "role", "roles", "/roles", [
+                "list",
+                "create",
+                "update",
+                "delete",
+            ]),
+            ...protectedCrudPaths("Permissions", "permission", "permissions", "/permissions", ["list", "create"]),
+            "/permissions/assign": {
                 post: {
                     tags: ["Permissions"],
                     summary: "Assign permissions to a role",
@@ -353,18 +361,21 @@ const options = {
                         401: messageResponse("Unauthorized"),
                     },
                 },
-            } }), protectedCrudPaths("Schools", "school", "schools", "/schools", [
-            "list",
-            "create",
-            "get",
-            "update",
-        ])), protectedCrudPaths("Students", "student", "students", "/students", [
-            "list",
-            "create",
-            "get",
-            "update",
-            "delete",
-        ])), { "/students/{id}/attendance": {
+            },
+            ...protectedCrudPaths("Schools", "school", "schools", "/schools", [
+                "list",
+                "create",
+                "get",
+                "update",
+            ]),
+            ...protectedCrudPaths("Students", "student", "students", "/students", [
+                "list",
+                "create",
+                "get",
+                "update",
+                "delete",
+            ]),
+            "/students/{id}/attendance": {
                 get: {
                     tags: ["Students"],
                     summary: "Get student attendance",
@@ -372,7 +383,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student attendance") },
                 },
-            }, "/students/{id}/results": {
+            },
+            "/students/{id}/results": {
                 get: {
                     tags: ["Students"],
                     summary: "Get student results",
@@ -380,7 +392,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student results") },
                 },
-            }, "/students/{id}/fees": {
+            },
+            "/students/{id}/fees": {
                 get: {
                     tags: ["Students"],
                     summary: "Get student fees",
@@ -388,7 +401,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student fees") },
                 },
-            }, "/students/{id}/documents": {
+            },
+            "/students/{id}/documents": {
                 get: {
                     tags: ["Students"],
                     summary: "Get student documents",
@@ -396,12 +410,14 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student documents") },
                 },
-            } }), protectedCrudPaths("Teachers", "teacher", "teachers", "/teachers", [
-            "list",
-            "create",
-            "update",
-            "delete",
-        ])), { "/teachers/{id}/classes": {
+            },
+            ...protectedCrudPaths("Teachers", "teacher", "teachers", "/teachers", [
+                "list",
+                "create",
+                "update",
+                "delete",
+            ]),
+            "/teachers/{id}/classes": {
                 get: {
                     tags: ["Teachers"],
                     summary: "Get teacher classes",
@@ -409,7 +425,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Teacher classes") },
                 },
-            }, "/teachers/{id}/schedule": {
+            },
+            "/teachers/{id}/schedule": {
                 get: {
                     tags: ["Teachers"],
                     summary: "Get teacher schedule",
@@ -417,11 +434,13 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Teacher schedule") },
                 },
-            } }), protectedCrudPaths("Parents", "parent", "parents", "/parents", [
-            "list",
-            "create",
-            "update",
-        ])), { "/parents/{id}/students": {
+            },
+            ...protectedCrudPaths("Parents", "parent", "parents", "/parents", [
+                "list",
+                "create",
+                "update",
+            ]),
+            "/parents/{id}/students": {
                 get: {
                     tags: ["Parents"],
                     summary: "Get parent students",
@@ -429,20 +448,24 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Parent students") },
                 },
-            } }), protectedCrudPaths("Classes", "class", "classes", "/classes", [
-            "list",
-            "create",
-            "update",
-            "delete",
-        ])), protectedCrudPaths("Sections", "section", "sections", "/sections", [
-            "list",
-            "create",
-        ])), protectedCrudPaths("Subjects", "subject", "subjects", "/subjects", [
-            "list",
-            "create",
-            "update",
-            "delete",
-        ])), { "/attendance/mark": {
+            },
+            ...protectedCrudPaths("Classes", "class", "classes", "/classes", [
+                "list",
+                "create",
+                "update",
+                "delete",
+            ]),
+            ...protectedCrudPaths("Sections", "section", "sections", "/sections", [
+                "list",
+                "create",
+            ]),
+            ...protectedCrudPaths("Subjects", "subject", "subjects", "/subjects", [
+                "list",
+                "create",
+                "update",
+                "delete",
+            ]),
+            "/attendance/mark": {
                 post: {
                     tags: ["Attendance"],
                     summary: "Mark attendance",
@@ -450,7 +473,8 @@ const options = {
                     requestBody: objectBody("Mark attendance"),
                     responses: { 201: messageResponse("Attendance marked") },
                 },
-            }, "/attendance/class/{classId}": {
+            },
+            "/attendance/class/{classId}": {
                 get: {
                     tags: ["Attendance"],
                     summary: "Get attendance by class",
@@ -458,7 +482,8 @@ const options = {
                     parameters: [idParameter("classId", "Class id")],
                     responses: { 200: messageResponse("Class attendance") },
                 },
-            }, "/attendance/student/{studentId}": {
+            },
+            "/attendance/student/{studentId}": {
                 get: {
                     tags: ["Attendance"],
                     summary: "Get attendance by student",
@@ -466,17 +491,19 @@ const options = {
                     parameters: [idParameter("studentId", "Student id")],
                     responses: { 200: messageResponse("Student attendance") },
                 },
-            } }), protectedCrudPaths("Attendance", "attendance", "attendance", "/attendance", [
-            "update",
-        ])), protectedCrudPaths("Exams", "exam", "exams", "/exams", [
-            "list",
-            "create",
-            "get",
-            "update",
-        ])), protectedCrudPaths("Marks", "mark", "marks", "/marks", [
-            "create",
-            "update",
-        ])), { "/marks/student/{id}": {
+            },
+            ...protectedCrudPaths("Attendance", "attendance", "attendance", "/attendance", ["update"]),
+            ...protectedCrudPaths("Exams", "exam", "exams", "/exams", [
+                "list",
+                "create",
+                "get",
+                "update",
+            ]),
+            ...protectedCrudPaths("Marks", "mark", "marks", "/marks", [
+                "create",
+                "update",
+            ]),
+            "/marks/student/{id}": {
                 get: {
                     tags: ["Marks"],
                     summary: "Get marks by student",
@@ -484,7 +511,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student marks") },
                 },
-            }, "/mock-test/generate": {
+            },
+            "/mock-test/generate": {
                 post: {
                     tags: ["Mock Tests"],
                     summary: "Generate mock test",
@@ -492,7 +520,8 @@ const options = {
                     requestBody: objectBody("Generate mock test"),
                     responses: { 200: messageResponse("Mock test generated") },
                 },
-            }, "/mock-test/submit": {
+            },
+            "/mock-test/submit": {
                 post: {
                     tags: ["Mock Tests"],
                     summary: "Submit mock test",
@@ -500,7 +529,8 @@ const options = {
                     requestBody: objectBody("Submit mock test"),
                     responses: { 200: messageResponse("Mock test submitted") },
                 },
-            }, "/mock-test/result/{id}": {
+            },
+            "/mock-test/result/{id}": {
                 get: {
                     tags: ["Mock Tests"],
                     summary: "Get mock test result",
@@ -508,7 +538,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Mock test result") },
                 },
-            }, "/mock-test/ai-suggestion/{id}": {
+            },
+            "/mock-test/ai-suggestion/{id}": {
                 get: {
                     tags: ["Mock Tests"],
                     summary: "Get mock test AI suggestion",
@@ -516,10 +547,9 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Mock test AI suggestion") },
                 },
-            } }), protectedCrudPaths("Assignments", "assignment", "assignments", "/assignments", [
-            "list",
-            "create",
-        ])), { "/assignments/submit": {
+            },
+            ...protectedCrudPaths("Assignments", "assignment", "assignments", "/assignments", ["list", "create"]),
+            "/assignments/submit": {
                 post: {
                     tags: ["Assignments"],
                     summary: "Submit assignment",
@@ -527,7 +557,8 @@ const options = {
                     requestBody: objectBody("Submit assignment"),
                     responses: { 201: messageResponse("Assignment submitted") },
                 },
-            }, "/assignments/student/{id}": {
+            },
+            "/assignments/student/{id}": {
                 get: {
                     tags: ["Assignments"],
                     summary: "Get assignments by student",
@@ -535,10 +566,9 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student assignments") },
                 },
-            } }), protectedCrudPaths("Timetable", "timetable entry", "timetable", "/timetable", [
-            "create",
-            "update",
-        ])), { "/timetable/class/{id}": {
+            },
+            ...protectedCrudPaths("Timetable", "timetable entry", "timetable", "/timetable", ["create", "update"]),
+            "/timetable/class/{id}": {
                 get: {
                     tags: ["Timetable"],
                     summary: "Get timetable by class",
@@ -546,7 +576,9 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Class timetable") },
                 },
-            } }), protectedCrudPaths("Fees", "fee", "fees", "/fees", ["create"])), { "/fees/student/{id}": {
+            },
+            ...protectedCrudPaths("Fees", "fee", "fees", "/fees", ["create"]),
+            "/fees/student/{id}": {
                 get: {
                     tags: ["Fees"],
                     summary: "Get fees by student",
@@ -554,7 +586,8 @@ const options = {
                     parameters: [idParameter()],
                     responses: { 200: messageResponse("Student fees") },
                 },
-            }, "/fees/payment": {
+            },
+            "/fees/payment": {
                 post: {
                     tags: ["Fees"],
                     summary: "Create fee payment",
@@ -562,21 +595,24 @@ const options = {
                     requestBody: objectBody("Create fee payment"),
                     responses: { 201: messageResponse("Fee payment created") },
                 },
-            }, "/fees/transactions": {
+            },
+            "/fees/transactions": {
                 get: {
                     tags: ["Fees"],
                     summary: "Get fee transactions",
                     security: [{ bearerAuth: [] }],
                     responses: { 200: messageResponse("Fee transactions") },
                 },
-            }, "/fees/defaulters": {
+            },
+            "/fees/defaulters": {
                 get: {
                     tags: ["Fees"],
                     summary: "Get fee defaulters",
                     security: [{ bearerAuth: [] }],
                     responses: { 200: messageResponse("Fee defaulters") },
                 },
-            } }),
+            },
+        },
     },
     apis: ["./src/routes/*.ts", "./src/controllers/*.ts"],
 };
