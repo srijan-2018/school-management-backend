@@ -35,6 +35,8 @@ export const verifyToken = (
   }
 };
 
+console.log("test")
+
 export const allowRoles = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const currentRole = normalizeRole((req as any).user?.role);
