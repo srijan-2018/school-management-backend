@@ -26,9 +26,9 @@ const generateTokens = (user: { id: number; role: string }) => {
 
   const payload = { id: user.id, role: user.role };
 
-  const accessToken = jwt.sign(payload, jwtSecret, { expiresIn: "15m" });
+  const accessToken = jwt.sign(payload, jwtSecret, { expiresIn: "30m" });
   const refreshToken = jwt.sign(payload, refreshTokenSecret, {
-    expiresIn: "7d",
+    expiresIn: "30d",
   });
 
   return { accessToken, refreshToken };
