@@ -46,7 +46,24 @@ const error_middleware_1 = require("./middlewares/error.middleware");
 // import studentRoutes from "./routes/student.routes";
 // import classRoutes from "./routes/class.routes";
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+const configuredOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+const corsOptions = {
+    origin(origin, callback) {
+        if (!origin || configuredOrigins.length === 0 || configuredOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
+};
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 app.use((0, morgan_1.default)("dev"));
 // ✅ Connect DB
@@ -68,8 +85,6 @@ app.use("/api/users", user_routes_1.default);
 app.use("/api/roles", role_routes_1.default);
 app.use("/api/permissions", permission_routes_1.default);
 app.use("/api", erp_routes_1.default);
-// app.use("/api/students", studentRoutes);
-// app.use("/api/classes", classRoutes);
 app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.default));
 app.get("/api-docs.json", (req, res) => {
     res.setHeader("Content-Type", "application/json");

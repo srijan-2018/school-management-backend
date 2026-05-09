@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config(); // ✅ MUST BE FIRST
 
 import express from "express";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 
@@ -40,17 +40,42 @@ import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
 import permissionRoutes from "./routes/permission.routes";
 import erpRoutes from "./routes/erp.routes";
-import {
-  errorHandler,
-  notFoundHandler,
-} from "./middlewares/error.middleware";
+import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 // (later)
 // import studentRoutes from "./routes/student.routes";
 // import classRoutes from "./routes/class.routes";
 
 const app = express();
 
-app.use(cors());
+const configuredOrigins = (
+  process.env.CORS_ORIGIN ||
+  process.env.FRONTEND_URL ||
+  ""
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    if (
+      !origin ||
+      configuredOrigins.length === 0 ||
+      configuredOrigins.includes(origin)
+    ) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan("dev"));
 
@@ -75,8 +100,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api", erpRoutes);
-// app.use("/api/students", studentRoutes);
-// app.use("/api/classes", classRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get("/api-docs.json", (req, res) => {
