@@ -204,6 +204,15 @@ const options: swaggerJsdoc.Options = {
             user: { $ref: "#/components/schemas/AuthUser" },
           },
         },
+        LoginResponse: {
+          type: "object",
+          properties: {
+            message: { type: "string" },
+            accessToken: { type: "string" },
+            refreshToken: { type: "string" },
+            user: { $ref: "#/components/schemas/AuthUser" },
+          },
+        },
         RegisterRequest: {
           type: "object",
           required: ["name", "email", "password", "role"],
@@ -244,7 +253,7 @@ const options: swaggerJsdoc.Options = {
               description: "User registered",
               content: {
                 "application/json": {
-                  schema: { $ref: "#/components/schemas/AuthResponse" },
+                  schema: { $ref: "#/components/schemas/LoginResponse" },
                 },
               },
             },

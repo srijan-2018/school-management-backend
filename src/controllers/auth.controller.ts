@@ -121,7 +121,6 @@ export const login = async (
 
     res.json({
       message: "Login successful",
-      token: accessToken,
       accessToken,
       refreshToken,
       user: {
