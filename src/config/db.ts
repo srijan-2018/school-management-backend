@@ -9,6 +9,13 @@ export const sequelize = new Sequelize(
     port: Number(process.env.DB_PORT),
     dialect: "mysql",
     logging: false,
+
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
   },
 );
 
@@ -17,6 +24,6 @@ export const connectDB = async () => {
     await sequelize.authenticate();
     console.log("Database connected ✅");
   } catch (error: any) {
-    console.error("DB Error ❌:", error.message);
+    console.error("DB Error ❌:", error);
   }
 };
