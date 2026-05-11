@@ -291,12 +291,9 @@ export const forgotPassword = async (
 
     const response: Record<string, unknown> = {
       message: "Password reset token created",
+      resetToken,
+      expiresIn: "15 minutes",
     };
-
-    if (process.env.NODE_ENV !== "production") {
-      response.resetToken = resetToken;
-      response.expiresIn = "15 minutes";
-    }
 
     res.json(response);
   } catch (err) {

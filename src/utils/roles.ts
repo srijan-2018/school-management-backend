@@ -34,15 +34,6 @@ export const normalizeRole = (value: unknown): UserRole | null => {
     return null;
   }
 
-  const normalizedValue = value
-    .trim()
-    .toLowerCase()
-    .replace(/[-\s]+/g, "_");
-
-  if (normalizedValue in ROLE_ALIASES) {
-    return ROLE_ALIASES[normalizedValue];
-  }
-
   return ROLE_ALIASES[value.trim().toLowerCase()] ?? null;
 };
 

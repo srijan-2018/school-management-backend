@@ -340,7 +340,32 @@ const options: swaggerJsdoc.Options = {
             },
           }),
           responses: {
-            200: messageResponse("Password reset token created"),
+            200: {
+              description: "Password reset token created",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: {
+                        type: "string",
+                        example: "Password reset token created",
+                      },
+                      resetToken: {
+                        type: "string",
+                        example:
+                          "4f6d4d95b970f4c7ab4f4ef7088878e9911da1839683fec7cb6b7727e9e9833a",
+                      },
+                      expiresIn: {
+                        type: "string",
+                        example: "15 minutes",
+                      },
+                    },
+                    required: ["message", "resetToken", "expiresIn"],
+                  },
+                },
+              },
+            },
             400: messageResponse("Validation error"),
           },
         },
