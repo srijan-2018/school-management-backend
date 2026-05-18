@@ -32,21 +32,28 @@ export const generateMockTest = async (
     } = req.body ?? {};
 
     const normalizedLevel = String(level ?? "").toLowerCase();
-    if (!allowedLevels.includes(normalizedLevel as (typeof allowedLevels)[number])) {
+    if (
+      !allowedLevels.includes(normalizedLevel as (typeof allowedLevels)[number])
+    ) {
       return res.status(400).json({
         message: "level is required and must be one of: easy, medium, hard",
       });
     }
 
-    const selectedClass: any = classId ? await Class.findByPk(String(classId)) : null;
-    const selectedSubject: any = subjectId ? await Subject.findByPk(String(subjectId)) : null;
+    const selectedClass: any = classId
+      ? await Class.findByPk(String(classId))
+      : null;
+    const selectedSubject: any = subjectId
+      ? await Subject.findByPk(String(subjectId))
+      : null;
 
     const resolvedClassName = selectedClass?.name ?? className;
     const resolvedSubjectName = selectedSubject?.name ?? subjectName;
 
     if (!resolvedClassName || !resolvedSubjectName) {
       return res.status(400).json({
-        message: "className and subjectName are required, or provide valid classId and subjectId",
+        message:
+          "className and subjectName are required, or provide valid classId and subjectId",
       });
     }
 
@@ -76,8 +83,17 @@ export const generateMockTest = async (
       model: generated.model,
       mockTest,
     });
-  } catch (err) {
-    next(err);
+  } catch (err: any) {
+    console.error("========== MOCK TEST ERROR ==========");
+    console.error(err);
+    console.error("MESSAGE:", err?.message);
+    console.error("STACK:", err?.stack);
+
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Internal Server Error",
+      stack: err?.stack,
+    });
   }
 };
 
@@ -87,9 +103,11 @@ export const submitMockTest = async (
   next: NextFunction,
 ) => {
   try {
-    const { mockTestId, submittedAnswers, result, aiSuggestion } = req.body ?? {};
+    const { mockTestId, submittedAnswers, result, aiSuggestion } =
+      req.body ?? {};
     const mockTest: any = await MockTest.findByPk(mockTestId);
-    if (!mockTest) return res.status(404).json({ message: "mockTest not found" });
+    if (!mockTest)
+      return res.status(404).json({ message: "mockTest not found" });
 
     await mockTest.update({
       submittedAnswers,
@@ -111,7 +129,8 @@ export const getMockTestAiSuggestion = async (
 ) => {
   try {
     const mockTest: any = await MockTest.findByPk(String(req.params.id));
-    if (!mockTest) return res.status(404).json({ message: "mockTest not found" });
+    if (!mockTest)
+      return res.status(404).json({ message: "mockTest not found" });
     res.json({ aiSuggestion: mockTest.aiSuggestion, result: mockTest.result });
   } catch (err) {
     next(err);
