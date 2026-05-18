@@ -19,6 +19,10 @@ const router = Router();
 
 router.use(verifyToken);
 
+const methodNotAllowed = (message: string) => (_req: any, res: any) => {
+  res.status(405).json({ message });
+};
+
 router.get("/schools", school.getSchools);
 router.post("/schools", allowRoles("admin", "school_owner"), school.createSchool);
 router.get("/schools/:id", school.getSchoolById);
@@ -73,7 +77,11 @@ router.post("/marks", mark.createMark);
 router.get("/marks/student/:id", mark.getMarksByStudent);
 router.put("/marks/:id", mark.updateMark);
 
-router.post("/mock-test/generate", mockTest.generateMockTest);
+router.get(
+  ["/mock-test/generate", "/mock-tests/generate"],
+  methodNotAllowed("Use POST /api/mock-test/generate to generate a mock test"),
+);
+router.post(["/mock-test/generate", "/mock-tests/generate"], mockTest.generateMockTest);
 router.post("/mock-test/submit", mockTest.submitMockTest);
 router.get("/mock-test/result/:id", mockTest.getMockTestResult);
 router.get("/mock-test/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);

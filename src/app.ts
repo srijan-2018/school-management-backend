@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config(); // ✅ MUST BE FIRST
+dotenv.config({ override: true }); // ✅ MUST BE FIRST
 
 import express from "express";
 import cors from "cors";
@@ -50,6 +50,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+
+console.log("AI provider:", process.env.AI_PROVIDER ?? "groq");
+console.log("AI model:", process.env.GROQ_MODEL ?? "llama-3.1-8b-instant");
 
 // ✅ Connect DB
 connectDB();

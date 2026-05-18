@@ -10,6 +10,7 @@
     "dev": "ts-node-dev --respawn src/app.ts",
     "dev:nodemon": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
     "db:dedupe-indexes": "ts-node src/scripts/drop-duplicate-unique-indexes.ts",
+    "db:sync-mock-test": "ts-node src/scripts/sync-mock-test-columns.ts",
     "build": "tsc",
     "start": "node dist/app.js"
   },
