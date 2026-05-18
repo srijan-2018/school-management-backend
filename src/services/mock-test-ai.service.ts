@@ -37,7 +37,8 @@ Subject: ${subjectName}
 Difficulty level: ${level}
 Number of questions: ${questionCount}
 
-Return only valid JSON in this exact shape:
+Return ONLY valid JSON in this exact structure:
+
 {
   "title": "string",
   "questions": [
@@ -51,9 +52,11 @@ Return only valid JSON in this exact shape:
 }
 
 Rules:
-- Questions must match the class, subject, and level.
-- Each question must have exactly 4 options.
-- Do not include markdown or extra text.
+- Questions must match the class, subject, and difficulty level.
+- Each question must contain exactly 4 options.
+- Do not return markdown.
+- Do not return explanation outside JSON.
+- Return only pure JSON.
 `;
 
 const validateQuestions = (questions: unknown): MockQuestion[] => {
@@ -63,6 +66,7 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
 
   return questions.map((question, index) => {
     const item = question as Partial<MockQuestion>;
+
     if (
       typeof item.question !== "string" ||
       !Array.isArray(item.options) ||
@@ -104,23 +108,27 @@ const normalizeGeneratedMockTest = (
 
 export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
   const provider =
-    process.env.AI_PROVIDER?.trim().replace(/^["']|["']$/g, "").toLowerCase() ??
-    "groq";
+    process.env.AI_PROVIDER?.trim()
+      .replace(/^["']|["']$/g, "")
+      .toLowerCase() ?? "groq";
+
+  console.log("AI Provider =>", provider);
+
   if (provider !== "groq") {
-    throw new Error(
-      `This mock test generator is configured to use Groq. Current AI_PROVIDER is "${provider}". Set AI_PROVIDER=groq in .env and restart the server.`,
-    );
+    throw new Error(`Invalid AI_PROVIDER "${provider}". Expected "groq".`);
   }
 
   const apiKey = process.env.GROQ_API_KEY;
+
   if (!apiKey) {
-    throw new Error(
-      "GROQ_API_KEY is required. Create a key at https://console.groq.com/keys, add it to .env, and restart the server.",
-    );
+    throw new Error("GROQ_API_KEY is missing");
   }
 
-  const model = process.env.GROQ_MODEL ?? "llama-3.1-8b-instant";
-  let response: Response;
+  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+
+  console.log("Using GROQ Model =>", model);
+
+  let response;
 
   try {
     response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -135,37 +143,60 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
           {
             role: "system",
             content:
-              "You generate school mock tests. Return only valid JSON and no markdown.",
+              "You generate school mock tests. Return ONLY pure valid JSON without markdown.",
           },
-          { role: "user", content: buildPrompt(input) },
+          {
+            role: "user",
+            content: buildPrompt(input),
+          },
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.4,
+        temperature: 0.3,
       }),
     });
-  } catch {
-    throw new Error(
-      "Could not connect to Groq. Check your internet connection and GROQ_API_KEY.",
-    );
+  } catch (error) {
+    console.error("GROQ CONNECTION ERROR =>", error);
+
+    throw new Error("Could not connect to Groq API");
   }
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `Groq request failed with status ${response.status}: ${errorText}`,
-    );
+
+    console.error("GROQ API ERROR =>", errorText);
+
+    throw new Error(`Groq API failed with status ${response.status}`);
   }
 
   const data = (await response.json()) as GroqChatCompletionResponse;
+
+  console.log("GROQ RAW RESPONSE =>");
+  console.dir(data, { depth: null });
+
   const outputText = data.choices?.[0]?.message?.content;
+
   if (!outputText) {
-    throw new Error("Groq response was empty");
+    throw new Error("Groq returned empty content");
   }
 
-  return normalizeGeneratedMockTest(
-    JSON.parse(outputText),
-    input,
-    "groq",
-    model,
-  );
+  console.log("RAW OUTPUT =>", outputText);
+
+  const cleanedOutput = outputText
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  console.log("CLEANED OUTPUT =>", cleanedOutput);
+
+  let parsed;
+
+  try {
+    parsed = JSON.parse(cleanedOutput);
+  } catch (error) {
+    console.error("JSON PARSE ERROR =>");
+    console.error(cleanedOutput);
+
+    throw new Error("Invalid JSON returned from Groq");
+  }
+
+  return normalizeGeneratedMockTest(parsed, input, "groq", model);
 };
