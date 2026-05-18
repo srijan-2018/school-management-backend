@@ -34,6 +34,14 @@ export const errorHandler = (
       ? "Internal Server Error"
       : error.message || "Internal Server Error";
 
+  console.error("Request failed", {
+    method: req.method,
+    path: req.originalUrl,
+    statusCode,
+    message: error.message,
+    stack: error.stack,
+  });
+
   const response: Record<string, unknown> = {
     success: false,
     message,
