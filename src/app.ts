@@ -57,7 +57,8 @@ connectDB();
 // ✅ Sync DB properly
 const syncDatabase = async () => {
   try {
-    await sequelize.sync({ alter: true }); // auto update tables
+    const shouldAlter = process.env.DB_SYNC_ALTER === "true";
+    await sequelize.sync({ alter: shouldAlter });
     console.log("Database synced ✅");
   } catch (error) {
     console.error("Sync error ❌", error);

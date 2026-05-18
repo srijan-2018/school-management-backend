@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn src/app.ts",
+    "db:dedupe-indexes": "ts-node src/scripts/drop-duplicate-unique-indexes.ts",
     "build": "tsc",
     "start": "node dist/app.js"
   },
