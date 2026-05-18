@@ -1,5 +1,5 @@
 import Subject from "../models/subject.model";
-import { create, list, remove, update } from "./crud.helpers";
+import { create, list, remove, update } from "../helpers/crud.helpers";
 
 export const getSubjects = list(Subject, "subjects");
 export const createSubject = create(Subject, "subject");

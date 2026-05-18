@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Assignment from "../models/assignment.model";
 import AssignmentSubmission from "../models/assignment-submission.model";
-import { create, list } from "./crud.helpers";
+import { create, list } from "../helpers/crud.helpers";
 
 export const createAssignment = create(Assignment, "assignment");
 export const getAssignments = list(Assignment, "assignments");

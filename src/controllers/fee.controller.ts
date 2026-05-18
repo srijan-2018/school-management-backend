@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Fee from "../models/fee.model";
 import FeePayment from "../models/fee-payment.model";
-import { create, list } from "./crud.helpers";
+import { create, list } from "../helpers/crud.helpers";
 
 export const createFee = create(Fee, "fee");
 export const getFeeTransactions = list(FeePayment, "transactions");

@@ -4,7 +4,7 @@ import Attendance from "../models/attendance.model";
 import Mark from "../models/mark.model";
 import Fee from "../models/fee.model";
 import StudentDocument from "../models/student-document.model";
-import { create, getById, list, remove, update } from "./crud.helpers";
+import { create, getById, list, remove, update } from "../helpers/crud.helpers";
 
 export const getStudents = list(Student, "students");
 export const createStudent = create(Student, "student");

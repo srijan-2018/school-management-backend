@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Teacher from "../models/teacher.model";
 import TeacherClass from "../models/teacher-class.model";
 import Timetable from "../models/timetable.model";
-import { create, list, remove, update } from "./crud.helpers";
+import { create, list, remove, update } from "../helpers/crud.helpers";
 
 export const getTeachers = list(Teacher, "teachers");
 export const createTeacher = create(Teacher, "teacher");

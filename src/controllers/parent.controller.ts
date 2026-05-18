@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Parent from "../models/parent.model";
 import ParentStudent from "../models/parent-student.model";
-import { list, update } from "./crud.helpers";
+import { list, update } from "../helpers/crud.helpers";
 
 export const getParents = list(Parent, "parents");
 export const updateParent = update(Parent, "parent");

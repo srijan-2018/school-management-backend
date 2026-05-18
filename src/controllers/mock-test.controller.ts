@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Class from "../models/class.model";
 import MockTest from "../models/mock-test.model";
 import Subject from "../models/subject.model";
-import { getById } from "./crud.helpers";
+import { getById } from "../helpers/crud.helpers";
 import { generateMockTestWithAi } from "../services/mock-test-ai.service";
 
 export const getMockTestResult = getById(MockTest, "mockTest");

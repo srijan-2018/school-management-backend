@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import Timetable from "../models/timetable.model";
-import { create, update } from "./crud.helpers";
+import { create, update } from "../helpers/crud.helpers";
 
 export const createTimetable = create(Timetable, "timetable");
 export const updateTimetable = update(Timetable, "timetable");

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import Attendance from "../models/attendance.model";
-import { create, update } from "./crud.helpers";
+import { create, update } from "../helpers/crud.helpers";
 
 export const markAttendance = create(Attendance, "attendance");
 export const updateAttendance = update(Attendance, "attendance");

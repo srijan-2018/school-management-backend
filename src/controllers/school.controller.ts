@@ -1,5 +1,5 @@
 import School from "../models/school.model";
-import { create, getById, list, update } from "./crud.helpers";
+import { create, getById, list, update } from "../helpers/crud.helpers";
 
 export const getSchools = list(School, "schools");
 export const createSchool = create(School, "school");
