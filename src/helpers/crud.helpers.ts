@@ -1,5 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 
+const pluralize = (key: string) => {
+  if (key.endsWith("s")) return `${key}es`;
+  if (key.endsWith("y")) return `${key.slice(0, -1)}ies`;
+  return `${key}s`;
+};
+
 export const list =
   (model: any, key: string) =>
   async (req: Request, res: Response, next: NextFunction) => {
@@ -15,6 +21,19 @@ export const create =
   (model: any, key: string) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (Array.isArray(req.body)) {
+        if (req.body.length === 0) {
+          return res.status(400).json({ message: `${pluralize(key)} payload cannot be empty` });
+        }
+
+        const rows = await model.bulkCreate(req.body, { validate: true });
+
+        return res.status(201).json({
+          message: `${pluralize(key)} created successfully`,
+          [pluralize(key)]: rows,
+        });
+      }
+
       const row = await model.create(req.body ?? {});
       res.status(201).json({
         message: `${key} created successfully`,

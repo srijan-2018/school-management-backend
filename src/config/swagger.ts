@@ -40,6 +40,25 @@ const objectBody = (title: string) =>
     additionalProperties: true,
   });
 
+const createBody = (title: string) =>
+  jsonContent({
+    oneOf: [
+      {
+        type: "object",
+        description: `${title} payload. Send fields that match your Sequelize model.`,
+        additionalProperties: true,
+      },
+      {
+        type: "array",
+        description: `Bulk ${title.toLowerCase()} payload.`,
+        items: {
+          type: "object",
+          additionalProperties: true,
+        },
+      },
+    ],
+  });
+
 const protectedCrudPaths = (
   tag: string,
   itemName: string,
@@ -69,7 +88,7 @@ const protectedCrudPaths = (
       tags: [tag],
       summary: `Create ${itemName}`,
       security: [{ bearerAuth: [] }],
-      requestBody: objectBody(`Create ${itemName}`),
+      requestBody: createBody(`Create ${itemName}`),
       responses: {
         201: messageResponse(`${itemName} created`),
         400: messageResponse("Validation error"),
@@ -510,12 +529,16 @@ const options: swaggerJsdoc.Options = {
       ...protectedCrudPaths("Classes", "class", "classes", "/classes", [
         "list",
         "create",
+        "get",
         "update",
         "delete",
       ]),
       ...protectedCrudPaths("Sections", "section", "sections", "/sections", [
         "list",
         "create",
+        "get",
+        "update",
+        "delete",
       ]),
       ...protectedCrudPaths("Subjects", "subject", "subjects", "/subjects", [
         "list",

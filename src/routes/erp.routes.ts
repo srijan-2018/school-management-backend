@@ -24,44 +24,129 @@ const methodNotAllowed = (message: string) => (_req: any, res: any) => {
 };
 
 router.get("/schools", school.getSchools);
-router.post("/schools", allowRoles("admin", "school_owner"), school.createSchool);
+router.post(
+  "/schools",
+  allowRoles("admin", "school_owner"),
+  school.createSchool,
+);
 router.get("/schools/:id", school.getSchoolById);
-router.put("/schools/:id", allowRoles("admin", "school_owner"), school.updateSchool);
+router.put(
+  "/schools/:id",
+  allowRoles("admin", "school_owner"),
+  school.updateSchool,
+);
 
 router.get("/students", student.getStudents);
-router.post("/students", allowRoles("admin", "school_owner", "head_teacher"), student.createStudent);
+router.post(
+  "/students",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  student.createStudent,
+);
 router.get("/students/:id", student.getStudentById);
-router.put("/students/:id", allowRoles("admin", "school_owner", "head_teacher"), student.updateStudent);
-router.delete("/students/:id", allowRoles("admin", "school_owner"), student.deleteStudent);
+router.put(
+  "/students/:id",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  student.updateStudent,
+);
+router.delete(
+  "/students/:id",
+  allowRoles("admin", "school_owner"),
+  student.deleteStudent,
+);
 router.get("/students/:id/attendance", student.getStudentAttendance);
 router.get("/students/:id/results", student.getStudentResults);
 router.get("/students/:id/fees", student.getStudentFees);
 router.get("/students/:id/documents", student.getStudentDocuments);
 
 router.get("/teachers", teacher.getTeachers);
-router.post("/teachers", allowRoles("admin", "school_owner", "head_teacher"), teacher.createTeacher);
-router.put("/teachers/:id", allowRoles("admin", "school_owner", "head_teacher"), teacher.updateTeacher);
-router.delete("/teachers/:id", allowRoles("admin", "school_owner"), teacher.deleteTeacher);
+router.post(
+  "/teachers",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  teacher.createTeacher,
+);
+router.put(
+  "/teachers/:id",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  teacher.updateTeacher,
+);
+router.delete(
+  "/teachers/:id",
+  allowRoles("admin", "school_owner"),
+  teacher.deleteTeacher,
+);
 router.get("/teachers/:id/classes", teacher.getTeacherClasses);
 router.get("/teachers/:id/schedule", teacher.getTeacherSchedule);
 
 router.get("/parents", parent.getParents);
-router.post("/parents", allowRoles("admin", "school_owner", "head_teacher"), parent.createParent);
-router.put("/parents/:id", allowRoles("admin", "school_owner", "head_teacher"), parent.updateParent);
+router.post(
+  "/parents",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  parent.createParent,
+);
+router.put(
+  "/parents/:id",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  parent.updateParent,
+);
 router.get("/parents/:id/students", parent.getParentStudents);
 
 router.get("/classes", classController.getClasses);
-router.post("/classes", allowRoles("admin", "school_owner", "head_teacher"), classController.createClass);
-router.put("/classes/:id", allowRoles("admin", "school_owner", "head_teacher"), classController.updateClass);
-router.delete("/classes/:id", allowRoles("admin", "school_owner"), classController.deleteClass);
+router.post(
+  "/classes",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  classController.createClass,
+);
+router.get("/classes/:id", classController.getClassById);
+router.post(
+  "/classes/:classId/sections",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  section.createSection,
+);
+router.put(
+  "/classes/:id",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  classController.updateClass,
+);
+router.delete(
+  "/classes/:id",
+  allowRoles("admin", "school_owner"),
+  classController.deleteClass,
+);
 
 router.get("/sections", section.getSections);
-router.post("/sections", allowRoles("admin", "school_owner", "head_teacher"), section.createSection);
+router.post(
+  "/sections",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  section.createSection,
+);
+router.get("/sections/:id", section.getSectionById);
+router.put(
+  "/sections/:id",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  section.updateSection,
+);
+router.delete(
+  "/sections/:id",
+  allowRoles("admin", "school_owner"),
+  section.deleteSection,
+);
 
 router.get("/subjects", subject.getSubjects);
-router.post("/subjects", allowRoles("admin", "school_owner", "head_teacher"), subject.createSubject);
-router.put("/subjects/:id", allowRoles("admin", "school_owner", "head_teacher"), subject.updateSubject);
-router.delete("/subjects/:id", allowRoles("admin", "school_owner"), subject.deleteSubject);
+router.post(
+  "/subjects",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  subject.createSubject,
+);
+router.put(
+  "/subjects/:id",
+  allowRoles("admin", "school_owner", "head_teacher"),
+  subject.updateSubject,
+);
+router.delete(
+  "/subjects/:id",
+  allowRoles("admin", "school_owner"),
+  subject.deleteSubject,
+);
 
 router.post("/attendance/mark", attendance.markAttendance);
 router.get("/attendance/class/:classId", attendance.getAttendanceByClass);
@@ -81,7 +166,10 @@ router.get(
   ["/mock-test/generate", "/mock-tests/generate"],
   methodNotAllowed("Use POST /api/mock-test/generate to generate a mock test"),
 );
-router.post(["/mock-test/generate", "/mock-tests/generate"], mockTest.generateMockTest);
+router.post(
+  ["/mock-test/generate", "/mock-tests/generate"],
+  mockTest.generateMockTest,
+);
 router.post("/mock-test/submit", mockTest.submitMockTest);
 router.get("/mock-test/result/:id", mockTest.getMockTestResult);
 router.get("/mock-test/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);

@@ -4,7 +4,7 @@ import { sequelize } from "../config/db";
 class Class extends Model {
   public id!: number;
   public name!: string;
-  public section!: string;
+  public section?: string | null;
 }
 
 Class.init(
@@ -15,7 +15,7 @@ Class.init(
     },
     section: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
   },
   {
