@@ -83,17 +83,8 @@ export const generateMockTest = async (
       model: generated.model,
       mockTest,
     });
-  } catch (err: any) {
-    console.error("========== MOCK TEST ERROR ==========");
-    console.error(err);
-    console.error("MESSAGE:", err?.message);
-    console.error("STACK:", err?.stack);
-
-    return res.status(500).json({
-      success: false,
-      message: err?.message || "Internal Server Error",
-      stack: err?.stack,
-    });
+  } catch (err) {
+    next(err);
   }
 };
 
