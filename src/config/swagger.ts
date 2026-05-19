@@ -599,6 +599,22 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Student marks") },
         },
       },
+      "/mock-tests": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "List mock tests",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("Mock tests list") },
+        },
+      },
+      "/mock-tests/progress": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "Get mock test progress summary",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("Mock test progress") },
+        },
+      },
       "/mock-test/generate": {
         post: {
           tags: ["Mock Tests"],
@@ -633,6 +649,15 @@ const options: swaggerJsdoc.Options = {
           security: [{ bearerAuth: [] }],
           parameters: [idParameter()],
           responses: { 200: messageResponse("Mock test AI suggestion") },
+        },
+      },
+      "/mock-test/{id}/pdf": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "Download mock test PDF",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Mock test PDF") },
         },
       },
       ...protectedCrudPaths(

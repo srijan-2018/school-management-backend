@@ -168,11 +168,21 @@ router.get(
 );
 router.post(
   ["/mock-test/generate", "/mock-tests/generate"],
+  allowRoles("admin", "school_owner", "head_teacher", "teacher", "student"),
   mockTest.generateMockTest,
+);
+router.get(["/mock-test", "/mock-tests"], mockTest.getMockTests);
+router.get(
+  ["/mock-test/progress", "/mock-tests/progress"],
+  mockTest.getMockTestProgress,
 );
 router.post("/mock-test/submit", mockTest.submitMockTest);
 router.get("/mock-test/result/:id", mockTest.getMockTestResult);
 router.get("/mock-test/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);
+router.get(
+  ["/mock-test/:id/pdf", "/mock-tests/:id/pdf"],
+  mockTest.downloadMockTestPdf,
+);
 
 router.post("/assignments", assignment.createAssignment);
 router.get("/assignments", assignment.getAssignments);
