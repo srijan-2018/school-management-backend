@@ -7,6 +7,7 @@ import Subject from "../models/subject.model";
 import { AppError } from "../middlewares/error.middleware";
 import {
   generateMockTestWithAi,
+  type MockOption,
   type MockQuestion,
 } from "../services/mock-test-ai.service";
 import { normalizeRole, type UserRole } from "../utils/roles";
@@ -243,6 +244,109 @@ const buildPerformanceSuggestion = (
   return `More practice is needed in ${subjectName}. Revisit the basics, study each explanation carefully, and attempt an easier mock test before moving up.`;
 };
 
+const buildGenerationSuggestion = (subjectName: string, level: string) =>
+  `Attempt this ${level} ${subjectName} mock test carefully, review each explanation after submission, and use the missed questions to plan your next revision.`;
+
+const optionLabels = ["A", "B", "C", "D"] as const;
+
+const getQuestionOptions = (options: unknown): MockOption[] => {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  return options
+    .filter(
+      (option): option is MockOption =>
+        isObject(option) &&
+        typeof option.key === "string" &&
+        typeof option.text === "string",
+    )
+    .map((option) => ({
+      key: option.key,
+      text: option.text,
+    }));
+};
+
+const buildOptionMap = (options: unknown) => {
+  return getQuestionOptions(options).reduce<Record<string, string>>(
+    (result, option, index) => {
+      const label =
+        option.key || optionLabels[index] || String.fromCharCode(65 + index);
+      result[label] = option.text;
+      return result;
+    },
+    {},
+  );
+};
+
+const buildLabeledOptions = (options: unknown) =>
+  getQuestionOptions(options).map((option, index) => ({
+    label: option.key || optionLabels[index] || String.fromCharCode(65 + index),
+    text: option.text,
+  }));
+
+const findOptionByKey = (options: unknown, key: string) =>
+  getQuestionOptions(options).find(
+    (option) => option.key.toLowerCase() === key.toLowerCase(),
+  );
+
+const findOptionByText = (options: unknown, text: string) =>
+  getQuestionOptions(options).find((option) => option.text === text);
+
+const findOptionLabel = (options: unknown, answer: unknown) => {
+  if (typeof answer !== "string") {
+    return null;
+  }
+
+  const optionByKey = findOptionByKey(options, answer);
+  if (optionByKey) {
+    return optionByKey.key;
+  }
+
+  return findOptionByText(options, answer)?.key ?? null;
+};
+
+const resolveSubmittedAnswer = (
+  options: MockOption[],
+  answer: string | null,
+) => {
+  if (!answer) {
+    return null;
+  }
+
+  const normalizedAnswer = answer.trim();
+
+  if (!normalizedAnswer) {
+    return null;
+  }
+
+  const optionByKey = options.find(
+    (option) => option.key.toLowerCase() === normalizedAnswer.toLowerCase(),
+  );
+
+  if (optionByKey) {
+    return optionByKey.key;
+  }
+
+  return (
+    options.find((option) => option.text === normalizedAnswer)?.key ??
+    normalizedAnswer
+  );
+};
+
+const findOptionText = (options: unknown, answer: unknown) => {
+  if (typeof answer !== "string") {
+    return null;
+  }
+
+  const optionByKey = findOptionByKey(options, answer);
+  if (optionByKey) {
+    return optionByKey.text;
+  }
+
+  return findOptionByText(options, answer)?.text ?? null;
+};
+
 const serializeQuestions = (questions: unknown, includeAnswers: boolean) => {
   if (!Array.isArray(questions)) {
     return [];
@@ -254,10 +358,14 @@ const serializeQuestions = (questions: unknown, includeAnswers: boolean) => {
     return {
       index,
       question: item.question ?? "",
-      options: Array.isArray(item.options) ? item.options : [],
+      options: getQuestionOptions(item.options),
       ...(includeAnswers
         ? {
             correctAnswer: item.correctAnswer ?? null,
+            correctAnswerLabel: findOptionLabel(
+              item.options,
+              item.correctAnswer,
+            ),
             explanation: item.explanation ?? null,
           }
         : {}),
@@ -330,20 +438,33 @@ const buildMockTestResult = (mockTest: any, submittedAnswers: unknown) => {
   }
 
   const answers = normalizeSubmittedAnswers(submittedAnswers, questions.length);
-  const answerList = questions.map(
-    (_question, index) => answers.get(index) ?? null,
+  const answerList = questions.map((question, index) =>
+    resolveSubmittedAnswer(question.options, answers.get(index) ?? null),
   );
 
   const questionResults = questions.map((question, index) => {
-    const selectedAnswer = answers.get(index) ?? null;
+    const selectedAnswer = resolveSubmittedAnswer(
+      question.options,
+      answers.get(index) ?? null,
+    );
     const isCorrect = selectedAnswer === question.correctAnswer;
 
     return {
       index,
       question: question.question,
-      options: question.options,
+      options: getQuestionOptions(question.options),
       selectedAnswer,
+      selectedAnswerLabel: findOptionLabel(question.options, selectedAnswer),
+      selectedAnswerText: findOptionText(question.options, selectedAnswer),
       correctAnswer: question.correctAnswer,
+      correctAnswerLabel: findOptionLabel(
+        question.options,
+        question.correctAnswer,
+      ),
+      correctAnswerText: findOptionText(
+        question.options,
+        question.correctAnswer,
+      ),
       explanation: question.explanation,
       isCorrect,
     };
@@ -583,17 +704,31 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
       ensureSpace(140);
 
       doc.fontSize(11).text(`${index + 1}. ${String(question.question ?? "")}`);
-      const options = Array.isArray(question.options) ? question.options : [];
+      const options = getQuestionOptions(question.options);
       options.forEach((option) => {
-        doc.text(`- ${String(option)}`);
+        doc.text(`${option.key}. ${option.text}`);
       });
 
       if (includeAnswers) {
         const resultQuestion = resultQuestions[index];
-        doc.text(`Correct Answer: ${String(question.correctAnswer ?? "N/A")}`);
+        const correctAnswerText = findOptionText(
+          question.options,
+          question.correctAnswer,
+        );
+
+        doc.text(
+          `Correct Answer: ${String(question.correctAnswer ?? "N/A")}${correctAnswerText ? `. ${correctAnswerText}` : ""}`,
+        );
 
         if (resultQuestion?.selectedAnswer) {
-          doc.text(`Selected Answer: ${String(resultQuestion.selectedAnswer)}`);
+          const selectedAnswerText = findOptionText(
+            question.options,
+            resultQuestion.selectedAnswer,
+          );
+
+          doc.text(
+            `Selected Answer: ${String(resultQuestion.selectedAnswer)}${selectedAnswerText ? `. ${selectedAnswerText}` : ""}`,
+          );
           doc.text(
             `Result: ${resultQuestion.isCorrect ? "Correct" : "Incorrect"}`,
           );
@@ -745,10 +880,14 @@ export const generateMockTest = async (
       title: generated.title,
       level: normalizedLevel,
       questions: generated.questions,
+      aiSuggestion: buildGenerationSuggestion(
+        String(resolvedContext.subjectName),
+        normalizedLevel,
+      ),
       status: "generated",
     });
 
-    const includeAnswers = isManagerRole(currentUser.role);
+    const includeAnswers = true;
 
     res.status(201).json({
       message:
