@@ -533,6 +533,20 @@ const options: swaggerJsdoc.Options = {
         "update",
         "delete",
       ]),
+      "/classes/{classId}/sections": {
+        post: {
+          tags: ["Sections"],
+          summary: "Create section for a class",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter("classId", "Class id")],
+          requestBody: objectBody("Create section"),
+          responses: {
+            201: messageResponse("Section created"),
+            400: messageResponse("Validation error"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
       ...protectedCrudPaths("Sections", "section", "sections", "/sections", [
         "list",
         "create",
@@ -540,12 +554,118 @@ const options: swaggerJsdoc.Options = {
         "update",
         "delete",
       ]),
-      ...protectedCrudPaths("Subjects", "subject", "subjects", "/subjects", [
-        "list",
-        "create",
-        "update",
-        "delete",
-      ]),
+      "/subjects": {
+        get: {
+          tags: ["Subjects"],
+          summary: "List subjects",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: messageResponse("Subjects list"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+        post: {
+          tags: ["Subjects"],
+          summary: "Create subject",
+          description:
+            "Create one subject for a class, or send an array to add multiple subjects class-wise in one request.",
+          security: [{ bearerAuth: [] }],
+          requestBody: jsonContent({
+            oneOf: [
+              {
+                type: "object",
+                required: ["name", "classId"],
+                properties: {
+                  name: {
+                    type: "string",
+                    example: "Mathematics",
+                  },
+                  classId: {
+                    type: "integer",
+                    example: 1,
+                  },
+                },
+              },
+              {
+                type: "array",
+                description:
+                  "Bulk create subjects for the same or different classes.",
+                items: {
+                  type: "object",
+                  required: ["name", "classId"],
+                  properties: {
+                    name: {
+                      type: "string",
+                      example: "Science",
+                    },
+                    classId: {
+                      type: "integer",
+                      example: 1,
+                    },
+                  },
+                },
+                example: [
+                  {
+                    name: "Mathematics",
+                    classId: 1,
+                  },
+                  {
+                    name: "Science",
+                    classId: 1,
+                  },
+                  {
+                    name: "English",
+                    classId: 2,
+                  },
+                ],
+              },
+            ],
+          }),
+          responses: {
+            201: messageResponse("Subject created"),
+            400: messageResponse("Validation error"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/subjects/{id}": {
+        put: {
+          tags: ["Subjects"],
+          summary: "Update subject",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                example: "Advanced Mathematics",
+              },
+              classId: {
+                type: "integer",
+                example: 1,
+              },
+            },
+          }),
+          responses: {
+            200: messageResponse("Subject updated"),
+            400: messageResponse("Validation error"),
+            401: messageResponse("Unauthorized"),
+            404: messageResponse("Not found"),
+          },
+        },
+        delete: {
+          tags: ["Subjects"],
+          summary: "Delete subject",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: {
+            200: messageResponse("Subject deleted"),
+            401: messageResponse("Unauthorized"),
+            404: messageResponse("Not found"),
+          },
+        },
+      },
       "/attendance/mark": {
         post: {
           tags: ["Attendance"],
@@ -599,12 +719,28 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Student marks") },
         },
       },
+      "/mock-test": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "List mock tests",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("Mock tests list") },
+        },
+      },
       "/mock-tests": {
         get: {
           tags: ["Mock Tests"],
           summary: "List mock tests",
           security: [{ bearerAuth: [] }],
           responses: { 200: messageResponse("Mock tests list") },
+        },
+      },
+      "/mock-test/progress": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "Get mock test progress summary",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("Mock test progress") },
         },
       },
       "/mock-tests/progress": {
@@ -616,6 +752,15 @@ const options: swaggerJsdoc.Options = {
         },
       },
       "/mock-test/generate": {
+        post: {
+          tags: ["Mock Tests"],
+          summary: "Generate mock test",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Generate mock test"),
+          responses: { 200: messageResponse("Mock test generated") },
+        },
+      },
+      "/mock-tests/generate": {
         post: {
           tags: ["Mock Tests"],
           summary: "Generate mock test",
@@ -652,6 +797,15 @@ const options: swaggerJsdoc.Options = {
         },
       },
       "/mock-test/{id}/pdf": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "Download mock test PDF",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Mock test PDF") },
+        },
+      },
+      "/mock-tests/{id}/pdf": {
         get: {
           tags: ["Mock Tests"],
           summary: "Download mock test PDF",
