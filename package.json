@@ -7,15 +7,10 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "ts-node-dev --respawn src/app.ts",
-    "dev:nodemon": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
-    "db:sync-classes": "ts-node src/scripts/sync-class-columns.ts",
-    "db:dedupe-indexes": "ts-node src/scripts/drop-duplicate-unique-indexes.ts",
-    "db:sync-mock-test": "ts-node src/scripts/sync-mock-test-columns.ts",
-    "db:sync-sections": "ts-node src/scripts/sync-section-columns.ts",
-    "db:sync-students": "ts-node src/scripts/sync-student-columns.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/index.js",
+    "db:sync": "tsx src/scripts/db-sync.ts"
   },
   "keywords": [],
   "author": "",
