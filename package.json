@@ -11,7 +11,6 @@
     "dev:nodemon": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "db:sync": "node dist/scripts/db-sync.js",
     "db:sync-classes": "node dist/scripts/sync-class-columns.js",
     "db:dedupe-indexes": "node dist/scripts/drop-duplicate-unique-indexes.js",
     "db:sync-mock-test": "node dist/scripts/sync-mock-test-columns.js",
