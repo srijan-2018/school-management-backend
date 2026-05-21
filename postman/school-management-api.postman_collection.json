@@ -41,7 +41,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"title\": \"Algebra Homework\",\n  \"description\": \"Solve questions 1 to 10\",\n  \"classId\": 1,\n  \"subjectId\": 1,\n  \"teacherId\": 1,\n  \"dueDate\": \"2026-05-30\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -50,8 +50,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/assignments",
-              "host": ["{{baseUrl}}"],
-              "path": ["assignments"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assignments"
+              ],
               "variable": []
             },
             "description": "Create assignment"
@@ -72,8 +76,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/assignments/student/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["assignments", "student", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assignments",
+                "student",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -99,8 +109,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/assignments",
-              "host": ["{{baseUrl}}"],
-              "path": ["assignments"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assignments"
+              ],
               "variable": []
             },
             "description": "List assignments"
@@ -126,7 +140,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"assignmentId\": 1,\n  \"studentId\": 1,\n  \"submissionText\": \"My completed assignment answers\",\n  \"attachmentUrl\": \"https://example.com/submissions/assignment-1.pdf\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -135,8 +149,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/assignments/submit",
-              "host": ["{{baseUrl}}"],
-              "path": ["assignments", "submit"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assignments",
+                "submit"
+              ],
               "variable": []
             },
             "description": "Submit assignment"
@@ -150,6 +169,88 @@
       "name": "Attendance",
       "item": [
         {
+          "name": "Check in staff attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 6.5244,\n  \"longitude\": 3.3792,\n  \"locationText\": \"Main office gate\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "check-in"
+              ],
+              "variable": []
+            },
+            "description": "Check in staff attendance"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Check out staff attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 6.5244,\n  \"longitude\": 3.3792,\n  \"locationText\": \"Main office gate\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/check-out",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "check-out"
+              ],
+              "variable": []
+            },
+            "description": "Check out staff attendance"
+          },
+          "response": [],
+          "event": []
+        },
+        {
           "name": "Get attendance by class",
           "request": {
             "method": "GET",
@@ -162,8 +263,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/attendance/class/:classId",
-              "host": ["{{baseUrl}}"],
-              "path": ["attendance", "class", ":classId"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "class",
+                ":classId"
+              ],
               "variable": [
                 {
                   "key": "classId",
@@ -189,8 +296,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/attendance/student/:studentId",
-              "host": ["{{baseUrl}}"],
-              "path": ["attendance", "student", ":studentId"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "student",
+                ":studentId"
+              ],
               "variable": [
                 {
                   "key": "studentId",
@@ -199,6 +312,60 @@
               ]
             },
             "description": "Get attendance by student"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get attendance rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "rules"
+              ],
+              "variable": []
+            },
+            "description": "Get attendance rules"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get my staff attendance history",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "me"
+              ],
+              "variable": []
+            },
+            "description": "Get my staff attendance history"
           },
           "response": [],
           "event": []
@@ -221,7 +388,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"studentId\": 1,\n  \"classId\": 1,\n  \"date\": \"2026-05-21\",\n  \"status\": \"present\",\n  \"remarks\": \"On time\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -230,8 +397,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/attendance/mark",
-              "host": ["{{baseUrl}}"],
-              "path": ["attendance", "mark"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "mark"
+              ],
               "variable": []
             },
             "description": "Mark attendance"
@@ -257,7 +429,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"status\": \"late\",\n  \"remarks\": \"Arrived after assembly\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -266,8 +438,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/attendance/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["attendance", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -276,6 +453,47 @@
               ]
             },
             "description": "Update attendance"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update attendance rules",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workDayStartTime\": \"08:00\",\n  \"lateAfterTime\": \"08:15\",\n  \"checkOutStartTime\": \"15:00\",\n  \"requireLocation\": true,\n  \"officeLatitude\": 6.5244,\n  \"officeLongitude\": 3.3792,\n  \"allowedRadiusMeters\": 200\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "rules"
+              ],
+              "variable": []
+            },
+            "description": "Update attendance rules"
           },
           "response": [],
           "event": []
@@ -303,7 +521,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"string\",\n  \"newPassword\": \"string\"\n}",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -312,8 +530,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "change-password"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ],
               "variable": []
             },
             "description": "Change password"
@@ -343,8 +566,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/forgot-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "forgot-password"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ],
               "variable": []
             },
             "description": "Create password reset token"
@@ -374,8 +602,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ],
               "variable": []
             },
             "description": "Log in"
@@ -408,7 +641,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"string\"\n}",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -417,8 +650,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ],
               "variable": []
             },
             "description": "Log out"
@@ -450,7 +688,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"string\"\n}",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -459,8 +697,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/refresh-token",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "refresh-token"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh-token"
+              ],
               "variable": []
             },
             "description": "Refresh access token"
@@ -502,8 +745,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ],
               "variable": []
             },
             "description": "Register a user"
@@ -536,7 +784,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"resetToken\": \"string\",\n  \"newPassword\": \"string\"\n}",
+              "raw": "{\n  \"resetToken\": \"sample-reset-token\",\n  \"newPassword\": \"newPassword123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -545,8 +793,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/reset-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "reset-password"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ],
               "variable": []
             },
             "description": "Reset password"
@@ -577,7 +830,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Primary 5\",\n  \"section\": \"A\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -586,8 +839,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/classes",
-              "host": ["{{baseUrl}}"],
-              "path": ["classes"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classes"
+              ],
               "variable": []
             },
             "description": "Create class"
@@ -608,8 +865,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/classes/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["classes", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classes",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -635,8 +897,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/classes/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["classes", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classes",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -662,8 +929,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/classes",
-              "host": ["{{baseUrl}}"],
-              "path": ["classes"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classes"
+              ],
               "variable": []
             },
             "description": "List classes"
@@ -689,7 +960,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Primary 5\",\n  \"section\": \"B\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -698,8 +969,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/classes/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["classes", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classes",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -735,7 +1011,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"First Term Mathematics Exam\",\n  \"classId\": 1,\n  \"subjectId\": 1,\n  \"examDate\": \"2026-06-10\",\n  \"totalMarks\": 100\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -744,8 +1020,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/exams",
-              "host": ["{{baseUrl}}"],
-              "path": ["exams"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams"
+              ],
               "variable": []
             },
             "description": "Create exam"
@@ -766,8 +1046,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/exams/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["exams", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -793,8 +1078,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/exams",
-              "host": ["{{baseUrl}}"],
-              "path": ["exams"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams"
+              ],
               "variable": []
             },
             "description": "List exams"
@@ -820,7 +1109,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"First Term Mathematics Exam Updated\",\n  \"examDate\": \"2026-06-12\",\n  \"totalMarks\": 100\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -829,8 +1118,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/exams/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["exams", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -866,7 +1160,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"studentId\": 1,\n  \"amount\": 50000,\n  \"term\": \"First Term\",\n  \"session\": \"2026/2027\",\n  \"dueDate\": \"2026-06-01\",\n  \"description\": \"School fees for first term\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -875,8 +1169,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/fees",
-              "host": ["{{baseUrl}}"],
-              "path": ["fees"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees"
+              ],
               "variable": []
             },
             "description": "Create fee"
@@ -902,7 +1200,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"feeId\": 1,\n  \"amount\": 50000,\n  \"paymentDate\": \"2026-05-21\",\n  \"paymentMethod\": \"bank_transfer\",\n  \"reference\": \"TXN-10001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -911,8 +1209,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/fees/payment",
-              "host": ["{{baseUrl}}"],
-              "path": ["fees", "payment"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees",
+                "payment"
+              ],
               "variable": []
             },
             "description": "Create fee payment"
@@ -933,8 +1236,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/fees/defaulters",
-              "host": ["{{baseUrl}}"],
-              "path": ["fees", "defaulters"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees",
+                "defaulters"
+              ],
               "variable": []
             },
             "description": "Get fee defaulters"
@@ -955,8 +1263,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/fees/transactions",
-              "host": ["{{baseUrl}}"],
-              "path": ["fees", "transactions"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees",
+                "transactions"
+              ],
               "variable": []
             },
             "description": "Get fee transactions"
@@ -977,8 +1290,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/fees/student/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["fees", "student", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees",
+                "student",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1014,7 +1333,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"studentId\": 1,\n  \"subjectId\": 1,\n  \"examId\": 1,\n  \"score\": 85,\n  \"grade\": \"A\",\n  \"remarks\": \"Excellent work\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1023,8 +1342,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/marks",
-              "host": ["{{baseUrl}}"],
-              "path": ["marks"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marks"
+              ],
               "variable": []
             },
             "description": "Create mark"
@@ -1045,8 +1368,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/marks/student/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["marks", "student", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marks",
+                "student",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1077,7 +1406,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"score\": 88,\n  \"grade\": \"A\",\n  \"remarks\": \"Regraded after review\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1086,8 +1415,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/marks/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["marks", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "marks",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1117,36 +1451,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-test/:id/pdf",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-test", ":id", "pdf"],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Download mock test PDF"
-          },
-          "response": [],
-          "event": []
-        },
-        {
-          "name": "Download mock test PDF",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
               "raw": "{{baseUrl}}/mock-tests/:id/pdf",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-tests", ":id", "pdf"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                ":id",
+                "pdf"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1177,7 +1490,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"className\": \"Grade 10\",\n  \"subjectName\": \"Mathematics\",\n  \"level\": \"medium\",\n  \"questionCount\": 10\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1186,44 +1499,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/mock-tests/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-tests", "generate"],
-              "variable": []
-            },
-            "description": "Generate mock test"
-          },
-          "response": [],
-          "event": []
-        },
-        {
-          "name": "Generate mock test",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/mock-tests/generate",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-tests", "generate"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                "generate"
+              ],
               "variable": []
             },
             "description": "Generate mock test"
@@ -1243,9 +1525,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-test/ai-suggestion/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-test", "ai-suggestion", ":id"],
+              "raw": "{{baseUrl}}/mock-tests/ai-suggestion/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                "ai-suggestion",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1259,7 +1547,7 @@
           "event": []
         },
         {
-          "name": "Get mock test progress summary",
+          "name": "Get mock test by id",
           "request": {
             "method": "GET",
             "header": [
@@ -1270,12 +1558,22 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-test/progress",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-test", "progress"],
-              "variable": []
+              "raw": "{{baseUrl}}/mock-tests/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
             },
-            "description": "Get mock test progress summary"
+            "description": "Get mock test by id"
           },
           "response": [],
           "event": []
@@ -1293,8 +1591,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-tests/progress",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-tests", "progress"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                "progress"
+              ],
               "variable": []
             },
             "description": "Get mock test progress summary"
@@ -1314,9 +1617,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-test/result/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-test", "result", ":id"],
+              "raw": "{{baseUrl}}/mock-tests/result/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                "result",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1341,31 +1650,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-test",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-test"],
-              "variable": []
-            },
-            "description": "List mock tests"
-          },
-          "response": [],
-          "event": []
-        },
-        {
-          "name": "List mock tests",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
               "raw": "{{baseUrl}}/mock-tests",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-tests"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests"
+              ],
               "variable": []
             },
             "description": "List mock tests"
@@ -1391,7 +1682,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"mockTestId\": 1,\n  \"submittedAnswers\": [\n    {\n      \"questionIndex\": 0,\n      \"selectedAnswer\": \"A\"\n    },\n    {\n      \"questionIndex\": 1,\n      \"selectedAnswer\": \"B\"\n    }\n  ],\n  \"startTime\": \"2026-05-21T10:00:00.000Z\",\n  \"endTime\": \"2026-05-21T10:30:00.000Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1399,9 +1690,14 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/mock-test/submit",
-              "host": ["{{baseUrl}}"],
-              "path": ["mock-test", "submit"],
+              "raw": "{{baseUrl}}/mock-tests/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                "submit"
+              ],
               "variable": []
             },
             "description": "Submit mock test"
@@ -1432,7 +1728,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"userId\": 12,\n  \"phone\": \"+2348000000004\",\n  \"address\": \"45 Parent Avenue\",\n  \"studentIds\": [\n    1,\n    2\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1441,8 +1737,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/parents",
-              "host": ["{{baseUrl}}"],
-              "path": ["parents"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parents"
+              ],
               "variable": []
             },
             "description": "Create parent"
@@ -1463,8 +1763,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/parents/:id/students",
-              "host": ["{{baseUrl}}"],
-              "path": ["parents", ":id", "students"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parents",
+                ":id",
+                "students"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1490,8 +1796,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/parents",
-              "host": ["{{baseUrl}}"],
-              "path": ["parents"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parents"
+              ],
               "variable": []
             },
             "description": "List parents"
@@ -1517,7 +1827,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"phone\": \"+2348000000005\",\n  \"address\": \"46 Parent Avenue\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1526,8 +1836,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/parents/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["parents", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parents",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1563,7 +1878,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"roleId\": 1,\n  \"permissionIds\": [\n    1,\n    2,\n    3\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1572,8 +1887,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/permissions/assign",
-              "host": ["{{baseUrl}}"],
-              "path": ["permissions", "assign"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions",
+                "assign"
+              ],
               "variable": []
             },
             "description": "Assign permissions to a role"
@@ -1599,7 +1919,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"view_reports\",\n  \"description\": \"Can view academic reports\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1608,8 +1928,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["permissions"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions"
+              ],
               "variable": []
             },
             "description": "Create permission"
@@ -1630,8 +1954,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["permissions"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "permissions"
+              ],
               "variable": []
             },
             "description": "List permissions"
@@ -1662,7 +1990,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"hod\",\n  \"description\": \"Head of department role\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1671,8 +1999,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ],
               "variable": []
             },
             "description": "Create role"
@@ -1693,8 +2025,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/roles/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1720,8 +2057,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles"
+              ],
               "variable": []
             },
             "description": "List roles"
@@ -1747,7 +2088,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"hod_updated\",\n  \"description\": \"Updated head of department role\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1756,8 +2097,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/roles/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["roles", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roles",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1793,7 +2139,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Central High School\",\n  \"code\": \"CHS001\",\n  \"email\": \"info@centralhigh.edu\",\n  \"phone\": \"+2348000000000\",\n  \"address\": \"123 Main Street\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1802,8 +2148,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/schools",
-              "host": ["{{baseUrl}}"],
-              "path": ["schools"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "schools"
+              ],
               "variable": []
             },
             "description": "Create school"
@@ -1824,8 +2174,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/schools/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["schools", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "schools",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1851,8 +2206,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/schools",
-              "host": ["{{baseUrl}}"],
-              "path": ["schools"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "schools"
+              ],
               "variable": []
             },
             "description": "List schools"
@@ -1878,7 +2237,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Central High School Updated\",\n  \"email\": \"contact@centralhigh.edu\",\n  \"phone\": \"+2348000000001\",\n  \"address\": \"124 Main Street\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1887,8 +2246,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/schools/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["schools", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "schools",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1924,7 +2288,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"A\",\n  \"classId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1933,8 +2297,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sections",
-              "host": ["{{baseUrl}}"],
-              "path": ["sections"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sections"
+              ],
               "variable": []
             },
             "description": "Create section"
@@ -1960,7 +2328,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"B\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1969,8 +2337,14 @@
             },
             "url": {
               "raw": "{{baseUrl}}/classes/:classId/sections",
-              "host": ["{{baseUrl}}"],
-              "path": ["classes", ":classId", "sections"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "classes",
+                ":classId",
+                "sections"
+              ],
               "variable": [
                 {
                   "key": "classId",
@@ -1996,8 +2370,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sections/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["sections", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sections",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2023,8 +2402,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sections/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["sections", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sections",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2050,8 +2434,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sections",
-              "host": ["{{baseUrl}}"],
-              "path": ["sections"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sections"
+              ],
               "variable": []
             },
             "description": "List sections"
@@ -2077,7 +2465,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"C\",\n  \"classId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2086,8 +2474,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sections/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["sections", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sections",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2123,7 +2516,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"userId\": 10,\n  \"classId\": 1,\n  \"sectionId\": 1,\n  \"rollNumber\": \"STU-001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2132,8 +2525,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/students",
-              "host": ["{{baseUrl}}"],
-              "path": ["students"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students"
+              ],
               "variable": []
             },
             "description": "Create student"
@@ -2154,8 +2551,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2181,8 +2583,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/attendance",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id", "attendance"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id",
+                "attendance"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2208,8 +2616,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2235,8 +2648,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/documents",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id", "documents"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id",
+                "documents"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2262,8 +2681,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/fees",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id", "fees"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id",
+                "fees"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2289,8 +2714,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/results",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id", "results"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id",
+                "results"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2316,8 +2747,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students",
-              "host": ["{{baseUrl}}"],
-              "path": ["students"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students"
+              ],
               "variable": []
             },
             "description": "List students"
@@ -2343,7 +2778,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"classId\": 2,\n  \"sectionId\": 3,\n  \"rollNumber\": \"STU-002\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2352,8 +2787,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/students/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["students", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "students",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2389,7 +2829,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Mathematics\",\n  \"classId\": 1\n}",
+              "raw": "[\n  {\n    \"name\": \"Mathematics\",\n    \"classId\": 1\n  },\n  {\n    \"name\": \"English Language\",\n    \"classId\": 1\n  }\n]",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2398,8 +2838,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/subjects",
-              "host": ["{{baseUrl}}"],
-              "path": ["subjects"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subjects"
+              ],
               "variable": []
             },
             "description": "Create one subject for a class, or send an array to add multiple subjects class-wise in one request."
@@ -2420,8 +2864,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/subjects/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["subjects", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subjects",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2447,8 +2896,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/subjects",
-              "host": ["{{baseUrl}}"],
-              "path": ["subjects"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subjects"
+              ],
               "variable": []
             },
             "description": "List subjects"
@@ -2483,8 +2936,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/subjects/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["subjects", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subjects",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2520,7 +2978,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"userId\": 11,\n  \"employeeId\": \"EMP-001\",\n  \"qualification\": \"B.Ed\",\n  \"phone\": \"+2348000000002\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2529,8 +2987,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/teachers",
-              "host": ["{{baseUrl}}"],
-              "path": ["teachers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers"
+              ],
               "variable": []
             },
             "description": "Create teacher"
@@ -2551,8 +3013,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["teachers", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2578,8 +3045,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers/:id/classes",
-              "host": ["{{baseUrl}}"],
-              "path": ["teachers", ":id", "classes"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers",
+                ":id",
+                "classes"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2605,8 +3078,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers/:id/schedule",
-              "host": ["{{baseUrl}}"],
-              "path": ["teachers", ":id", "schedule"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers",
+                ":id",
+                "schedule"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2632,8 +3111,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers",
-              "host": ["{{baseUrl}}"],
-              "path": ["teachers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers"
+              ],
               "variable": []
             },
             "description": "List teachers"
@@ -2659,7 +3142,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"employeeId\": \"EMP-001\",\n  \"qualification\": \"M.Ed\",\n  \"phone\": \"+2348000000003\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2668,8 +3151,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/teachers/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["teachers", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2705,7 +3193,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"classId\": 1,\n  \"subjectId\": 1,\n  \"teacherId\": 1,\n  \"day\": \"Monday\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:00\",\n  \"room\": \"Room 3\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2714,8 +3202,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/timetable",
-              "host": ["{{baseUrl}}"],
-              "path": ["timetable"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "timetable"
+              ],
               "variable": []
             },
             "description": "Create timetable entry"
@@ -2736,8 +3228,14 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/timetable/class/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["timetable", "class", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "timetable",
+                "class",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2768,7 +3266,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"day\": \"Tuesday\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"room\": \"Room 4\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2777,8 +3275,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/timetable/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["timetable", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "timetable",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2814,7 +3317,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Teacher User\",\n  \"email\": \"teacher@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"teacher\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2823,8 +3326,12 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "variable": []
             },
             "description": "Create user"
@@ -2845,8 +3352,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2872,8 +3384,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2899,8 +3416,12 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "variable": []
             },
             "description": "List users"
@@ -2926,7 +3447,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}",
+              "raw": "{\n  \"name\": \"Updated Teacher User\",\n  \"email\": \"teacher.updated@example.com\",\n  \"role\": \"staff\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2935,8 +3456,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", ":id"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ":id"
+              ],
               "variable": [
                 {
                   "key": "id",

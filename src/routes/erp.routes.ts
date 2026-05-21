@@ -154,7 +154,6 @@ router.delete(
 router.post("/attendance/mark", attendance.markAttendance);
 router.get("/attendance/class/:classId", attendance.getAttendanceByClass);
 router.get("/attendance/student/:studentId", attendance.getAttendanceByStudent);
-router.put("/attendance/:id", attendance.updateAttendance);
 router.get("/attendance/rules", attendance.getAttendanceRules);
 router.put(
   "/attendance/rules",
@@ -176,6 +175,7 @@ router.get(
   allowRoles(...STAFF_ATTENDANCE_ROLES),
   attendance.getMyStaffAttendance,
 );
+router.put("/attendance/:id", attendance.updateAttendance);
 
 router.post("/exams", exam.createExam);
 router.get("/exams", exam.getExams);

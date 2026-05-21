@@ -14,6 +14,7 @@ export const markAttendance = create(Attendance, "attendance");
 export const updateAttendance = update(Attendance, "attendance");
 
 const staffAttendanceRoleSet = new Set<UserRole>(STAFF_ATTENDANCE_ROLES);
+const attendanceRulesSingletonId = 1;
 
 type CurrentUser = {
   id: number;
@@ -103,15 +104,17 @@ const calculateDistanceMeters = (
 };
 
 const getOrCreateAttendanceRule = async () => {
-  const existingRule = await AttendanceRule.findOne({
-    order: [["id", "ASC"]],
-  });
+  const existingRule = await AttendanceRule.findByPk(
+    attendanceRulesSingletonId,
+  );
 
   if (existingRule) {
     return existingRule;
   }
 
-  return AttendanceRule.create({});
+  return AttendanceRule.create({
+    id: attendanceRulesSingletonId,
+  });
 };
 
 const validateLocationAgainstRule = (

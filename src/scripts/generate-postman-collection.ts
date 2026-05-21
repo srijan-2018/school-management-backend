@@ -68,6 +68,255 @@ const outputPath = path.resolve(
   "school-management-api.postman_collection.json",
 );
 
+const requestExamples: Record<string, JsonValue> = {
+  "POST /auth/register": {
+    name: "Admin User",
+    email: "admin@example.com",
+    password: "password123",
+    role: "admin",
+  },
+  "POST /auth/login": {
+    email: "admin@example.com",
+    password: "password123",
+  },
+  "POST /auth/refresh-token": {
+    refreshToken: "{{refreshToken}}",
+  },
+  "POST /auth/logout": {
+    refreshToken: "{{refreshToken}}",
+  },
+  "PUT /auth/change-password": {
+    currentPassword: "password123",
+    newPassword: "newPassword123",
+  },
+  "POST /auth/forgot-password": {
+    email: "admin@example.com",
+  },
+  "POST /auth/reset-password": {
+    resetToken: "sample-reset-token",
+    newPassword: "newPassword123",
+  },
+  "POST /users": {
+    name: "Teacher User",
+    email: "teacher@example.com",
+    password: "password123",
+    role: "teacher",
+  },
+  "PUT /users/{id}": {
+    name: "Updated Teacher User",
+    email: "teacher.updated@example.com",
+    role: "staff",
+  },
+  "POST /roles": {
+    name: "hod",
+    description: "Head of department role",
+  },
+  "PUT /roles/{id}": {
+    name: "hod_updated",
+    description: "Updated head of department role",
+  },
+  "POST /permissions": {
+    name: "view_reports",
+    description: "Can view academic reports",
+  },
+  "POST /permissions/assign": {
+    roleId: 1,
+    permissionIds: [1, 2, 3],
+  },
+  "POST /schools": {
+    name: "Central High School",
+    code: "CHS001",
+    email: "info@centralhigh.edu",
+    phone: "+2348000000000",
+    address: "123 Main Street",
+  },
+  "PUT /schools/{id}": {
+    name: "Central High School Updated",
+    email: "contact@centralhigh.edu",
+    phone: "+2348000000001",
+    address: "124 Main Street",
+  },
+  "POST /classes": {
+    name: "Primary 5",
+    section: "A",
+  },
+  "PUT /classes/{id}": {
+    name: "Primary 5",
+    section: "B",
+  },
+  "POST /sections": {
+    name: "A",
+    classId: 1,
+  },
+  "POST /classes/{classId}/sections": {
+    name: "B",
+  },
+  "PUT /sections/{id}": {
+    name: "C",
+    classId: 1,
+  },
+  "POST /subjects": [
+    {
+      name: "Mathematics",
+      classId: 1,
+    },
+    {
+      name: "English Language",
+      classId: 1,
+    },
+  ],
+  "PUT /subjects/{id}": {
+    name: "Advanced Mathematics",
+    classId: 1,
+  },
+  "POST /students": {
+    userId: 10,
+    classId: 1,
+    sectionId: 1,
+    rollNumber: "STU-001",
+  },
+  "PUT /students/{id}": {
+    classId: 2,
+    sectionId: 3,
+    rollNumber: "STU-002",
+  },
+  "POST /teachers": {
+    userId: 11,
+    employeeId: "EMP-001",
+    qualification: "B.Ed",
+    phone: "+2348000000002",
+  },
+  "PUT /teachers/{id}": {
+    employeeId: "EMP-001",
+    qualification: "M.Ed",
+    phone: "+2348000000003",
+  },
+  "POST /parents": {
+    userId: 12,
+    phone: "+2348000000004",
+    address: "45 Parent Avenue",
+    studentIds: [1, 2],
+  },
+  "PUT /parents/{id}": {
+    phone: "+2348000000005",
+    address: "46 Parent Avenue",
+  },
+  "POST /attendance/mark": {
+    studentId: 1,
+    classId: 1,
+    date: "2026-05-21",
+    status: "present",
+    remarks: "On time",
+  },
+  "PUT /attendance/{id}": {
+    status: "late",
+    remarks: "Arrived after assembly",
+  },
+  "PUT /attendance/rules": {
+    workDayStartTime: "08:00",
+    lateAfterTime: "08:15",
+    checkOutStartTime: "15:00",
+    requireLocation: true,
+    officeLatitude: 6.5244,
+    officeLongitude: 3.3792,
+    allowedRadiusMeters: 200,
+  },
+  "POST /attendance/check-in": {
+    latitude: 6.5244,
+    longitude: 3.3792,
+    locationText: "Main office gate",
+  },
+  "POST /attendance/check-out": {
+    latitude: 6.5244,
+    longitude: 3.3792,
+    locationText: "Main office gate",
+  },
+  "POST /exams": {
+    name: "First Term Mathematics Exam",
+    classId: 1,
+    subjectId: 1,
+    examDate: "2026-06-10",
+    totalMarks: 100,
+  },
+  "PUT /exams/{id}": {
+    name: "First Term Mathematics Exam Updated",
+    examDate: "2026-06-12",
+    totalMarks: 100,
+  },
+  "POST /marks": {
+    studentId: 1,
+    subjectId: 1,
+    examId: 1,
+    score: 85,
+    grade: "A",
+    remarks: "Excellent work",
+  },
+  "PUT /marks/{id}": {
+    score: 88,
+    grade: "A",
+    remarks: "Regraded after review",
+  },
+  "POST /mock-tests/generate": {
+    className: "Grade 10",
+    subjectName: "Mathematics",
+    level: "medium",
+    questionCount: 10,
+  },
+  "POST /mock-tests/submit": {
+    mockTestId: 1,
+    submittedAnswers: [
+      { questionIndex: 0, selectedAnswer: "A" },
+      { questionIndex: 1, selectedAnswer: "B" },
+    ],
+    startTime: "2026-05-21T10:00:00.000Z",
+    endTime: "2026-05-21T10:30:00.000Z",
+  },
+  "POST /assignments": {
+    title: "Algebra Homework",
+    description: "Solve questions 1 to 10",
+    classId: 1,
+    subjectId: 1,
+    teacherId: 1,
+    dueDate: "2026-05-30",
+  },
+  "POST /assignments/submit": {
+    assignmentId: 1,
+    studentId: 1,
+    submissionText: "My completed assignment answers",
+    attachmentUrl: "https://example.com/submissions/assignment-1.pdf",
+  },
+  "POST /timetable": {
+    classId: 1,
+    subjectId: 1,
+    teacherId: 1,
+    day: "Monday",
+    startTime: "09:00",
+    endTime: "10:00",
+    room: "Room 3",
+  },
+  "PUT /timetable/{id}": {
+    day: "Tuesday",
+    startTime: "10:00",
+    endTime: "11:00",
+    room: "Room 4",
+  },
+  "POST /fees": {
+    studentId: 1,
+    amount: 50000,
+    term: "First Term",
+    session: "2026/2027",
+    dueDate: "2026-06-01",
+    description: "School fees for first term",
+  },
+  "POST /fees/payment": {
+    feeId: 1,
+    amount: 50000,
+    paymentDate: "2026-05-21",
+    paymentMethod: "bank_transfer",
+    reference: "TXN-10001",
+  },
+};
+
 const resolveSchema = (schema?: SchemaObject): SchemaObject | undefined => {
   if (!schema) {
     return undefined;
@@ -174,7 +423,26 @@ const buildExampleFromSchema = (schema?: SchemaObject): JsonValue => {
   }
 };
 
-const buildRequestBody = (requestBody?: RequestBodyObject) => {
+const buildRequestBody = (
+  method: string,
+  routePath: string,
+  requestBody?: RequestBodyObject,
+) => {
+  const requestExample =
+    requestExamples[`${method.toUpperCase()} ${routePath}`];
+
+  if (requestExample !== undefined) {
+    return {
+      mode: "raw",
+      raw: JSON.stringify(requestExample, null, 2),
+      options: {
+        raw: {
+          language: "json",
+        },
+      },
+    };
+  }
+
   const jsonSchema = requestBody?.content?.["application/json"]?.schema;
 
   if (!jsonSchema) {
@@ -300,7 +568,7 @@ const createRequestItem = (
   request: {
     method,
     header: buildHeaders(operation),
-    body: buildRequestBody(operation.requestBody),
+    body: buildRequestBody(method, routePath, operation.requestBody),
     url: buildUrl(routePath),
     description: operation.description ?? operation.summary ?? "",
   },
