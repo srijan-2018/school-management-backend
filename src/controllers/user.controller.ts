@@ -6,17 +6,55 @@ import User from "../models/user.model";
 import Student from "../models/student.model";
 import Class from "../models/class.model";
 import Section from "../models/section.model";
+import Teacher from "../models/teacher.model";
+import Parent from "../models/parent.model";
 import { AppError } from "../middlewares/error.middleware";
 import { normalizeRole, USER_ROLES } from "../utils/roles";
 
-const userSafeAttributes = {
+export const userSafeAttributes = {
   exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
 };
 
-const userInclude = [
+export const userInclude = [
   {
     model: Student,
     as: "student",
+    include: [
+      {
+        model: Class,
+      },
+      {
+        model: Section,
+      },
+      {
+        model: Parent,
+        through: { attributes: [] },
+      },
+    ],
+  },
+  {
+    model: Teacher,
+  },
+  {
+    model: Parent,
+    include: [
+      {
+        model: Student,
+        through: { attributes: [] },
+        include: [
+          {
+            model: User,
+            attributes: userSafeAttributes,
+          },
+          {
+            model: Class,
+          },
+          {
+            model: Section,
+          },
+        ],
+      },
+    ],
   },
 ];
 
@@ -38,7 +76,9 @@ const toOptionalInteger = (value: unknown, field: string) => {
 };
 
 const getSectionIdFromName = (sectionName: unknown) => {
-  const normalizedSection = String(sectionName ?? "").trim().toUpperCase();
+  const normalizedSection = String(sectionName ?? "")
+    .trim()
+    .toUpperCase();
 
   if (/^[A-Z]$/.test(normalizedSection)) {
     return normalizedSection.charCodeAt(0) - 64;
@@ -47,7 +87,7 @@ const getSectionIdFromName = (sectionName: unknown) => {
   return undefined;
 };
 
-const findUserWithProfile = (id: number | string) =>
+export const findUserWithProfile = (id: number | string) =>
   User.findByPk(id, {
     attributes: userSafeAttributes,
     include: userInclude,
@@ -100,7 +140,9 @@ const upsertStudentProfile = async (
 
       if (fallbackSectionId !== requestedSectionId || !classSectionName) {
         throw new AppError(
-          section ? "sectionId does not belong to classId" : "Section not found",
+          section
+            ? "sectionId does not belong to classId"
+            : "Section not found",
           400,
         );
       }
@@ -183,7 +225,8 @@ export const createUser = async (
 
     if (hasStudentPayload(req.body ?? {}) && normalizedRole !== "student") {
       return res.status(400).json({
-        message: "classId, sectionId and rollNumber can only be added for student users",
+        message:
+          "classId, sectionId and rollNumber can only be added for student users",
       });
     }
 
@@ -276,7 +319,8 @@ export const updateUser = async (
 
     if (hasStudentPayload(req.body ?? {}) && nextRole !== "student") {
       return res.status(400).json({
-        message: "classId, sectionId and rollNumber can only be added for student users",
+        message:
+          "classId, sectionId and rollNumber can only be added for student users",
       });
     }
 

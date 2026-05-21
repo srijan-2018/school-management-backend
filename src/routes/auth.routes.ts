@@ -7,6 +7,7 @@ import {
   changePassword,
   forgotPassword,
   resetPassword,
+  getProfile,
 } from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 
@@ -16,6 +17,7 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
+router.get("/profile", verifyToken, getProfile);
 router.put("/change-password", verifyToken, changePassword);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);

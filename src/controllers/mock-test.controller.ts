@@ -10,15 +10,14 @@ import {
   type MockOption,
   type MockQuestion,
 } from "../services/mock-test-ai.service";
-import { normalizeRole, type UserRole } from "../utils/roles";
+import {
+  MOCK_TEST_MANAGER_ROLES,
+  normalizeRole,
+  type UserRole,
+} from "../utils/roles";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
-const mockTestManagers = new Set<UserRole>([
-  "admin",
-  "school_owner",
-  "head_teacher",
-  "teacher",
-]);
+const mockTestManagers = new Set<UserRole>(MOCK_TEST_MANAGER_ROLES);
 
 type CurrentUser = {
   id: number;

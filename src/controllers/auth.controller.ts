@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { normalizeRole, USER_ROLES } from "../utils/roles";
+import { findUserWithProfile } from "./user.controller";
 
 const getJwtSecret = () => process.env.JWT_SECRET;
 
@@ -253,6 +254,30 @@ export const changePassword = async (
     res.json({
       message: "Password changed successfully",
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await findUserWithProfile(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
   } catch (err) {
     next(err);
   }

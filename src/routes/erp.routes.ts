@@ -14,6 +14,11 @@ import * as mockTest from "../controllers/mock-test.controller";
 import * as assignment from "../controllers/assignment.controller";
 import * as timetable from "../controllers/timetable.controller";
 import * as fee from "../controllers/fee.controller";
+import {
+  ACADEMIC_MANAGER_ROLES,
+  MOCK_TEST_GENERATOR_ROLES,
+  OWNER_LEVEL_ROLES,
+} from "../utils/roles";
 
 const router = Router();
 
@@ -24,33 +29,29 @@ const methodNotAllowed = (message: string) => (_req: any, res: any) => {
 };
 
 router.get("/schools", school.getSchools);
-router.post(
-  "/schools",
-  allowRoles("admin", "school_owner"),
-  school.createSchool,
-);
+router.post("/schools", allowRoles(...OWNER_LEVEL_ROLES), school.createSchool);
 router.get("/schools/:id", school.getSchoolById);
 router.put(
   "/schools/:id",
-  allowRoles("admin", "school_owner"),
+  allowRoles(...OWNER_LEVEL_ROLES),
   school.updateSchool,
 );
 
 router.get("/students", student.getStudents);
 router.post(
   "/students",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   student.createStudent,
 );
 router.get("/students/:id", student.getStudentById);
 router.put(
   "/students/:id",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   student.updateStudent,
 );
 router.delete(
   "/students/:id",
-  allowRoles("admin", "school_owner"),
+  allowRoles(...OWNER_LEVEL_ROLES),
   student.deleteStudent,
 );
 router.get("/students/:id/attendance", student.getStudentAttendance);
@@ -61,17 +62,17 @@ router.get("/students/:id/documents", student.getStudentDocuments);
 router.get("/teachers", teacher.getTeachers);
 router.post(
   "/teachers",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   teacher.createTeacher,
 );
 router.put(
   "/teachers/:id",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   teacher.updateTeacher,
 );
 router.delete(
   "/teachers/:id",
-  allowRoles("admin", "school_owner"),
+  allowRoles(...OWNER_LEVEL_ROLES),
   teacher.deleteTeacher,
 );
 router.get("/teachers/:id/classes", teacher.getTeacherClasses);
@@ -80,12 +81,12 @@ router.get("/teachers/:id/schedule", teacher.getTeacherSchedule);
 router.get("/parents", parent.getParents);
 router.post(
   "/parents",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   parent.createParent,
 );
 router.put(
   "/parents/:id",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   parent.updateParent,
 );
 router.get("/parents/:id/students", parent.getParentStudents);
@@ -93,58 +94,58 @@ router.get("/parents/:id/students", parent.getParentStudents);
 router.get("/classes", classController.getClasses);
 router.post(
   "/classes",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   classController.createClass,
 );
 router.get("/classes/:id", classController.getClassById);
 router.post(
   "/classes/:classId/sections",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   section.createSection,
 );
 router.put(
   "/classes/:id",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   classController.updateClass,
 );
 router.delete(
   "/classes/:id",
-  allowRoles("admin", "school_owner"),
+  allowRoles(...OWNER_LEVEL_ROLES),
   classController.deleteClass,
 );
 
 router.get("/sections", section.getSections);
 router.post(
   "/sections",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   section.createSection,
 );
 router.get("/sections/:id", section.getSectionById);
 router.put(
   "/sections/:id",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   section.updateSection,
 );
 router.delete(
   "/sections/:id",
-  allowRoles("admin", "school_owner"),
+  allowRoles(...OWNER_LEVEL_ROLES),
   section.deleteSection,
 );
 
 router.get("/subjects", subject.getSubjects);
 router.post(
   "/subjects",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   subject.createSubject,
 );
 router.put(
   "/subjects/:id",
-  allowRoles("admin", "school_owner", "head_teacher"),
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
   subject.updateSubject,
 );
 router.delete(
   "/subjects/:id",
-  allowRoles("admin", "school_owner"),
+  allowRoles(...OWNER_LEVEL_ROLES),
   subject.deleteSubject,
 );
 
@@ -168,7 +169,7 @@ router.get(
 );
 router.post(
   ["/mock-test/generate", "/mock-tests/generate"],
-  allowRoles("admin", "school_owner", "head_teacher", "teacher", "student"),
+  allowRoles(...MOCK_TEST_GENERATOR_ROLES),
   mockTest.generateMockTest,
 );
 router.get(["/mock-test", "/mock-tests"], mockTest.getMockTests);
