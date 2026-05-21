@@ -50,12 +50,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/assignments",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "assignments"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["assignments"],
               "variable": []
             },
             "description": "Create assignment"
@@ -76,14 +72,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/assignments/student/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "assignments",
-                "student",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["assignments", "student", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -109,12 +99,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/assignments",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "assignments"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["assignments"],
               "variable": []
             },
             "description": "List assignments"
@@ -149,13 +135,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/assignments/submit",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "assignments",
-                "submit"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["assignments", "submit"],
               "variable": []
             },
             "description": "Submit assignment"
@@ -181,14 +162,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/attendance/class/:classId",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "attendance",
-                "class",
-                ":classId"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "class", ":classId"],
               "variable": [
                 {
                   "key": "classId",
@@ -214,14 +189,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/attendance/student/:studentId",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "attendance",
-                "student",
-                ":studentId"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "student", ":studentId"],
               "variable": [
                 {
                   "key": "studentId",
@@ -261,13 +230,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/attendance/mark",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "attendance",
-                "mark"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "mark"],
               "variable": []
             },
             "description": "Mark attendance"
@@ -302,13 +266,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/attendance/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "attendance",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -353,13 +312,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "change-password"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"],
               "variable": []
             },
             "description": "Change password"
@@ -389,13 +343,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/forgot-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "forgot-password"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"],
               "variable": []
             },
             "description": "Create password reset token"
@@ -425,13 +374,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"],
               "variable": []
             },
             "description": "Log in"
@@ -473,13 +417,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "logout"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"],
               "variable": []
             },
             "description": "Log out"
@@ -520,13 +459,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/refresh-token",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "refresh-token"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh-token"],
               "variable": []
             },
             "description": "Refresh access token"
@@ -568,13 +502,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "register"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"],
               "variable": []
             },
             "description": "Register a user"
@@ -616,13 +545,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/reset-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "reset-password"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"],
               "variable": []
             },
             "description": "Reset password"
@@ -662,12 +586,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/classes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "classes"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["classes"],
               "variable": []
             },
             "description": "Create class"
@@ -688,13 +608,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/classes/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "classes",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["classes", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -720,13 +635,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/classes/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "classes",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["classes", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -752,12 +662,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/classes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "classes"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["classes"],
               "variable": []
             },
             "description": "List classes"
@@ -792,13 +698,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/classes/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "classes",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["classes", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -843,12 +744,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/exams",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "exams"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"],
               "variable": []
             },
             "description": "Create exam"
@@ -869,13 +766,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/exams/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "exams",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -901,12 +793,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/exams",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "exams"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["exams"],
               "variable": []
             },
             "description": "List exams"
@@ -941,13 +829,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/exams/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "exams",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -992,12 +875,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/fees",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "fees"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["fees"],
               "variable": []
             },
             "description": "Create fee"
@@ -1032,13 +911,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/fees/payment",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "fees",
-                "payment"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["fees", "payment"],
               "variable": []
             },
             "description": "Create fee payment"
@@ -1059,13 +933,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/fees/defaulters",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "fees",
-                "defaulters"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["fees", "defaulters"],
               "variable": []
             },
             "description": "Get fee defaulters"
@@ -1086,13 +955,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/fees/transactions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "fees",
-                "transactions"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["fees", "transactions"],
               "variable": []
             },
             "description": "Get fee transactions"
@@ -1113,14 +977,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/fees/student/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "fees",
-                "student",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["fees", "student", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1165,12 +1023,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/marks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "marks"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["marks"],
               "variable": []
             },
             "description": "Create mark"
@@ -1191,14 +1045,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/marks/student/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "marks",
-                "student",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["marks", "student", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1238,13 +1086,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/marks/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "marks",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["marks", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1275,14 +1118,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-test/:id/pdf",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test",
-                ":id",
-                "pdf"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-test", ":id", "pdf"],
               "variable": [
                 {
                   "key": "id",
@@ -1308,14 +1145,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-tests/:id/pdf",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-tests",
-                ":id",
-                "pdf"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-tests", ":id", "pdf"],
               "variable": [
                 {
                   "key": "id",
@@ -1354,14 +1185,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/mock-test/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test",
-                "generate"
-              ],
+              "raw": "{{baseUrl}}/mock-tests/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-tests", "generate"],
               "variable": []
             },
             "description": "Generate mock test"
@@ -1396,13 +1222,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/mock-tests/generate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-tests",
-                "generate"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-tests", "generate"],
               "variable": []
             },
             "description": "Generate mock test"
@@ -1423,14 +1244,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-test/ai-suggestion/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test",
-                "ai-suggestion",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-test", "ai-suggestion", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1456,13 +1271,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-test/progress",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test",
-                "progress"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-test", "progress"],
               "variable": []
             },
             "description": "Get mock test progress summary"
@@ -1483,13 +1293,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-tests/progress",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-tests",
-                "progress"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-tests", "progress"],
               "variable": []
             },
             "description": "Get mock test progress summary"
@@ -1510,14 +1315,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-test/result/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test",
-                "result",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-test", "result", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1543,12 +1342,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-test",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-test"],
               "variable": []
             },
             "description": "List mock tests"
@@ -1569,12 +1364,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/mock-tests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-tests"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-tests"],
               "variable": []
             },
             "description": "List mock tests"
@@ -1609,13 +1400,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/mock-test/submit",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "mock-test",
-                "submit"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["mock-test", "submit"],
               "variable": []
             },
             "description": "Submit mock test"
@@ -1655,12 +1441,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/parents",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "parents"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["parents"],
               "variable": []
             },
             "description": "Create parent"
@@ -1681,14 +1463,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/parents/:id/students",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "parents",
-                ":id",
-                "students"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["parents", ":id", "students"],
               "variable": [
                 {
                   "key": "id",
@@ -1714,12 +1490,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/parents",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "parents"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["parents"],
               "variable": []
             },
             "description": "List parents"
@@ -1754,13 +1526,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/parents/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "parents",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["parents", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1805,13 +1572,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/permissions/assign",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "permissions",
-                "assign"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["permissions", "assign"],
               "variable": []
             },
             "description": "Assign permissions to a role"
@@ -1846,12 +1608,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "permissions"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["permissions"],
               "variable": []
             },
             "description": "Create permission"
@@ -1872,12 +1630,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "permissions"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["permissions"],
               "variable": []
             },
             "description": "List permissions"
@@ -1917,12 +1671,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/roles",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"],
               "variable": []
             },
             "description": "Create role"
@@ -1943,13 +1693,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/roles/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1975,12 +1720,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/roles",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"],
               "variable": []
             },
             "description": "List roles"
@@ -2015,13 +1756,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/roles/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "roles",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2066,12 +1802,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/schools",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "schools"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["schools"],
               "variable": []
             },
             "description": "Create school"
@@ -2092,13 +1824,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/schools/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "schools",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["schools", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2124,12 +1851,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/schools",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "schools"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["schools"],
               "variable": []
             },
             "description": "List schools"
@@ -2164,13 +1887,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/schools/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "schools",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["schools", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2215,12 +1933,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sections",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sections"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["sections"],
               "variable": []
             },
             "description": "Create section"
@@ -2255,14 +1969,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/classes/:classId/sections",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "classes",
-                ":classId",
-                "sections"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["classes", ":classId", "sections"],
               "variable": [
                 {
                   "key": "classId",
@@ -2288,13 +1996,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sections/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sections",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["sections", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2320,13 +2023,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sections/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sections",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["sections", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2352,12 +2050,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/sections",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sections"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["sections"],
               "variable": []
             },
             "description": "List sections"
@@ -2392,13 +2086,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/sections/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "sections",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["sections", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2443,12 +2132,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/students",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students"],
               "variable": []
             },
             "description": "Create student"
@@ -2469,13 +2154,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2501,14 +2181,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/attendance",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id",
-                "attendance"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id", "attendance"],
               "variable": [
                 {
                   "key": "id",
@@ -2534,13 +2208,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2566,14 +2235,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/documents",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id",
-                "documents"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id", "documents"],
               "variable": [
                 {
                   "key": "id",
@@ -2599,14 +2262,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/fees",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id",
-                "fees"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id", "fees"],
               "variable": [
                 {
                   "key": "id",
@@ -2632,14 +2289,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students/:id/results",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id",
-                "results"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id", "results"],
               "variable": [
                 {
                   "key": "id",
@@ -2665,12 +2316,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/students",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students"],
               "variable": []
             },
             "description": "List students"
@@ -2705,13 +2352,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/students/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "students",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["students", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2756,12 +2398,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/subjects",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "subjects"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["subjects"],
               "variable": []
             },
             "description": "Create one subject for a class, or send an array to add multiple subjects class-wise in one request."
@@ -2782,13 +2420,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/subjects/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "subjects",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["subjects", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2814,12 +2447,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/subjects",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "subjects"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["subjects"],
               "variable": []
             },
             "description": "List subjects"
@@ -2854,13 +2483,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/subjects/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "subjects",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["subjects", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2905,12 +2529,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/teachers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "teachers"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["teachers"],
               "variable": []
             },
             "description": "Create teacher"
@@ -2931,13 +2551,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "teachers",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["teachers", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -2963,14 +2578,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers/:id/classes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "teachers",
-                ":id",
-                "classes"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["teachers", ":id", "classes"],
               "variable": [
                 {
                   "key": "id",
@@ -2996,14 +2605,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers/:id/schedule",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "teachers",
-                ":id",
-                "schedule"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["teachers", ":id", "schedule"],
               "variable": [
                 {
                   "key": "id",
@@ -3029,12 +2632,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/teachers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "teachers"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["teachers"],
               "variable": []
             },
             "description": "List teachers"
@@ -3069,13 +2668,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/teachers/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "teachers",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["teachers", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -3120,12 +2714,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/timetable",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "timetable"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["timetable"],
               "variable": []
             },
             "description": "Create timetable entry"
@@ -3146,14 +2736,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/timetable/class/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "timetable",
-                "class",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["timetable", "class", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -3193,13 +2777,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/timetable/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "timetable",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["timetable", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -3244,12 +2823,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
               "variable": []
             },
             "description": "Create user"
@@ -3270,13 +2845,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -3302,13 +2872,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -3334,12 +2899,8 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
               "variable": []
             },
             "description": "List users"
@@ -3374,13 +2935,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/users/:id",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                ":id"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
               "variable": [
                 {
                   "key": "id",

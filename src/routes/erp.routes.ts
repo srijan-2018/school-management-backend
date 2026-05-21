@@ -16,8 +16,10 @@ import * as timetable from "../controllers/timetable.controller";
 import * as fee from "../controllers/fee.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
+  ATTENDANCE_RULE_MANAGER_ROLES,
   MOCK_TEST_GENERATOR_ROLES,
   OWNER_LEVEL_ROLES,
+  STAFF_ATTENDANCE_ROLES,
 } from "../utils/roles";
 
 const router = Router();
@@ -153,6 +155,27 @@ router.post("/attendance/mark", attendance.markAttendance);
 router.get("/attendance/class/:classId", attendance.getAttendanceByClass);
 router.get("/attendance/student/:studentId", attendance.getAttendanceByStudent);
 router.put("/attendance/:id", attendance.updateAttendance);
+router.get("/attendance/rules", attendance.getAttendanceRules);
+router.put(
+  "/attendance/rules",
+  allowRoles(...ATTENDANCE_RULE_MANAGER_ROLES),
+  attendance.updateAttendanceRules,
+);
+router.post(
+  "/attendance/check-in",
+  allowRoles(...STAFF_ATTENDANCE_ROLES),
+  attendance.checkInStaffAttendance,
+);
+router.post(
+  "/attendance/check-out",
+  allowRoles(...STAFF_ATTENDANCE_ROLES),
+  attendance.checkOutStaffAttendance,
+);
+router.get(
+  "/attendance/me",
+  allowRoles(...STAFF_ATTENDANCE_ROLES),
+  attendance.getMyStaffAttendance,
+);
 
 router.post("/exams", exam.createExam);
 router.get("/exams", exam.getExams);
@@ -163,6 +186,15 @@ router.post("/marks", mark.createMark);
 router.get("/marks/student/:id", mark.getMarksByStudent);
 router.put("/marks/:id", mark.updateMark);
 
+router.get(
+  "/mock-test/generate",
+  methodNotAllowed("Use POST /api/mock-tests/generate to generate a mock test"),
+);
+router.post(
+  "/mock-test/generate",
+  allowRoles(...MOCK_TEST_GENERATOR_ROLES),
+  mockTest.generateMockTest,
+);
 router.get(
   "/mock-tests/generate",
   methodNotAllowed("Use POST /api/mock-tests/generate to generate a mock test"),

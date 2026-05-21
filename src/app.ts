@@ -29,6 +29,7 @@ import erpRoutes from "./routes/erp.routes";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 
 const app = express();
+const runtimeEnv = process.env.NODE_ENV ?? "development";
 
 // ===============================
 // Middleware
@@ -52,7 +53,7 @@ app.use(morgan("dev"));
 // ===============================
 // Environment Logs
 // ===============================
-console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("NODE_ENV:", runtimeEnv);
 console.log("AI provider:", process.env.AI_PROVIDER ?? "groq");
 console.log("AI model:", process.env.GROQ_MODEL ?? "llama-3.1-8b-instant");
 
@@ -112,7 +113,7 @@ const startServer = async () => {
     // =========================================
     // DEVELOPMENT MODE
     // =========================================
-    if (process.env.NODE_ENV !== "production") {
+    if (runtimeEnv !== "production") {
       console.log("Running in DEVELOPMENT mode");
 
       const shouldAlter = process.env.DB_SYNC_ALTER === "true";
@@ -146,7 +147,7 @@ const startServer = async () => {
       console.log(`
 ========================================
 🚀 Server running successfully
-🌍 Environment : ${process.env.NODE_ENV}
+🌍 Environment : ${runtimeEnv}
 📡 Port        : ${PORT}
 📘 Swagger     : /api-docs
 ========================================

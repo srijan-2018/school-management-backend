@@ -66,3 +66,16 @@ export const MOCK_TEST_GENERATOR_ROLES: UserRole[] = [
   ...MOCK_TEST_MANAGER_ROLES,
   "student",
 ];
+
+export const STAFF_ATTENDANCE_ROLES: UserRole[] = [
+  "administrator",
+  "head_teacher",
+  "teacher",
+  "staff",
+  "driver",
+];
+
+export const ATTENDANCE_RULE_MANAGER_ROLES: UserRole[] = [
+  "admin",
+  "school_owner",
+];

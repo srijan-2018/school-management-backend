@@ -12,6 +12,8 @@ import "./parent.model";
 import "./parent-student.model";
 import "./teacher-class.model";
 import "./attendance.model";
+import "./staff-attendance.model";
+import "./attendance-rule.model";
 import "./exam.model";
 import "./mark.model";
 import "./student-document.model";

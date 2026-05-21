@@ -44,7 +44,7 @@ export const allowRoles = (...roles: UserRole[]) => {
     }
 
     if (roles.length && !roles.includes(currentRole)) {
-      return next();
+      return res.status(403).json({ message: "Access denied" });
     }
 
     next();

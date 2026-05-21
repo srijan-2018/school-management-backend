@@ -693,6 +693,47 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Student attendance") },
         },
       },
+      "/attendance/rules": {
+        get: {
+          tags: ["Attendance"],
+          summary: "Get attendance rules",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("Attendance rules") },
+        },
+        put: {
+          tags: ["Attendance"],
+          summary: "Update attendance rules",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Attendance rules payload"),
+          responses: { 200: messageResponse("Attendance rules updated") },
+        },
+      },
+      "/attendance/check-in": {
+        post: {
+          tags: ["Attendance"],
+          summary: "Check in staff attendance",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Staff check-in payload"),
+          responses: { 201: messageResponse("Checked in successfully") },
+        },
+      },
+      "/attendance/check-out": {
+        post: {
+          tags: ["Attendance"],
+          summary: "Check out staff attendance",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Staff check-out payload"),
+          responses: { 200: messageResponse("Checked out successfully") },
+        },
+      },
+      "/attendance/me": {
+        get: {
+          tags: ["Attendance"],
+          summary: "Get my staff attendance history",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("My attendance history") },
+        },
+      },
       ...protectedCrudPaths(
         "Attendance",
         "attendance",
