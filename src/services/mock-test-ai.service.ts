@@ -1,3 +1,5 @@
+import { AppError } from "../middlewares/error.middleware";
+
 type MockTestLevel = "easy" | "medium" | "hard";
 
 export interface MockOption {
@@ -28,6 +30,19 @@ interface GroqChatCompletionResponse {
     message?: OpenAiResponseOutputText;
   }>;
 }
+
+const wait = (delayMs: number) =>
+  new Promise((resolve) => setTimeout(resolve, delayMs));
+
+const getRetryDelayMs = (retryAfterHeader: string | null, attempt: number) => {
+  const retryAfterSeconds = Number(retryAfterHeader);
+
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.min(retryAfterSeconds * 1000, 5000);
+  }
+
+  return Math.min(500 * 2 ** (attempt - 1), 5000);
+};
 
 const extractJsonObject = (value: string) => {
   const startIndex = value.indexOf("{");
@@ -328,7 +343,23 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
 
       console.error("GROQ API ERROR =>", errorText);
 
-      throw new Error(`Groq API failed with status ${response.status}`);
+      if (response.status === 429) {
+        lastError = new AppError(
+          "Groq rate limit reached. Please retry in a few seconds.",
+          429,
+        );
+
+        if (attempt < 4) {
+          await wait(
+            getRetryDelayMs(response.headers.get("retry-after"), attempt),
+          );
+          continue;
+        }
+
+        throw lastError;
+      }
+
+      throw new AppError(`Groq API failed with status ${response.status}`, 502);
     }
 
     const data = (await response.json()) as GroqChatCompletionResponse;
@@ -371,5 +402,5 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
     }
   }
 
-  throw lastError ?? new Error("Unable to generate a valid mock test");
+  throw lastError ?? new AppError("Unable to generate a valid mock test", 502);
 };

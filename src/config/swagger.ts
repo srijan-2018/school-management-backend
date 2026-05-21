@@ -719,14 +719,6 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Student marks") },
         },
       },
-      "/mock-test": {
-        get: {
-          tags: ["Mock Tests"],
-          summary: "List mock tests",
-          security: [{ bearerAuth: [] }],
-          responses: { 200: messageResponse("Mock tests list") },
-        },
-      },
       "/mock-tests": {
         get: {
           tags: ["Mock Tests"],
@@ -735,29 +727,12 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Mock tests list") },
         },
       },
-      "/mock-test/progress": {
-        get: {
-          tags: ["Mock Tests"],
-          summary: "Get mock test progress summary",
-          security: [{ bearerAuth: [] }],
-          responses: { 200: messageResponse("Mock test progress") },
-        },
-      },
       "/mock-tests/progress": {
         get: {
           tags: ["Mock Tests"],
           summary: "Get mock test progress summary",
           security: [{ bearerAuth: [] }],
           responses: { 200: messageResponse("Mock test progress") },
-        },
-      },
-      "/mock-test/generate": {
-        post: {
-          tags: ["Mock Tests"],
-          summary: "Generate mock test",
-          security: [{ bearerAuth: [] }],
-          requestBody: objectBody("Generate mock test"),
-          responses: { 200: messageResponse("Mock test generated") },
         },
       },
       "/mock-tests/generate": {
@@ -769,7 +744,7 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Mock test generated") },
         },
       },
-      "/mock-test/submit": {
+      "/mock-tests/submit": {
         post: {
           tags: ["Mock Tests"],
           summary: "Submit mock test",
@@ -778,7 +753,16 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Mock test submitted") },
         },
       },
-      "/mock-test/result/{id}": {
+      "/mock-tests/{id}": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "Get mock test by id",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Mock test details") },
+        },
+      },
+      "/mock-tests/result/{id}": {
         get: {
           tags: ["Mock Tests"],
           summary: "Get mock test result",
@@ -787,22 +771,13 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Mock test result") },
         },
       },
-      "/mock-test/ai-suggestion/{id}": {
+      "/mock-tests/ai-suggestion/{id}": {
         get: {
           tags: ["Mock Tests"],
           summary: "Get mock test AI suggestion",
           security: [{ bearerAuth: [] }],
           parameters: [idParameter()],
           responses: { 200: messageResponse("Mock test AI suggestion") },
-        },
-      },
-      "/mock-test/{id}/pdf": {
-        get: {
-          tags: ["Mock Tests"],
-          summary: "Download mock test PDF",
-          security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
-          responses: { 200: messageResponse("Mock test PDF") },
         },
       },
       "/mock-tests/{id}/pdf": {

@@ -33,12 +33,33 @@ type MockTestMetrics = {
   percentage: number | null;
 };
 
+type MockTestTiming = {
+  startTime: string | null;
+  endTime: string | null;
+  timeTakenSeconds: number | null;
+  timeTakenMinutes: number | null;
+};
+
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const isManagerRole = (role: UserRole) => mockTestManagers.has(role);
 
 const roundToTwo = (value: number) => Math.round(value * 100) / 100;
+
+const toIsoDateString = (value: unknown, field: string) => {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const date = new Date(String(value));
+
+  if (Number.isNaN(date.getTime())) {
+    throw new AppError(`${field} must be a valid date`, 400);
+  }
+
+  return date.toISOString();
+};
 
 const getCurrentUser = (req: Request): CurrentUser => {
   const rawUser = (req as any).user;
@@ -224,6 +245,41 @@ const extractMetrics = (mockTest: any): MockTestMetrics => {
   };
 };
 
+const getSubmittedAt = (mockTest: any) => {
+  const submittedAt = isObject(mockTest?.result)
+    ? mockTest.result.submittedAt
+    : null;
+
+  return typeof submittedAt === "string" ? submittedAt : null;
+};
+
+const extractTiming = (mockTest: any): MockTestTiming => {
+  const result = isObject(mockTest?.result) ? mockTest.result : {};
+  const startTime =
+    typeof result.startTime === "string" ? result.startTime : null;
+  const endTime = typeof result.endTime === "string" ? result.endTime : null;
+  const rawTimeTakenSeconds = Number(result.timeTakenSeconds);
+  const timeTakenSeconds = Number.isFinite(rawTimeTakenSeconds)
+    ? rawTimeTakenSeconds
+    : startTime && endTime
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(endTime).getTime() - new Date(startTime).getTime()) /
+              1000,
+          ),
+        )
+      : null;
+
+  return {
+    startTime,
+    endTime,
+    timeTakenSeconds,
+    timeTakenMinutes:
+      timeTakenSeconds === null ? null : roundToTwo(timeTakenSeconds / 60),
+  };
+};
+
 const buildPerformanceSuggestion = (
   subjectName: string,
   metrics: MockTestMetrics,
@@ -374,6 +430,8 @@ const serializeQuestions = (questions: unknown, includeAnswers: boolean) => {
 
 const serializeMockTestSummary = (mockTest: any) => {
   const metrics = extractMetrics(mockTest);
+  const submittedAt = getSubmittedAt(mockTest);
+  const timing = extractTiming(mockTest);
 
   return {
     id: mockTest.id,
@@ -394,6 +452,11 @@ const serializeMockTestSummary = (mockTest: any) => {
     wrongCount: metrics.wrongCount,
     unansweredCount: metrics.unansweredCount,
     percentage: metrics.percentage,
+    submittedAt,
+    startTime: timing.startTime,
+    endTime: timing.endTime,
+    timeTakenSeconds: timing.timeTakenSeconds,
+    timeTakenMinutes: timing.timeTakenMinutes,
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
   };
@@ -401,6 +464,8 @@ const serializeMockTestSummary = (mockTest: any) => {
 
 const serializeMockTestDetail = (mockTest: any, includeAnswers: boolean) => {
   const metrics = extractMetrics(mockTest);
+  const submittedAt = getSubmittedAt(mockTest);
+  const timing = extractTiming(mockTest);
 
   return {
     id: mockTest.id,
@@ -422,12 +487,21 @@ const serializeMockTestDetail = (mockTest: any, includeAnswers: boolean) => {
     wrongCount: metrics.wrongCount,
     unansweredCount: metrics.unansweredCount,
     percentage: metrics.percentage,
+    submittedAt,
+    startTime: timing.startTime,
+    endTime: timing.endTime,
+    timeTakenSeconds: timing.timeTakenSeconds,
+    timeTakenMinutes: timing.timeTakenMinutes,
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
   };
 };
 
-const buildMockTestResult = (mockTest: any, submittedAnswers: unknown) => {
+const buildMockTestResult = (
+  mockTest: any,
+  submittedAnswers: unknown,
+  timingInput: { startTime?: unknown; endTime?: unknown },
+) => {
   const questions = Array.isArray(mockTest.questions)
     ? (mockTest.questions as MockQuestion[])
     : [];
@@ -479,6 +553,21 @@ const buildMockTestResult = (mockTest: any, submittedAnswers: unknown) => {
   const percentage = totalQuestions
     ? roundToTwo((score / totalQuestions) * 100)
     : 0;
+  const resolvedStartTime =
+    toIsoDateString(timingInput.startTime, "startTime") ??
+    (mockTest.createdAt instanceof Date
+      ? mockTest.createdAt.toISOString()
+      : new Date(mockTest.createdAt).toISOString());
+  const resolvedEndTime =
+    toIsoDateString(timingInput.endTime, "endTime") ?? new Date().toISOString();
+  const timeTakenSeconds = Math.max(
+    0,
+    Math.round(
+      (new Date(resolvedEndTime).getTime() -
+        new Date(resolvedStartTime).getTime()) /
+        1000,
+    ),
+  );
 
   const result = {
     score,
@@ -488,7 +577,11 @@ const buildMockTestResult = (mockTest: any, submittedAnswers: unknown) => {
     unansweredCount,
     percentage,
     questions: questionResults,
-    submittedAt: new Date().toISOString(),
+    submittedAt: resolvedEndTime,
+    startTime: resolvedStartTime,
+    endTime: resolvedEndTime,
+    timeTakenSeconds,
+    timeTakenMinutes: roundToTwo(timeTakenSeconds / 60),
   };
 
   return {
@@ -924,13 +1017,35 @@ export const getMockTestResult = async (
   }
 };
 
+export const getMockTestById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mockTest: any = await MockTest.findByPk(String(req.params.id));
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
+
+    const { currentUser } = await ensureMockTestAccess(req, mockTest);
+    const includeAnswers =
+      isManagerRole(currentUser.role) || mockTest.status !== "generated";
+
+    res.json({ mockTest: serializeMockTestDetail(mockTest, includeAnswers) });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const submitMockTest = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { mockTestId, submittedAnswers } = req.body ?? {};
+    const { mockTestId, submittedAnswers, startTime, endTime } = req.body ?? {};
 
     if (!mockTestId) {
       throw new AppError("mockTestId is required", 400);
@@ -946,7 +1061,14 @@ export const submitMockTest = async (
       throw new AppError("Mock test already submitted", 400);
     }
 
-    const evaluatedSubmission = buildMockTestResult(mockTest, submittedAnswers);
+    const evaluatedSubmission = buildMockTestResult(
+      mockTest,
+      submittedAnswers,
+      {
+        startTime,
+        endTime,
+      },
+    );
 
     await mockTest.update({
       submittedAnswers: evaluatedSubmission.submittedAnswers,

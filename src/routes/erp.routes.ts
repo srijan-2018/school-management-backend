@@ -164,26 +164,21 @@ router.get("/marks/student/:id", mark.getMarksByStudent);
 router.put("/marks/:id", mark.updateMark);
 
 router.get(
-  ["/mock-test/generate", "/mock-tests/generate"],
-  methodNotAllowed("Use POST /api/mock-test/generate to generate a mock test"),
+  "/mock-tests/generate",
+  methodNotAllowed("Use POST /api/mock-tests/generate to generate a mock test"),
 );
 router.post(
-  ["/mock-test/generate", "/mock-tests/generate"],
+  "/mock-tests/generate",
   allowRoles(...MOCK_TEST_GENERATOR_ROLES),
   mockTest.generateMockTest,
 );
-router.get(["/mock-test", "/mock-tests"], mockTest.getMockTests);
-router.get(
-  ["/mock-test/progress", "/mock-tests/progress"],
-  mockTest.getMockTestProgress,
-);
-router.post("/mock-test/submit", mockTest.submitMockTest);
-router.get("/mock-test/result/:id", mockTest.getMockTestResult);
-router.get("/mock-test/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);
-router.get(
-  ["/mock-test/:id/pdf", "/mock-tests/:id/pdf"],
-  mockTest.downloadMockTestPdf,
-);
+router.get("/mock-tests", mockTest.getMockTests);
+router.get("/mock-tests/:id", mockTest.getMockTestById);
+router.get("/mock-tests/progress", mockTest.getMockTestProgress);
+router.post("/mock-tests/submit", mockTest.submitMockTest);
+router.get("/mock-tests/result/:id", mockTest.getMockTestResult);
+router.get("/mock-tests/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);
+router.get("/mock-tests/:id/pdf", mockTest.downloadMockTestPdf);
 
 router.post("/assignments", assignment.createAssignment);
 router.get("/assignments", assignment.getAssignments);
