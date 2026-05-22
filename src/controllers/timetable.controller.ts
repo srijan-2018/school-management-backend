@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import Timetable from "../models/timetable.model";
+import Subject from "../models/subject.model";
+import Teacher from "../models/teacher.model";
+import Section from "../models/section.model";
+import Class from "../models/class.model";
+import User from "../models/user.model";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
 
@@ -105,11 +110,49 @@ export const getTimetableByClass = async (
 ) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const { rows: timetable, count } = await Timetable.findAndCountAll({
-      where: { classId: req.params.id },
+    const classId = Number(req.params.id);
+    if (!Number.isInteger(classId) || classId <= 0) {
+      throw new AppError("classId must be a positive integer", 400);
+    }
+
+    // Fetch timetable entries with associations
+    const { rows, count } = await Timetable.findAndCountAll({
+      where: { classId },
       limit,
       offset,
+      order: [["id", "DESC"]],
+      include: [
+        { model: Subject, attributes: ["name"], required: false },
+        {
+          model: Teacher,
+          attributes: ["id", "userId"],
+          required: false,
+          include: [{ model: User, attributes: ["name"], required: false }],
+        },
+        { model: Section, attributes: ["name"], required: false },
+        { model: Class, attributes: ["name"], required: false },
+      ],
     });
+
+    // Map results to include names
+    const timetable = rows.map((entry: any) => ({
+      id: entry.id,
+      classId: entry.classId,
+      sectionId: entry.sectionId,
+      subjectId: entry.subjectId,
+      teacherId: entry.teacherId,
+      day: entry.day,
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      room: entry.room,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      subjectName: entry.Subject?.name ?? null,
+      teacherName: entry.Teacher?.User?.name ?? null,
+      sectionName: entry.Section?.name ?? null,
+      className: entry.Class?.name ?? null,
+    }));
+
     res.json({
       timetable,
       pagination: buildPagination(page, limit, count),
