@@ -75,7 +75,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/assignments/student/:id",
+              "raw": "{{baseUrl}}/assignments/student/:id?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -88,6 +88,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -108,14 +122,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/assignments",
+              "raw": "{{baseUrl}}/assignments?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "assignments"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List assignments"
           },
@@ -262,7 +290,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/attendance/class/:classId",
+              "raw": "{{baseUrl}}/attendance/class/:classId?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -275,6 +303,20 @@
                 {
                   "key": "classId",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -295,7 +337,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/attendance/student/:studentId",
+              "raw": "{{baseUrl}}/attendance/student/:studentId?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -308,6 +350,20 @@
                 {
                   "key": "studentId",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -355,7 +411,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/attendance/me",
+              "raw": "{{baseUrl}}/attendance/me?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -363,7 +419,21 @@
                 "attendance",
                 "me"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "Get my staff attendance history"
           },
@@ -928,14 +998,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/classes",
+              "raw": "{{baseUrl}}/classes?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "classes"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List classes"
           },
@@ -1077,14 +1161,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/exams",
+              "raw": "{{baseUrl}}/exams?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "exams"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List exams"
           },
@@ -1235,7 +1333,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/fees/defaulters",
+              "raw": "{{baseUrl}}/fees/defaulters?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1243,7 +1341,21 @@
                 "fees",
                 "defaulters"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "Get fee defaulters"
           },
@@ -1262,7 +1374,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/fees/transactions",
+              "raw": "{{baseUrl}}/fees/transactions?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1270,7 +1382,21 @@
                 "fees",
                 "transactions"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "Get fee transactions"
           },
@@ -1289,7 +1415,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/fees/student/:id",
+              "raw": "{{baseUrl}}/fees/student/:id?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1302,6 +1428,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -1367,7 +1507,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/marks/student/:id",
+              "raw": "{{baseUrl}}/marks/student/:id?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1380,6 +1520,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -1590,7 +1744,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-tests/progress",
+              "raw": "{{baseUrl}}/mock-tests/progress?studentId=1",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1598,7 +1752,15 @@
                 "mock-tests",
                 "progress"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "studentId",
+                  "value": "1",
+                  "description": "Filter by student id",
+                  "disabled": false
+                }
+              ]
             },
             "description": "Get mock test progress summary"
           },
@@ -1650,14 +1812,58 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-tests",
+              "raw": "{{baseUrl}}/mock-tests?page=1&limit=10&studentId=1&classId=1&subjectId=1&status=completed&onlyAssigned=true",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "mock-tests"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "studentId",
+                  "value": "1",
+                  "description": "Filter by student id",
+                  "disabled": false
+                },
+                {
+                  "key": "classId",
+                  "value": "1",
+                  "description": "Filter by class id",
+                  "disabled": false
+                },
+                {
+                  "key": "subjectId",
+                  "value": "1",
+                  "description": "Filter by subject id",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "completed",
+                  "description": "Filter by mock test status",
+                  "disabled": false
+                },
+                {
+                  "key": "onlyAssigned",
+                  "value": "true",
+                  "description": "Only include assigned mock tests",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List mock tests"
           },
@@ -1762,7 +1968,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/parents/:id/students",
+              "raw": "{{baseUrl}}/parents/:id/students?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1775,6 +1981,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -1795,14 +2015,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/parents",
+              "raw": "{{baseUrl}}/parents?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "parents"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List parents"
           },
@@ -1953,14 +2187,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/permissions",
+              "raw": "{{baseUrl}}/permissions?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "permissions"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List permissions"
           },
@@ -2056,14 +2304,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/roles",
+              "raw": "{{baseUrl}}/roles?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "roles"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List roles"
           },
@@ -2205,14 +2467,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/schools",
+              "raw": "{{baseUrl}}/schools?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "schools"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List schools"
           },
@@ -2433,14 +2709,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/sections",
+              "raw": "{{baseUrl}}/sections?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "sections"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List sections"
           },
@@ -2582,7 +2872,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/students/:id/attendance",
+              "raw": "{{baseUrl}}/students/:id/attendance?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2595,6 +2885,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -2647,7 +2951,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/students/:id/documents",
+              "raw": "{{baseUrl}}/students/:id/documents?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2660,6 +2964,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -2680,7 +2998,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/students/:id/fees",
+              "raw": "{{baseUrl}}/students/:id/fees?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2693,6 +3011,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -2713,7 +3045,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/students/:id/results",
+              "raw": "{{baseUrl}}/students/:id/results?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2726,6 +3058,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -2746,14 +3092,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/students",
+              "raw": "{{baseUrl}}/students?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "students"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List students"
           },
@@ -2884,6 +3244,53 @@
           "event": []
         },
         {
+          "name": "Get subjects by class",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subjects/class/:classId?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subjects",
+                "class",
+                ":classId"
+              ],
+              "variable": [
+                {
+                  "key": "classId",
+                  "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Get subjects by class"
+          },
+          "response": [],
+          "event": []
+        },
+        {
           "name": "List subjects",
           "request": {
             "method": "GET",
@@ -2895,14 +3302,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/subjects",
+              "raw": "{{baseUrl}}/subjects?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "subjects"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List subjects"
           },
@@ -3044,7 +3465,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/teachers/:id/classes",
+              "raw": "{{baseUrl}}/teachers/:id/classes?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3057,6 +3478,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -3077,7 +3512,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/teachers/:id/schedule",
+              "raw": "{{baseUrl}}/teachers/:id/schedule?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3090,6 +3525,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -3110,14 +3559,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/teachers",
+              "raw": "{{baseUrl}}/teachers?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "teachers"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List teachers"
           },
@@ -3193,7 +3656,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"classId\": 1,\n  \"subjectId\": 1,\n  \"teacherId\": 1,\n  \"day\": \"Monday\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:00\",\n  \"room\": \"Room 3\"\n}",
+              "raw": "{\n  \"classId\": 1,\n  \"sectionId\": \"\",\n  \"subjectId\": 1,\n  \"teacherId\": 1,\n  \"day\": \"Monday\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:00\",\n  \"room\": \"Room 3\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3227,7 +3690,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/timetable/class/:id",
+              "raw": "{{baseUrl}}/timetable/class/:id?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3240,6 +3703,20 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
                 }
               ]
             },
@@ -3266,7 +3743,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"day\": \"Tuesday\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"room\": \"Room 4\"\n}",
+              "raw": "{\n  \"sectionId\": \"\",\n  \"day\": \"Tuesday\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"room\": \"Room 4\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3415,14 +3892,28 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users",
+              "raw": "{{baseUrl}}/users?page=1&limit=10",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "users"
               ],
-              "variable": []
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                }
+              ]
             },
             "description": "List users"
           },

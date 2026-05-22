@@ -135,6 +135,7 @@ router.delete(
 );
 
 router.get("/subjects", subject.getSubjects);
+router.get("/subjects/class/:classId", subject.getSubjectsByClassId);
 router.post(
   "/subjects",
   allowRoles(...ACADEMIC_MANAGER_ROLES),

@@ -5,6 +5,7 @@ import Mark from "../models/mark.model";
 import Fee from "../models/fee.model";
 import StudentDocument from "../models/student-document.model";
 import { create, getById, list, remove, update } from "../helpers/crud.helpers";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const getStudents = list(Student, "students");
 export const createStudent = create(Student, "student");
@@ -18,11 +19,17 @@ export const getStudentAttendance = async (
   next: NextFunction,
 ) => {
   try {
-    const attendance = await Attendance.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: attendance, count } = await Attendance.findAndCountAll({
       where: { studentId: req.params.id },
       order: [["date", "DESC"]],
+      limit,
+      offset,
     });
-    res.json({ attendance });
+    res.json({
+      attendance,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }
@@ -34,8 +41,16 @@ export const getStudentResults = async (
   next: NextFunction,
 ) => {
   try {
-    const marks = await Mark.findAll({ where: { studentId: req.params.id } });
-    res.json({ marks });
+    const { page, limit, offset } = getPagination(req);
+    const { rows: marks, count } = await Mark.findAndCountAll({
+      where: { studentId: req.params.id },
+      limit,
+      offset,
+    });
+    res.json({
+      marks,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }
@@ -47,8 +62,16 @@ export const getStudentFees = async (
   next: NextFunction,
 ) => {
   try {
-    const fees = await Fee.findAll({ where: { studentId: req.params.id } });
-    res.json({ fees });
+    const { page, limit, offset } = getPagination(req);
+    const { rows: fees, count } = await Fee.findAndCountAll({
+      where: { studentId: req.params.id },
+      limit,
+      offset,
+    });
+    res.json({
+      fees,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }
@@ -60,10 +83,16 @@ export const getStudentDocuments = async (
   next: NextFunction,
 ) => {
   try {
-    const documents = await StudentDocument.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: documents, count } = await StudentDocument.findAndCountAll({
       where: { studentId: req.params.id },
+      limit,
+      offset,
     });
-    res.json({ documents });
+    res.json({
+      documents,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

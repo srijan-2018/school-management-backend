@@ -3,6 +3,7 @@ import Teacher from "../models/teacher.model";
 import TeacherClass from "../models/teacher-class.model";
 import Timetable from "../models/timetable.model";
 import { create, list, remove, update } from "../helpers/crud.helpers";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const getTeachers = list(Teacher, "teachers");
 export const createTeacher = create(Teacher, "teacher");
@@ -15,10 +16,16 @@ export const getTeacherClasses = async (
   next: NextFunction,
 ) => {
   try {
-    const classes = await TeacherClass.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: classes, count } = await TeacherClass.findAndCountAll({
       where: { teacherId: req.params.id },
+      limit,
+      offset,
     });
-    res.json({ classes });
+    res.json({
+      classes,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }
@@ -30,10 +37,16 @@ export const getTeacherSchedule = async (
   next: NextFunction,
 ) => {
   try {
-    const schedule = await Timetable.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: schedule, count } = await Timetable.findAndCountAll({
       where: { teacherId: req.params.id },
+      limit,
+      offset,
     });
-    res.json({ schedule });
+    res.json({
+      schedule,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

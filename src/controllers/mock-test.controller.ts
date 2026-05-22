@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import PDFDocument from "pdfkit";
+import { Op } from "sequelize";
 import Class from "../models/class.model";
 import MockTest from "../models/mock-test.model";
 import Student from "../models/student.model";
@@ -15,6 +16,7 @@ import {
   normalizeRole,
   type UserRole,
 } from "../utils/roles";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
 const mockTestManagers = new Set<UserRole>(MOCK_TEST_MANAGER_ROLES);
@@ -844,6 +846,7 @@ export const getMockTests = async (
 ) => {
   try {
     const { currentUser, student } = await getAccessibleStudent(req);
+    const { page, limit, offset } = getPagination(req);
     const where: Record<string, unknown> = {};
     const queryStudentId = toOptionalPositiveInteger(
       req.query.studentId,
@@ -880,19 +883,26 @@ export const getMockTests = async (
       where.status = status;
     }
 
-    let mockTests: any[] = await MockTest.findAll({
+    if (
+      onlyAssigned &&
+      queryStudentId === undefined &&
+      isManagerRole(currentUser.role)
+    ) {
+      where.studentId = { [Op.not]: null };
+    }
+
+    const { rows: mockTests, count } = await MockTest.findAndCountAll({
       where,
       order: [["createdAt", "DESC"]],
+      limit,
+      offset,
     });
-
-    if (onlyAssigned) {
-      mockTests = mockTests.filter((mockTest) => mockTest.studentId);
-    }
 
     res.json({
       mockTests: mockTests.map((mockTest) =>
         serializeMockTestSummary(mockTest),
       ),
+      pagination: buildPagination(page, limit, count),
     });
   } catch (err) {
     next(err);

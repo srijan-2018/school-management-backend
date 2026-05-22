@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Fee from "../models/fee.model";
 import FeePayment from "../models/fee-payment.model";
 import { create, list } from "../helpers/crud.helpers";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const createFee = create(Fee, "fee");
 export const getFeeTransactions = list(FeePayment, "transactions");
@@ -12,8 +13,16 @@ export const getFeesByStudent = async (
   next: NextFunction,
 ) => {
   try {
-    const fees = await Fee.findAll({ where: { studentId: req.params.id } });
-    res.json({ fees });
+    const { page, limit, offset } = getPagination(req);
+    const { rows: fees, count } = await Fee.findAndCountAll({
+      where: { studentId: req.params.id },
+      limit,
+      offset,
+    });
+    res.json({
+      fees,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }
@@ -46,10 +55,16 @@ export const getFeeDefaulters = async (
   next: NextFunction,
 ) => {
   try {
-    const fees = await Fee.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: fees, count } = await Fee.findAndCountAll({
       where: { status: ["pending", "partial", "overdue"] },
+      limit,
+      offset,
     });
-    res.json({ defaulters: fees });
+    res.json({
+      defaulters: fees,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

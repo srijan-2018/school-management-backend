@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import Role from "../models/role.model";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const getRoles = async (
   req: Request,
@@ -7,9 +8,17 @@ export const getRoles = async (
   next: NextFunction,
 ) => {
   try {
-    const roles = await Role.findAll({ order: [["id", "DESC"]] });
+    const { page, limit, offset } = getPagination(req);
+    const { rows: roles, count } = await Role.findAndCountAll({
+      order: [["id", "DESC"]],
+      limit,
+      offset,
+    });
 
-    res.json({ roles });
+    res.json({
+      roles,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

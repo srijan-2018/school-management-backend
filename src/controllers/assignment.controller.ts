@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Assignment from "../models/assignment.model";
 import AssignmentSubmission from "../models/assignment-submission.model";
 import { create, list } from "../helpers/crud.helpers";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const createAssignment = create(Assignment, "assignment");
 export const getAssignments = list(Assignment, "assignments");
@@ -13,10 +14,17 @@ export const getAssignmentsByStudent = async (
   next: NextFunction,
 ) => {
   try {
-    const submissions = await AssignmentSubmission.findAll({
-      where: { studentId: req.params.id },
+    const { page, limit, offset } = getPagination(req);
+    const { rows: submissions, count } =
+      await AssignmentSubmission.findAndCountAll({
+        where: { studentId: req.params.id },
+        limit,
+        offset,
+      });
+    res.json({
+      submissions,
+      pagination: buildPagination(page, limit, count),
     });
-    res.json({ submissions });
   } catch (err) {
     next(err);
   }

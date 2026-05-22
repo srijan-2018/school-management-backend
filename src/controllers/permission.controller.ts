@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Permission from "../models/permission.model";
 import Role from "../models/role.model";
 import RolePermission from "../models/role-permission.model";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const getPermissions = async (
   req: Request,
@@ -9,11 +10,17 @@ export const getPermissions = async (
   next: NextFunction,
 ) => {
   try {
-    const permissions = await Permission.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: permissions, count } = await Permission.findAndCountAll({
       order: [["id", "DESC"]],
+      limit,
+      offset,
     });
 
-    res.json({ permissions });
+    res.json({
+      permissions,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 const pluralize = (key: string) => {
   if (key.endsWith("s")) return `${key}es`;
@@ -10,8 +11,16 @@ export const list =
   (model: any, key: string) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const rows = await model.findAll({ order: [["id", "DESC"]] });
-      res.json({ [key]: rows });
+      const { page, limit, offset } = getPagination(req);
+      const { rows, count } = await model.findAndCountAll({
+        order: [["id", "DESC"]],
+        limit,
+        offset,
+      });
+      res.json({
+        [key]: rows,
+        pagination: buildPagination(page, limit, count),
+      });
     } catch (err) {
       next(err);
     }
@@ -23,7 +32,9 @@ export const create =
     try {
       if (Array.isArray(req.body)) {
         if (req.body.length === 0) {
-          return res.status(400).json({ message: `${pluralize(key)} payload cannot be empty` });
+          return res
+            .status(400)
+            .json({ message: `${pluralize(key)} payload cannot be empty` });
         }
 
         const rows = await model.bulkCreate(req.body, { validate: true });

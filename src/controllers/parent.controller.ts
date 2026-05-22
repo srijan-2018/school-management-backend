@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import Parent from "../models/parent.model";
 import ParentStudent from "../models/parent-student.model";
 import { list, update } from "../helpers/crud.helpers";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const getParents = list(Parent, "parents");
 export const updateParent = update(Parent, "parent");
@@ -37,10 +38,16 @@ export const getParentStudents = async (
   next: NextFunction,
 ) => {
   try {
-    const students = await ParentStudent.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: students, count } = await ParentStudent.findAndCountAll({
       where: { parentId: req.params.id },
+      limit,
+      offset,
     });
-    res.json({ students });
+    res.json({
+      students,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

@@ -10,6 +10,7 @@ import Teacher from "../models/teacher.model";
 import Parent from "../models/parent.model";
 import { AppError } from "../middlewares/error.middleware";
 import { normalizeRole, USER_ROLES } from "../utils/roles";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const userSafeAttributes = {
   exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
@@ -189,13 +190,20 @@ export const getUsers = async (
   next: NextFunction,
 ) => {
   try {
-    const users = await User.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: users, count } = await User.findAndCountAll({
       attributes: userSafeAttributes,
       include: userInclude,
       order: [["id", "DESC"]],
+      distinct: true,
+      limit,
+      offset,
     });
 
-    res.json({ users });
+    res.json({
+      users,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

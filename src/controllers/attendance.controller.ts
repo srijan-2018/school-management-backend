@@ -9,6 +9,7 @@ import {
   STAFF_ATTENDANCE_ROLES,
   type UserRole,
 } from "../utils/roles";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 export const markAttendance = create(Attendance, "attendance");
 export const updateAttendance = update(Attendance, "attendance");
@@ -414,16 +415,20 @@ export const getMyStaffAttendance = async (
     const currentUser = getCurrentUser(req);
     ensureStaffAttendanceRole(currentUser.role);
 
-    const attendance = await StaffAttendance.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: attendance, count } = await StaffAttendance.findAndCountAll({
       where: { userId: currentUser.id },
       order: [
         ["date", "DESC"],
         ["id", "DESC"],
       ],
+      limit,
+      offset,
     });
 
     res.json({
       attendance: attendance.map(serializeStaffAttendance),
+      pagination: buildPagination(page, limit, count),
     });
   } catch (err) {
     next(err);
@@ -436,11 +441,17 @@ export const getAttendanceByClass = async (
   next: NextFunction,
 ) => {
   try {
-    const attendance = await Attendance.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: attendance, count } = await Attendance.findAndCountAll({
       where: { classId: req.params.classId },
       order: [["date", "DESC"]],
+      limit,
+      offset,
     });
-    res.json({ attendance });
+    res.json({
+      attendance,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }
@@ -452,11 +463,17 @@ export const getAttendanceByStudent = async (
   next: NextFunction,
 ) => {
   try {
-    const attendance = await Attendance.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: attendance, count } = await Attendance.findAndCountAll({
       where: { studentId: req.params.studentId },
       order: [["date", "DESC"]],
+      limit,
+      offset,
     });
-    res.json({ attendance });
+    res.json({
+      attendance,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

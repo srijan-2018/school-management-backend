@@ -3,6 +3,7 @@ import { sequelize } from "../config/db";
 import Class from "../models/class.model";
 import Section from "../models/section.model";
 import { AppError } from "../middlewares/error.middleware";
+import { buildPagination, getPagination } from "../utils/pagination";
 
 type SectionInput = {
   id?: number;
@@ -207,12 +208,19 @@ export const getClasses = async (
   next: NextFunction,
 ) => {
   try {
-    const classes = await Class.findAll({
+    const { page, limit, offset } = getPagination(req);
+    const { rows: classes, count } = await Class.findAndCountAll({
       include: classInclude,
       order: [["id", "DESC"]],
+      distinct: true,
+      limit,
+      offset,
     });
 
-    res.json({ classes });
+    res.json({
+      classes,
+      pagination: buildPagination(page, limit, count),
+    });
   } catch (err) {
     next(err);
   }

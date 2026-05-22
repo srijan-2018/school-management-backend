@@ -34,6 +34,7 @@ type ParameterObject = {
   in: string;
   required?: boolean;
   description?: string;
+  example?: JsonValue;
   schema?: SchemaObject;
 };
 
@@ -287,6 +288,7 @@ const requestExamples: Record<string, JsonValue> = {
   },
   "POST /timetable": {
     classId: 1,
+    sectionId: "",
     subjectId: 1,
     teacherId: 1,
     day: "Monday",
@@ -295,6 +297,7 @@ const requestExamples: Record<string, JsonValue> = {
     room: "Room 3",
   },
   "PUT /timetable/{id}": {
+    sectionId: "",
     day: "Tuesday",
     startTime: "10:00",
     endTime: "11:00",
@@ -460,13 +463,36 @@ const buildRequestBody = (
   };
 };
 
-const buildUrl = (routePath: string) => {
+const getParameterExampleValue = (parameter: ParameterObject) => {
+  if (parameter.example !== undefined) {
+    return parameter.example;
+  }
+
+  if (parameter.schema?.example !== undefined) {
+    return parameter.schema.example;
+  }
+
+  if (parameter.schema?.default !== undefined) {
+    return parameter.schema.default;
+  }
+
+  switch (parameter.schema?.type) {
+    case "integer":
+    case "number":
+      return 1;
+    case "boolean":
+      return true;
+    default:
+      return "sample";
+  }
+};
+
+const buildUrl = (routePath: string, parameters?: ParameterObject[]) => {
   const postmanPath = routePath.replace(/\{([^}]+)\}/g, ":$1");
   const cleanBaseUrl = "{{baseUrl}}".replace(/\/$/, "");
   const cleanPath = postmanPath.startsWith("/")
     ? postmanPath
     : `/${postmanPath}`;
-  const raw = `${cleanBaseUrl}${cleanPath}`;
   const pathSegments = cleanPath.split("/").filter(Boolean);
   const variables = pathSegments
     .filter((segment) => segment.startsWith(":"))
@@ -474,12 +500,30 @@ const buildUrl = (routePath: string) => {
       key: segment.slice(1),
       value: "1",
     }));
+  const query = (parameters ?? [])
+    .filter((parameter) => parameter.in === "query")
+    .map((parameter) => ({
+      key: parameter.name,
+      value: String(getParameterExampleValue(parameter)),
+      description: parameter.description,
+      disabled: false,
+    }));
+  const queryString = query.length
+    ? `?${query
+        .map(
+          (parameter) =>
+            `${encodeURIComponent(parameter.key)}=${encodeURIComponent(parameter.value)}`,
+        )
+        .join("&")}`
+    : "";
+  const raw = `${cleanBaseUrl}${cleanPath}${queryString}`;
 
   return {
     raw,
     host: ["{{baseUrl}}"],
     path: pathSegments,
     variable: variables,
+    ...(query.length > 0 ? { query } : {}),
   };
 };
 
@@ -569,7 +613,7 @@ const createRequestItem = (
     method,
     header: buildHeaders(operation),
     body: buildRequestBody(method, routePath, operation.requestBody),
-    url: buildUrl(routePath),
+    url: buildUrl(routePath, operation.parameters),
     description: operation.description ?? operation.summary ?? "",
   },
   response: [],

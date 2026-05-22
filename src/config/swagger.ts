@@ -22,6 +22,34 @@ const idParameter = (name = "id", description = "Resource id") => ({
   },
 });
 
+const queryParameter = (
+  name: string,
+  description: string,
+  schema: Record<string, unknown>,
+) => ({
+  name,
+  in: "query",
+  required: false,
+  description,
+  schema,
+});
+
+const paginationParameters = () => [
+  queryParameter("page", "Page number", {
+    type: "integer",
+    example: 1,
+    default: 1,
+    minimum: 1,
+  }),
+  queryParameter("limit", "Items per page", {
+    type: "integer",
+    example: 10,
+    default: 10,
+    minimum: 1,
+    maximum: 100,
+  }),
+];
+
 const messageResponse = (description: string) => ({
   description,
   content: {
@@ -76,6 +104,7 @@ const protectedCrudPaths = (
       tags: [tag],
       summary: `List ${collectionName}`,
       security: [{ bearerAuth: [] }],
+      parameters: paginationParameters(),
       responses: {
         200: messageResponse(`${collectionName} list`),
         401: messageResponse("Unauthorized"),
@@ -457,7 +486,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Students"],
           summary: "Get student attendance",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student attendance") },
         },
       },
@@ -466,7 +495,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Students"],
           summary: "Get student results",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student results") },
         },
       },
@@ -475,7 +504,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Students"],
           summary: "Get student fees",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student fees") },
         },
       },
@@ -484,7 +513,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Students"],
           summary: "Get student documents",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student documents") },
         },
       },
@@ -499,7 +528,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Teachers"],
           summary: "Get teacher classes",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Teacher classes") },
         },
       },
@@ -508,7 +537,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Teachers"],
           summary: "Get teacher schedule",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Teacher schedule") },
         },
       },
@@ -522,7 +551,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Parents"],
           summary: "Get parent students",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Parent students") },
         },
       },
@@ -559,6 +588,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Subjects"],
           summary: "List subjects",
           security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
           responses: {
             200: messageResponse("Subjects list"),
             401: messageResponse("Unauthorized"),
@@ -628,6 +658,21 @@ const options: swaggerJsdoc.Options = {
           },
         },
       },
+      "/subjects/class/{classId}": {
+        get: {
+          tags: ["Subjects"],
+          summary: "Get subjects by class",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            idParameter("classId", "Class id"),
+            ...paginationParameters(),
+          ],
+          responses: {
+            200: messageResponse("Class subjects"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
       "/subjects/{id}": {
         put: {
           tags: ["Subjects"],
@@ -680,7 +725,10 @@ const options: swaggerJsdoc.Options = {
           tags: ["Attendance"],
           summary: "Get attendance by class",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter("classId", "Class id")],
+          parameters: [
+            idParameter("classId", "Class id"),
+            ...paginationParameters(),
+          ],
           responses: { 200: messageResponse("Class attendance") },
         },
       },
@@ -689,7 +737,10 @@ const options: swaggerJsdoc.Options = {
           tags: ["Attendance"],
           summary: "Get attendance by student",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter("studentId", "Student id")],
+          parameters: [
+            idParameter("studentId", "Student id"),
+            ...paginationParameters(),
+          ],
           responses: { 200: messageResponse("Student attendance") },
         },
       },
@@ -731,6 +782,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Attendance"],
           summary: "Get my staff attendance history",
           security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
           responses: { 200: messageResponse("My attendance history") },
         },
       },
@@ -756,7 +808,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Marks"],
           summary: "Get marks by student",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student marks") },
         },
       },
@@ -765,6 +817,29 @@ const options: swaggerJsdoc.Options = {
           tags: ["Mock Tests"],
           summary: "List mock tests",
           security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("studentId", "Filter by student id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("classId", "Filter by class id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("subjectId", "Filter by subject id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("status", "Filter by mock test status", {
+              type: "string",
+              example: "completed",
+            }),
+            queryParameter("onlyAssigned", "Only include assigned mock tests", {
+              type: "boolean",
+              example: true,
+            }),
+          ],
           responses: { 200: messageResponse("Mock tests list") },
         },
       },
@@ -773,6 +848,12 @@ const options: swaggerJsdoc.Options = {
           tags: ["Mock Tests"],
           summary: "Get mock test progress summary",
           security: [{ bearerAuth: [] }],
+          parameters: [
+            queryParameter("studentId", "Filter by student id", {
+              type: "integer",
+              example: 1,
+            }),
+          ],
           responses: { 200: messageResponse("Mock test progress") },
         },
       },
@@ -851,7 +932,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Assignments"],
           summary: "Get assignments by student",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student assignments") },
         },
       },
@@ -867,7 +948,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Timetable"],
           summary: "Get timetable by class",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Class timetable") },
         },
       },
@@ -877,7 +958,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Fees"],
           summary: "Get fees by student",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [idParameter(), ...paginationParameters()],
           responses: { 200: messageResponse("Student fees") },
         },
       },
@@ -895,6 +976,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Fees"],
           summary: "Get fee transactions",
           security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
           responses: { 200: messageResponse("Fee transactions") },
         },
       },
@@ -903,6 +985,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Fees"],
           summary: "Get fee defaulters",
           security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
           responses: { 200: messageResponse("Fee defaulters") },
         },
       },
