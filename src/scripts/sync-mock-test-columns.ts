@@ -30,6 +30,8 @@ const syncMockTestColumns = async () => {
   const existingColumns = new Set(columns.map((column) => column.Field));
 
   const columnsToAdd = [
+    { name: "generatedByUserId", definition: "INT NULL AFTER `studentId`" },
+    { name: "assignedByUserId", definition: "INT NULL AFTER `generatedByUserId`" },
     { name: "classId", definition: "INT NULL AFTER `studentId`" },
     { name: "className", definition: "VARCHAR(255) NULL AFTER `classId`" },
     { name: "subjectName", definition: "VARCHAR(255) NULL AFTER `subjectId`" },

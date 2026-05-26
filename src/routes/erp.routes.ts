@@ -18,6 +18,7 @@ import {
   ACADEMIC_MANAGER_ROLES,
   ATTENDANCE_RULE_MANAGER_ROLES,
   MOCK_TEST_GENERATOR_ROLES,
+  MOCK_TEST_MANAGER_ROLES,
   OWNER_LEVEL_ROLES,
   STAFF_ATTENDANCE_ROLES,
 } from "../utils/roles";
@@ -206,12 +207,17 @@ router.post(
   mockTest.generateMockTest,
 );
 router.get("/mock-tests", mockTest.getMockTests);
-router.get("/mock-tests/:id", mockTest.getMockTestById);
 router.get("/mock-tests/progress", mockTest.getMockTestProgress);
 router.post("/mock-tests/submit", mockTest.submitMockTest);
 router.get("/mock-tests/result/:id", mockTest.getMockTestResult);
 router.get("/mock-tests/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);
+router.post(
+  "/mock-tests/:id/assign",
+  allowRoles(...MOCK_TEST_MANAGER_ROLES),
+  mockTest.assignMockTest,
+);
 router.get("/mock-tests/:id/pdf", mockTest.downloadMockTestPdf);
+router.get("/mock-tests/:id", mockTest.getMockTestById);
 
 router.post("/assignments", assignment.createAssignment);
 router.get("/assignments", assignment.getAssignments);

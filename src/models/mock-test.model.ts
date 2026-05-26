@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
+import User from "./user.model";
 
 class MockTest extends Model {
   public id!: number;
@@ -8,6 +9,8 @@ class MockTest extends Model {
 MockTest.init(
   {
     studentId: { type: DataTypes.INTEGER, allowNull: true },
+    generatedByUserId: { type: DataTypes.INTEGER, allowNull: true },
+    assignedByUserId: { type: DataTypes.INTEGER, allowNull: true },
     classId: { type: DataTypes.INTEGER, allowNull: true },
     className: { type: DataTypes.STRING, allowNull: true },
     subjectId: { type: DataTypes.INTEGER, allowNull: true },
@@ -28,5 +31,14 @@ MockTest.init(
   },
   { sequelize, modelName: "MockTest", timestamps: true },
 );
+
+MockTest.belongsTo(User, {
+  as: "generatedByUser",
+  foreignKey: "generatedByUserId",
+});
+MockTest.belongsTo(User, {
+  as: "assignedByUser",
+  foreignKey: "assignedByUserId",
+});
 
 export default MockTest;

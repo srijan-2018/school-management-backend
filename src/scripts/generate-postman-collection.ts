@@ -272,6 +272,9 @@ const requestExamples: Record<string, JsonValue> = {
     startTime: "2026-05-21T10:00:00.000Z",
     endTime: "2026-05-21T10:30:00.000Z",
   },
+  "POST /mock-tests/{id}/assign": {
+    studentIds: [1, 2],
+  },
   "POST /assignments": {
     title: "Algebra Homework",
     description: "Solve questions 1 to 10",

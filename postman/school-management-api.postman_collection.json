@@ -1594,6 +1594,53 @@
       "name": "Mock Tests",
       "item": [
         {
+          "name": "Assign mock test to student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentIds\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/mock-tests/:id/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "mock-tests",
+                ":id",
+                "assign"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Assign mock test to student"
+          },
+          "response": [],
+          "event": []
+        },
+        {
           "name": "Download mock test PDF",
           "request": {
             "method": "GET",
@@ -1605,7 +1652,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/mock-tests/:id/pdf",
+              "raw": "{{baseUrl}}/mock-tests/:id/pdf?includeAnswers=true",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1618,6 +1665,14 @@
                 {
                   "key": "id",
                   "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "includeAnswers",
+                  "value": "true",
+                  "description": "Include answers in PDF. Aliases also accepted: withAnswers, answers.",
+                  "disabled": false
                 }
               ]
             },

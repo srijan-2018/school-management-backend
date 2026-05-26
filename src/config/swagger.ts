@@ -875,6 +875,16 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Mock test submitted") },
         },
       },
+      "/mock-tests/{id}/assign": {
+        post: {
+          tags: ["Mock Tests"],
+          summary: "Assign mock test to student",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: objectBody("Assign mock test"),
+          responses: { 200: messageResponse("Mock test assigned") },
+        },
+      },
       "/mock-tests/{id}": {
         get: {
           tags: ["Mock Tests"],
@@ -907,7 +917,17 @@ const options: swaggerJsdoc.Options = {
           tags: ["Mock Tests"],
           summary: "Download mock test PDF",
           security: [{ bearerAuth: [] }],
-          parameters: [idParameter()],
+          parameters: [
+            idParameter(),
+            queryParameter(
+              "includeAnswers",
+              "Include answers in PDF. Aliases also accepted: withAnswers, answers.",
+              {
+                type: "boolean",
+                example: true,
+              },
+            ),
+          ],
           responses: { 200: messageResponse("Mock test PDF") },
         },
       },

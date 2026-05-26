@@ -5,6 +5,7 @@ import Class from "../models/class.model";
 import MockTest from "../models/mock-test.model";
 import Student from "../models/student.model";
 import Subject from "../models/subject.model";
+import User from "../models/user.model";
 import { AppError } from "../middlewares/error.middleware";
 import {
   generateMockTestWithAi,
@@ -46,6 +47,21 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const isManagerRole = (role: UserRole) => mockTestManagers.has(role);
+
+const mockTestUserInclude = [
+  {
+    model: User,
+    as: "generatedByUser",
+    attributes: ["id", "name", "email", "role"],
+    required: false,
+  },
+  {
+    model: User,
+    as: "assignedByUser",
+    attributes: ["id", "name", "email", "role"],
+    required: false,
+  },
+];
 
 const roundToTwo = (value: number) => Math.round(value * 100) / 100;
 
@@ -106,6 +122,29 @@ const toBoolean = (value: unknown) => {
 
   const normalized = value.trim().toLowerCase();
   return normalized === "true" || normalized === "1" || normalized === "yes";
+};
+
+const getIncludeAnswersParam = (query: Request["query"]) =>
+  toBoolean(query.includeAnswers) ||
+  toBoolean(query.withAnswers) ||
+  toBoolean(query.answers);
+
+const normalizeStudentIds = (value: unknown) => {
+  const rawValues = Array.isArray(value)
+    ? value
+    : typeof value === "string" && value.includes(",")
+      ? value.split(",")
+      : [value];
+  const studentIds = rawValues
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item) && item > 0);
+  const uniqueStudentIds = Array.from(new Set(studentIds));
+
+  if (uniqueStudentIds.length === 0) {
+    throw new AppError("studentId or studentIds is required", 400);
+  }
+
+  return uniqueStudentIds;
 };
 
 const getStudentProfileByUserId = async (userId: number) =>
@@ -430,7 +469,49 @@ const serializeQuestions = (questions: unknown, includeAnswers: boolean) => {
   });
 };
 
-const serializeMockTestSummary = (mockTest: any) => {
+const serializeMockTestUser = (user: any) => {
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+};
+
+const getIncludedUser = (mockTest: any, alias: string) =>
+  mockTest?.[alias] ?? mockTest?.get?.(alias) ?? null;
+
+const serializeOwnership = (mockTest: any, currentUser?: CurrentUser) => {
+  const generatedByUser = getIncludedUser(mockTest, "generatedByUser");
+  const assignedByUser = getIncludedUser(mockTest, "assignedByUser");
+  const generatedByUserId = mockTest.generatedByUserId ?? null;
+  const assignedByUserId = mockTest.assignedByUserId ?? null;
+  const assignedByRole =
+    normalizeRole(assignedByUser?.role) ??
+    (currentUser && Number(assignedByUserId) === Number(currentUser.id)
+      ? currentUser.role
+      : null);
+
+  return {
+    generatedByUserId,
+    assignedByUserId,
+    generatedBy: serializeMockTestUser(generatedByUser),
+    assignedBy: serializeMockTestUser(assignedByUser),
+    generatedByMe:
+      !!currentUser && Number(generatedByUserId) === Number(currentUser.id),
+    assignedByMe:
+      !!currentUser && Number(assignedByUserId) === Number(currentUser.id),
+    assignedByTeacher:
+      assignedByRole === "teacher" || assignedByRole === "head_teacher",
+  };
+};
+
+const serializeMockTestSummary = (
+  mockTest: any,
+  currentUser?: CurrentUser,
+) => {
   const metrics = extractMetrics(mockTest);
   const submittedAt = getSubmittedAt(mockTest);
   const timing = extractTiming(mockTest);
@@ -459,12 +540,17 @@ const serializeMockTestSummary = (mockTest: any) => {
     endTime: timing.endTime,
     timeTakenSeconds: timing.timeTakenSeconds,
     timeTakenMinutes: timing.timeTakenMinutes,
+    ...serializeOwnership(mockTest, currentUser),
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
   };
 };
 
-const serializeMockTestDetail = (mockTest: any, includeAnswers: boolean) => {
+const serializeMockTestDetail = (
+  mockTest: any,
+  includeAnswers: boolean,
+  currentUser?: CurrentUser,
+) => {
   const metrics = extractMetrics(mockTest);
   const submittedAt = getSubmittedAt(mockTest);
   const timing = extractTiming(mockTest);
@@ -494,6 +580,7 @@ const serializeMockTestDetail = (mockTest: any, includeAnswers: boolean) => {
     endTime: timing.endTime,
     timeTakenSeconds: timing.timeTakenSeconds,
     timeTakenMinutes: timing.timeTakenMinutes,
+    ...serializeOwnership(mockTest, currentUser),
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
   };
@@ -864,11 +951,14 @@ export const getMockTests = async (
     const onlyAssigned = toBoolean(req.query.onlyAssigned);
 
     if (isManagerRole(currentUser.role)) {
+      where.generatedByUserId = currentUser.id;
+
       if (queryStudentId !== undefined) {
         where.studentId = queryStudentId;
       }
     } else {
       where.studentId = student.id;
+      where.generatedByUserId = currentUser.id;
     }
 
     if (queryClassId !== undefined) {
@@ -893,6 +983,7 @@ export const getMockTests = async (
 
     const { rows: mockTests, count } = await MockTest.findAndCountAll({
       where,
+      include: mockTestUserInclude,
       order: [["createdAt", "DESC"]],
       limit,
       offset,
@@ -900,7 +991,7 @@ export const getMockTests = async (
 
     res.json({
       mockTests: mockTests.map((mockTest) =>
-        serializeMockTestSummary(mockTest),
+        serializeMockTestSummary(mockTest, currentUser),
       ),
       pagination: buildPagination(page, limit, count),
     });
@@ -975,6 +1066,9 @@ export const generateMockTest = async (
 
     const mockTest = await MockTest.create({
       studentId: targetStudent?.id ?? null,
+      generatedByUserId: currentUser.id,
+      assignedByUserId:
+        targetStudent && isManagerRole(currentUser.role) ? currentUser.id : null,
       classId: resolvedContext.classId,
       className: String(resolvedContext.className),
       subjectId: resolvedContext.subjectId,
@@ -998,7 +1092,7 @@ export const generateMockTest = async (
           : "mock test generated successfully",
       provider: generated.provider,
       model: generated.model,
-      mockTest: serializeMockTestDetail(mockTest, includeAnswers),
+      mockTest: serializeMockTestDetail(mockTest, includeAnswers, currentUser),
     });
   } catch (err) {
     next(err);
@@ -1011,7 +1105,9 @@ export const getMockTestResult = async (
   next: NextFunction,
 ) => {
   try {
-    const mockTest: any = await MockTest.findByPk(String(req.params.id));
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
 
     if (!mockTest) {
       return res.status(404).json({ message: "mockTest not found" });
@@ -1021,7 +1117,9 @@ export const getMockTestResult = async (
     const includeAnswers =
       isManagerRole(currentUser.role) || mockTest.status !== "generated";
 
-    res.json({ mockTest: serializeMockTestDetail(mockTest, includeAnswers) });
+    res.json({
+      mockTest: serializeMockTestDetail(mockTest, includeAnswers, currentUser),
+    });
   } catch (err) {
     next(err);
   }
@@ -1033,7 +1131,9 @@ export const getMockTestById = async (
   next: NextFunction,
 ) => {
   try {
-    const mockTest: any = await MockTest.findByPk(String(req.params.id));
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
 
     if (!mockTest) {
       return res.status(404).json({ message: "mockTest not found" });
@@ -1043,7 +1143,9 @@ export const getMockTestById = async (
     const includeAnswers =
       isManagerRole(currentUser.role) || mockTest.status !== "generated";
 
-    res.json({ mockTest: serializeMockTestDetail(mockTest, includeAnswers) });
+    res.json({
+      mockTest: serializeMockTestDetail(mockTest, includeAnswers, currentUser),
+    });
   } catch (err) {
     next(err);
   }
@@ -1089,8 +1191,103 @@ export const submitMockTest = async (
 
     res.json({
       message: "mock test submitted successfully",
-      mockTest: serializeMockTestDetail(mockTest, true),
+      mockTest: serializeMockTestDetail(mockTest, true, currentUser),
       submittedBy: currentUser.role,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const assignMockTest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const currentUser = getCurrentUser(req);
+
+    if (!isManagerRole(currentUser.role)) {
+      throw new AppError("Access denied", 403);
+    }
+
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
+
+    if (mockTest.status !== "generated") {
+      throw new AppError("Only generated mock tests can be assigned", 400);
+    }
+
+    const studentIds = normalizeStudentIds(
+      req.body?.studentIds ?? req.body?.studentId,
+    );
+    const students = await Student.findAll({
+      where: { id: { [Op.in]: studentIds } },
+    });
+    const foundStudentIds = new Set(
+      students.map((student: any) => Number(student.id)),
+    );
+    const missingStudentIds = studentIds.filter(
+      (id) => !foundStudentIds.has(id),
+    );
+
+    if (missingStudentIds.length > 0) {
+      throw new AppError(
+        `Student not found: ${missingStudentIds.join(", ")}`,
+        404,
+      );
+    }
+
+    const basePayload = {
+      classId: mockTest.classId,
+      className: mockTest.className,
+      subjectId: mockTest.subjectId,
+      subjectName: mockTest.subjectName,
+      title: mockTest.title,
+      level: mockTest.level,
+      questions: mockTest.questions,
+      aiSuggestion: mockTest.aiSuggestion,
+      generatedByUserId: mockTest.generatedByUserId ?? currentUser.id,
+      assignedByUserId: currentUser.id,
+      status: "generated",
+    };
+
+    const assignedMockTests: any[] = [];
+    const firstStudentId = studentIds[0];
+
+    if (mockTest.studentId === null || mockTest.studentId === undefined) {
+      await mockTest.update({
+        studentId: firstStudentId,
+        assignedByUserId: currentUser.id,
+      });
+      assignedMockTests.push(mockTest);
+    }
+
+    const remainingStudentIds =
+      assignedMockTests[0]?.id === mockTest.id &&
+      Number(assignedMockTests[0]?.studentId) === Number(firstStudentId)
+        ? studentIds.slice(1)
+        : studentIds;
+
+    for (const studentId of remainingStudentIds) {
+      const assignedMockTest = await MockTest.create({
+        ...basePayload,
+        studentId,
+      });
+      assignedMockTests.push(assignedMockTest);
+    }
+
+    res.status(200).json({
+      message: "mock test assigned successfully",
+      assignedCount: assignedMockTests.length,
+      mockTests: assignedMockTests.map((assignedMockTest) =>
+        serializeMockTestDetail(assignedMockTest, true, currentUser),
+      ),
     });
   } catch (err) {
     next(err);
@@ -1142,7 +1339,7 @@ export const downloadMockTestPdf = async (
     }
 
     const { currentUser } = await ensureMockTestAccess(req, mockTest);
-    const includeAnswersRequested = toBoolean(req.query.includeAnswers);
+    const includeAnswersRequested = getIncludeAnswersParam(req.query);
     const includeAnswers =
       includeAnswersRequested &&
       (isManagerRole(currentUser.role) || mockTest.status !== "generated");
