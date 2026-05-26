@@ -93,6 +93,7 @@ const protectedCrudPaths = (
   collectionName: string,
   basePath: string,
   methods: Array<"list" | "create" | "get" | "update" | "delete">,
+  extraListParameters: unknown[] = [],
 ) => {
   const paths: Record<string, unknown> = {};
 
@@ -104,7 +105,7 @@ const protectedCrudPaths = (
       tags: [tag],
       summary: `List ${collectionName}`,
       security: [{ bearerAuth: [] }],
-      parameters: paginationParameters(),
+      parameters: [...paginationParameters(), ...extraListParameters],
       responses: {
         200: messageResponse(`${collectionName} list`),
         401: messageResponse("Unauthorized"),
@@ -474,13 +475,22 @@ const options: swaggerJsdoc.Options = {
         "get",
         "update",
       ]),
-      ...protectedCrudPaths("Students", "student", "students", "/students", [
-        "list",
-        "create",
-        "get",
-        "update",
-        "delete",
-      ]),
+      ...protectedCrudPaths(
+        "Students",
+        "student",
+        "students",
+        "/students",
+        ["list", "create", "get", "update", "delete"],
+        [
+          {
+            name: "classId",
+            in: "query",
+            required: false,
+            schema: { type: "integer", minimum: 1 },
+            description: "Filter students by class id",
+          },
+        ],
+      ),
       "/students/{id}/attendance": {
         get: {
           tags: ["Students"],

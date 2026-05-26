@@ -1,13 +1,64 @@
 import { NextFunction, Request, Response } from "express";
 import Student from "../models/student.model";
+import User from "../models/user.model";
 import Attendance from "../models/attendance.model";
 import Mark from "../models/mark.model";
 import Fee from "../models/fee.model";
 import StudentDocument from "../models/student-document.model";
-import { create, getById, list, remove, update } from "../helpers/crud.helpers";
+import { create, getById, remove, update } from "../helpers/crud.helpers";
+import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
+import { userInclude, userSafeAttributes } from "./user.controller";
 
-export const getStudents = list(Student, "students");
+const toOptionalPositiveInteger = (value: unknown, field: string) => {
+  if (value === undefined || value === null || value === "") return undefined;
+
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new AppError(`${field} must be a positive integer`, 400);
+  }
+
+  return parsed;
+};
+
+export const getStudents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { page, limit, offset } = getPagination(req);
+    const classId = toOptionalPositiveInteger(req.query.classId, "classId");
+    const include = userInclude.map((item: any) => {
+      if (item.model !== Student || item.as !== "student") return item;
+
+      return {
+        ...item,
+        required: true,
+        where: classId ? { classId } : undefined,
+      };
+    });
+
+    const { rows: students, count } = await User.findAndCountAll({
+      where: { role: "student" },
+      attributes: userSafeAttributes,
+      include,
+      order: [["id", "DESC"]],
+      distinct: true,
+      limit,
+      offset,
+    });
+
+    res.json({
+      students,
+      pagination: buildPagination(page, limit, count),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const createStudent = create(Student, "student");
 export const getStudentById = getById(Student, "student");
 export const updateStudent = update(Student, "student");
