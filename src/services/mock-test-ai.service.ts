@@ -38,10 +38,10 @@ const getRetryDelayMs = (retryAfterHeader: string | null, attempt: number) => {
   const retryAfterSeconds = Number(retryAfterHeader);
 
   if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
-    return Math.min(retryAfterSeconds * 1000, 5000);
+    return Math.min(retryAfterSeconds * 1000, 8000);
   }
 
-  return Math.min(500 * 2 ** (attempt - 1), 5000);
+  return Math.min(500 * 2 ** (attempt - 1), 8000);
 };
 
 const extractJsonObject = (value: string) => {

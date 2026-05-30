@@ -8,7 +8,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:5000/api"
+      "value": "http://localhost:8000/api"
     },
     {
       "key": "accessToken",
@@ -1258,7 +1258,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"studentId\": 1,\n  \"amount\": 50000,\n  \"term\": \"First Term\",\n  \"session\": \"2026/2027\",\n  \"dueDate\": \"2026-06-01\",\n  \"description\": \"School fees for first term\"\n}",
+              "raw": "{\n  \"studentId\": 1,\n  \"amount\": 80000,\n  \"term\": \"First Term\",\n  \"session\": \"2026/2027\",\n  \"dueDate\": \"2026-06-01\",\n  \"description\": \"School fees for first term\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1298,7 +1298,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"feeId\": 1,\n  \"amount\": 50000,\n  \"paymentDate\": \"2026-05-21\",\n  \"paymentMethod\": \"bank_transfer\",\n  \"reference\": \"TXN-10001\"\n}",
+              "raw": "{\n  \"feeId\": 1,\n  \"amount\": 80000,\n  \"paymentDate\": \"2026-05-21\",\n  \"paymentMethod\": \"bank_transfer\",\n  \"reference\": \"TXN-10001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

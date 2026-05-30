@@ -62,7 +62,7 @@ type OpenApiSpec = {
 
 const spec = swaggerSpec as unknown as OpenApiSpec;
 const schemas = spec.components?.schemas ?? {};
-const defaultBaseUrl = spec.servers?.[0]?.url ?? "http://localhost:5000/api";
+const defaultBaseUrl = spec.servers?.[0]?.url ?? "http://localhost:8000/api";
 const outputPath = path.resolve(
   process.cwd(),
   "postman",
@@ -308,7 +308,7 @@ const requestExamples: Record<string, JsonValue> = {
   },
   "POST /fees": {
     studentId: 1,
-    amount: 50000,
+    amount: 80000,
     term: "First Term",
     session: "2026/2027",
     dueDate: "2026-06-01",
@@ -316,7 +316,7 @@ const requestExamples: Record<string, JsonValue> = {
   },
   "POST /fees/payment": {
     feeId: 1,
-    amount: 50000,
+    amount: 80000,
     paymentDate: "2026-05-21",
     paymentMethod: "bank_transfer",
     reference: "TXN-10001",

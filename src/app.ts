@@ -96,7 +96,7 @@ app.use(errorHandler);
 // ===============================
 // Port
 // ===============================
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 // ===============================
 // Server Startup

@@ -1,6 +1,6 @@
 import swaggerJsdoc from "swagger-jsdoc";
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 const baseUrl = process.env.API_BASE_URL || `http://localhost:${PORT}/api`;
 
 const jsonContent = (schema: Record<string, unknown>) => ({
