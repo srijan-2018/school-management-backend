@@ -138,6 +138,11 @@ router.delete(
 router.get("/subjects", subject.getSubjects);
 router.get("/subjects/class/:classId", subject.getSubjectsByClassId);
 router.post(
+  "/subjects/bulk",
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  subject.bulkCreateSubjects,
+);
+router.post(
   "/subjects",
   allowRoles(...ACADEMIC_MANAGER_ROLES),
   subject.createSubject,
