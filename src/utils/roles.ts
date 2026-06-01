@@ -52,6 +52,18 @@ export const OWNER_LEVEL_ROLES: UserRole[] = [
   "administrator",
 ];
 
+export const SCHOOL_CREATION_ROLES: UserRole[] = ["admin"];
+
+export const SCHOOL_OWNER_MANAGED_ROLES: UserRole[] = [
+  "head_teacher",
+  "teacher",
+  "student",
+  "staff",
+  "accountant",
+  "driver",
+  "parent",
+];
+
 export const ACADEMIC_MANAGER_ROLES: UserRole[] = [
   ...OWNER_LEVEL_ROLES,
   "head_teacher",

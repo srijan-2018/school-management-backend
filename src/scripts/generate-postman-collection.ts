@@ -98,15 +98,17 @@ const requestExamples: Record<string, JsonValue> = {
     newPassword: "newPassword123",
   },
   "POST /users": {
-    name: "Teacher User",
-    email: "teacher@example.com",
+    name: "School Owner User",
+    email: "owner@example.com",
     password: "password123",
-    role: "teacher",
+    role: "school_owner",
+    schoolId: 1,
   },
   "PUT /users/{id}": {
-    name: "Updated Teacher User",
-    email: "teacher.updated@example.com",
+    name: "Updated Staff User",
+    email: "staff.updated@example.com",
     role: "staff",
+    schoolId: 1,
   },
   "POST /roles": {
     name: "hod",
@@ -171,7 +173,7 @@ const requestExamples: Record<string, JsonValue> = {
     classId: 1,
   },
   "POST /students": {
-    userId: 10,
+    userId: 101,
     classId: 1,
     sectionId: 1,
     rollNumber: "STU-001",
@@ -182,7 +184,7 @@ const requestExamples: Record<string, JsonValue> = {
     rollNumber: "STU-002",
   },
   "POST /teachers": {
-    userId: 11,
+    userId: 102,
     employeeId: "EMP-001",
     qualification: "B.Ed",
     phone: "+2348000000002",
@@ -193,7 +195,7 @@ const requestExamples: Record<string, JsonValue> = {
     phone: "+2348000000003",
   },
   "POST /parents": {
-    userId: 12,
+    userId: 103,
     phone: "+2348000000004",
     address: "45 Parent Avenue",
     studentIds: [1, 2],

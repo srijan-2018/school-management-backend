@@ -13,7 +13,11 @@ const getRefreshTokenSecret = () =>
 
 const revokedRefreshTokens = new Set<string>();
 
-const generateTokens = (user: { id: number; role: string }) => {
+const generateTokens = (user: {
+  id: number;
+  role: string;
+  schoolId?: number | null;
+}) => {
   const jwtSecret = getJwtSecret();
   const refreshTokenSecret = getRefreshTokenSecret();
 
@@ -25,7 +29,7 @@ const generateTokens = (user: { id: number; role: string }) => {
     throw new Error("JWT_REFRESH_SECRET is not configured");
   }
 
-  const payload = { id: user.id, role: user.role };
+  const payload = { id: user.id, role: user.role, schoolId: user.schoolId ?? null };
 
   const accessToken = jwt.sign(payload, jwtSecret, { expiresIn: "30m" });
   const refreshToken = jwt.sign(payload, refreshTokenSecret, {
@@ -59,6 +63,12 @@ export const register = async (
       });
     }
 
+    if (normalizedRole === "school_owner") {
+      return res.status(403).json({
+        message: "school_owner can only be created by admin",
+      });
+    }
+
     const exist = await User.findOne({ where: { email: normalizedEmail } });
     if (exist) {
       return res.status(400).json({ message: "User already exists" });
@@ -76,6 +86,7 @@ export const register = async (
     const { accessToken, refreshToken } = generateTokens({
       id: user.get("id") as number,
       role: user.get("role") as string,
+      schoolId: (user.get("schoolId") as number | null | undefined) ?? null,
     });
 
     res.status(201).json({
@@ -88,6 +99,7 @@ export const register = async (
         name: user.get("name"),
         email: user.get("email"),
         role: user.get("role"),
+        schoolId: user.get("schoolId") ?? null,
       },
     });
   } catch (err) {
@@ -129,6 +141,7 @@ export const login = async (
         name: user.name,
         email: user.email,
         role: user.role,
+        schoolId: user.schoolId ?? null,
       },
     });
   } catch (err) {

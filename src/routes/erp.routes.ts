@@ -20,6 +20,7 @@ import {
   MOCK_TEST_GENERATOR_ROLES,
   MOCK_TEST_MANAGER_ROLES,
   OWNER_LEVEL_ROLES,
+  SCHOOL_CREATION_ROLES,
   STAFF_ATTENDANCE_ROLES,
 } from "../utils/roles";
 
@@ -32,7 +33,7 @@ const methodNotAllowed = (message: string) => (_req: any, res: any) => {
 };
 
 router.get("/schools", school.getSchools);
-router.post("/schools", allowRoles(...OWNER_LEVEL_ROLES), school.createSchool);
+router.post("/schools", allowRoles(...SCHOOL_CREATION_ROLES), school.createSchool);
 router.get("/schools/:id", school.getSchoolById);
 router.put(
   "/schools/:id",

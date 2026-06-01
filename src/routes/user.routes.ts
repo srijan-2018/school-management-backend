@@ -6,11 +6,12 @@ import {
   getUsers,
   updateUser,
 } from "../controllers/user.controller";
-import { verifyToken } from "../middlewares/auth.middleware";
+import { allowRoles, verifyToken } from "../middlewares/auth.middleware";
 
 const router = Router();
 
 router.use(verifyToken);
+router.use(allowRoles("admin", "school_owner"));
 
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);

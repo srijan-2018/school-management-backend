@@ -1989,7 +1989,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": 12,\n  \"phone\": \"+2348000000004\",\n  \"address\": \"45 Parent Avenue\",\n  \"studentIds\": [\n    1,\n    2\n  ]\n}",
+              "raw": "{\n  \"userId\": 103,\n  \"phone\": \"+2348000000004\",\n  \"address\": \"45 Parent Avenue\",\n  \"studentIds\": [\n    1,\n    2\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2861,7 +2861,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": 10,\n  \"classId\": 1,\n  \"sectionId\": 1,\n  \"rollNumber\": \"STU-001\"\n}",
+              "raw": "{\n  \"userId\": 101,\n  \"classId\": 1,\n  \"sectionId\": 1,\n  \"rollNumber\": \"STU-001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3147,7 +3147,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/students?page=1&limit=10",
+              "raw": "{{baseUrl}}/students?page=1&limit=10&classId=1",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3166,6 +3166,12 @@
                   "key": "limit",
                   "value": "10",
                   "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "classId",
+                  "value": "1",
+                  "description": "Filter students by class id",
                   "disabled": false
                 }
               ]
@@ -3454,7 +3460,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": 11,\n  \"employeeId\": \"EMP-001\",\n  \"qualification\": \"B.Ed\",\n  \"phone\": \"+2348000000002\"\n}",
+              "raw": "{\n  \"userId\": 102,\n  \"employeeId\": \"EMP-001\",\n  \"qualification\": \"B.Ed\",\n  \"phone\": \"+2348000000002\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3849,7 +3855,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Teacher User\",\n  \"email\": \"teacher@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"teacher\"\n}",
+              "raw": "{\n  \"name\": \"School Owner User\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"school_owner\",\n  \"schoolId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3993,7 +3999,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Teacher User\",\n  \"email\": \"teacher.updated@example.com\",\n  \"role\": \"staff\"\n}",
+              "raw": "{\n  \"name\": \"Updated Staff User\",\n  \"email\": \"staff.updated@example.com\",\n  \"role\": \"staff\",\n  \"schoolId\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -8,8 +8,14 @@ import Class from "../models/class.model";
 import Section from "../models/section.model";
 import Teacher from "../models/teacher.model";
 import Parent from "../models/parent.model";
+import School from "../models/school.model";
 import { AppError } from "../middlewares/error.middleware";
-import { normalizeRole, USER_ROLES } from "../utils/roles";
+import {
+  normalizeRole,
+  SCHOOL_OWNER_MANAGED_ROLES,
+  USER_ROLES,
+  type UserRole,
+} from "../utils/roles";
 import { buildPagination, getPagination } from "../utils/pagination";
 
 export const userSafeAttributes = {
@@ -86,6 +92,73 @@ const getSectionIdFromName = (sectionName: unknown) => {
   }
 
   return undefined;
+};
+
+type ActorContext = {
+  role: UserRole;
+  schoolId: number | null;
+};
+
+const getActorContext = (req: Request): ActorContext => {
+  const role = normalizeRole((req as any).user?.role);
+
+  if (!role) {
+    throw new AppError("Access denied", 403);
+  }
+
+  const schoolId = toOptionalInteger((req as any).user?.schoolId, "schoolId");
+
+  return {
+    role,
+    schoolId: schoolId ?? null,
+  };
+};
+
+const ensureSchoolExists = async (schoolId: number) => {
+  const school = await School.findByPk(schoolId);
+
+  if (!school) {
+    throw new AppError("School not found", 400);
+  }
+};
+
+const resolveSchoolIdForCreate = async (
+  actor: ActorContext,
+  body: Record<string, unknown>,
+  roleToCreate: UserRole,
+) => {
+  const requestedSchoolId = toOptionalInteger(body.schoolId, "schoolId");
+
+  if (actor.role === "admin") {
+    if (roleToCreate === "school_owner" && !requestedSchoolId) {
+      throw new AppError("schoolId is required to create school_owner", 400);
+    }
+
+    if (requestedSchoolId) {
+      await ensureSchoolExists(requestedSchoolId);
+      return requestedSchoolId;
+    }
+
+    return null;
+  }
+
+  if (actor.role === "school_owner") {
+    if (!SCHOOL_OWNER_MANAGED_ROLES.includes(roleToCreate)) {
+      throw new AppError("school_owner cannot create this role", 403);
+    }
+
+    if (!actor.schoolId) {
+      throw new AppError("school_owner is not attached to any school", 400);
+    }
+
+    if (requestedSchoolId && requestedSchoolId !== actor.schoolId) {
+      throw new AppError("You can only create users for your own school", 403);
+    }
+
+    return actor.schoolId;
+  }
+
+  throw new AppError("Access denied", 403);
 };
 
 export const findUserWithProfile = (id: number | string) =>
@@ -190,8 +263,20 @@ export const getUsers = async (
   next: NextFunction,
 ) => {
   try {
+    const actor = getActorContext(req);
     const { page, limit, offset } = getPagination(req);
+    const where: Record<string, unknown> = {};
+
+    if (actor.role === "school_owner") {
+      if (!actor.schoolId) {
+        throw new AppError("school_owner is not attached to any school", 400);
+      }
+
+      where.schoolId = actor.schoolId;
+    }
+
     const { rows: users, count } = await User.findAndCountAll({
+      where,
       attributes: userSafeAttributes,
       include: userInclude,
       order: [["id", "DESC"]],
@@ -215,6 +300,7 @@ export const createUser = async (
   next: NextFunction,
 ) => {
   try {
+    const actor = getActorContext(req);
     const { name, email, password, role } = req.body ?? {};
 
     if (!name || !email || !password || !role) {
@@ -230,6 +316,12 @@ export const createUser = async (
         message: `Invalid role. Allowed roles: ${USER_ROLES.join(", ")}`,
       });
     }
+
+    const schoolId = await resolveSchoolIdForCreate(
+      actor,
+      req.body ?? {},
+      normalizedRole,
+    );
 
     if (hasStudentPayload(req.body ?? {}) && normalizedRole !== "student") {
       return res.status(400).json({
@@ -252,6 +344,7 @@ export const createUser = async (
           email: normalizedEmail,
           password: await bcrypt.hash(password, 10),
           role: normalizedRole,
+          schoolId,
         },
         { transaction },
       );
@@ -284,6 +377,7 @@ export const getUserById = async (
   next: NextFunction,
 ) => {
   try {
+    const actor = getActorContext(req);
     const user = await User.findByPk(String(req.params.id), {
       attributes: userSafeAttributes,
       include: userInclude,
@@ -291,6 +385,13 @@ export const getUserById = async (
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      actor.role === "school_owner" &&
+      Number((user as any).schoolId ?? 0) !== Number(actor.schoolId ?? 0)
+    ) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     res.json({ user });
@@ -305,11 +406,19 @@ export const updateUser = async (
   next: NextFunction,
 ) => {
   try {
+    const actor = getActorContext(req);
     const { name, email, password, role } = req.body ?? {};
     const user: any = await User.findByPk(String(req.params.id));
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      actor.role === "school_owner" &&
+      Number(user.schoolId ?? 0) !== Number(actor.schoolId ?? 0)
+    ) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     let nextRole = user.role;
@@ -323,6 +432,46 @@ export const updateUser = async (
       }
 
       nextRole = normalizedRole;
+    }
+
+    if (
+      actor.role === "school_owner" &&
+      !SCHOOL_OWNER_MANAGED_ROLES.includes(nextRole)
+    ) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const requestedSchoolId = toOptionalInteger(req.body?.schoolId, "schoolId");
+    let nextSchoolId = user.schoolId ?? null;
+
+    if (actor.role === "admin") {
+      if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "schoolId")) {
+        nextSchoolId = requestedSchoolId ?? null;
+      }
+
+      if (nextSchoolId) {
+        await ensureSchoolExists(nextSchoolId);
+      }
+
+      if (nextRole === "school_owner" && !nextSchoolId) {
+        return res.status(400).json({
+          message: "schoolId is required when role is school_owner",
+        });
+      }
+    }
+
+    if (actor.role === "school_owner") {
+      if (!actor.schoolId) {
+        return res
+          .status(400)
+          .json({ message: "school_owner is not attached to any school" });
+      }
+
+      if (requestedSchoolId && requestedSchoolId !== actor.schoolId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      nextSchoolId = actor.schoolId;
     }
 
     if (hasStudentPayload(req.body ?? {}) && nextRole !== "student") {
@@ -346,6 +495,7 @@ export const updateUser = async (
       }
 
       user.role = nextRole;
+      user.schoolId = nextSchoolId;
 
       await user.save({ transaction });
 
@@ -371,10 +521,18 @@ export const deleteUser = async (
   next: NextFunction,
 ) => {
   try {
+    const actor = getActorContext(req);
     const user = await User.findByPk(String(req.params.id));
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      actor.role === "school_owner" &&
+      Number((user as any).schoolId ?? 0) !== Number(actor.schoolId ?? 0)
+    ) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     await user.destroy();

@@ -5,9 +5,10 @@ import Attendance from "../models/attendance.model";
 import Mark from "../models/mark.model";
 import Fee from "../models/fee.model";
 import StudentDocument from "../models/student-document.model";
-import { create, getById, remove, update } from "../helpers/crud.helpers";
+import { getById, remove, update } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
+import { normalizeRole } from "../utils/roles";
 import { userInclude, userSafeAttributes } from "./user.controller";
 
 const toOptionalPositiveInteger = (value: unknown, field: string) => {
@@ -28,6 +29,17 @@ export const getStudents = async (
   next: NextFunction,
 ) => {
   try {
+    const actorRole = normalizeRole((req as any).user?.role);
+    const actorSchoolId = toOptionalPositiveInteger(
+      (req as any).user?.schoolId,
+      "schoolId",
+    );
+
+    if (actorRole === "school_owner" && !actorSchoolId) {
+      return res
+        .status(400)
+        .json({ message: "school_owner is not attached to any school" });
+    }
     const { page, limit, offset } = getPagination(req);
     const classId = toOptionalPositiveInteger(req.query.classId, "classId");
     const include = userInclude.map((item: any) => {
@@ -41,7 +53,13 @@ export const getStudents = async (
     });
 
     const { rows: students, count } = await User.findAndCountAll({
-      where: { role: "student" },
+      where:
+        actorRole === "school_owner"
+          ? {
+              role: "student",
+              schoolId: actorSchoolId,
+            }
+          : { role: "student" },
       attributes: userSafeAttributes,
       include,
       order: [["id", "DESC"]],
@@ -59,7 +77,53 @@ export const getStudents = async (
   }
 };
 
-export const createStudent = create(Student, "student");
+export const createStudent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = toOptionalPositiveInteger(req.body?.userId, "userId");
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const user: any = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== "student") {
+      return res.status(400).json({ message: "User role must be student" });
+    }
+
+    const actorRole = normalizeRole((req as any).user?.role);
+    const actorSchoolId = toOptionalPositiveInteger(
+      (req as any).user?.schoolId,
+      "schoolId",
+    );
+
+    if (actorRole === "school_owner") {
+      if (!actorSchoolId) {
+        return res
+          .status(400)
+          .json({ message: "school_owner is not attached to any school" });
+      }
+
+      if (Number(user.schoolId ?? 0) !== Number(actorSchoolId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    }
+
+    const student = await Student.create(req.body ?? {});
+
+    res.status(201).json({ message: "student created successfully", student });
+  } catch (err) {
+    next(err);
+  }
+};
 export const getStudentById = getById(Student, "student");
 export const updateStudent = update(Student, "student");
 export const deleteStudent = remove(Student, "student");
