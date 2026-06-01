@@ -63,12 +63,6 @@ export const register = async (
       });
     }
 
-    if (normalizedRole === "school_owner") {
-      return res.status(403).json({
-        message: "school_owner can only be created by admin",
-      });
-    }
-
     const exist = await User.findOne({ where: { email: normalizedEmail } });
     if (exist) {
       return res.status(400).json({ message: "User already exists" });

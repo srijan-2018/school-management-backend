@@ -30,7 +30,56 @@ export const createRole = async (
   next: NextFunction,
 ) => {
   try {
-    const { name, description } = req.body ?? {};
+    const payload = req.body;
+
+    if (Array.isArray(payload)) {
+      if (payload.length === 0) {
+        return res.status(400).json({ message: "roles payload cannot be empty" });
+      }
+
+      const normalizedRows = payload.map((item, index) => {
+        const name = String(item?.name ?? "").trim().toLowerCase();
+
+        if (!name) {
+          throw new Error(`name is required at index ${index}`);
+        }
+
+        return {
+          name,
+          description: item?.description,
+        };
+      });
+
+      const uniqueNames = new Set(normalizedRows.map((row) => row.name));
+
+      if (uniqueNames.size !== normalizedRows.length) {
+        return res
+          .status(400)
+          .json({ message: "Duplicate role names found in payload" });
+      }
+
+      const existingRoles = await Role.findAll({
+        where: {
+          name: Array.from(uniqueNames),
+        },
+      });
+
+      if (existingRoles.length > 0) {
+        return res.status(400).json({
+          message: "One or more roles already exist",
+          existingRoleNames: existingRoles.map((role: any) => role.name),
+        });
+      }
+
+      const roles = await Role.bulkCreate(normalizedRows);
+
+      return res.status(201).json({
+        message: "Roles created successfully",
+        roles,
+      });
+    }
+
+    const { name, description } = payload ?? {};
 
     if (!name) {
       return res.status(400).json({ message: "name is required" });
@@ -46,6 +95,10 @@ export const createRole = async (
       role,
     });
   } catch (err) {
+    if (err instanceof Error && err.message.startsWith("name is required")) {
+      return res.status(400).json({ message: err.message });
+    }
+
     next(err);
   }
 };

@@ -278,7 +278,13 @@ export const getUsers = async (
     const { rows: users, count } = await User.findAndCountAll({
       where,
       attributes: userSafeAttributes,
-      include: userInclude,
+      include: [
+        ...userInclude,
+        {
+          model: School,
+          attributes: ["id", "name"],
+        },
+      ],
       order: [["id", "DESC"]],
       distinct: true,
       limit,
