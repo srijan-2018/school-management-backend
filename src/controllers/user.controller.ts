@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { Transaction } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import { sequelize } from "../config/db";
 import User from "../models/user.model";
 import Student from "../models/student.model";
@@ -158,7 +158,24 @@ const resolveSchoolIdForCreate = async (
     return actor.schoolId;
   }
 
-  throw new AppError("Access denied", 403);
+  if (!SCHOOL_OWNER_MANAGED_ROLES.includes(roleToCreate)) {
+    throw new AppError("Access denied", 403);
+  }
+
+  if (actor.schoolId) {
+    if (requestedSchoolId && requestedSchoolId !== actor.schoolId) {
+      throw new AppError("You can only create users for your own school", 403);
+    }
+
+    return actor.schoolId;
+  }
+
+  if (requestedSchoolId) {
+    await ensureSchoolExists(requestedSchoolId);
+    return requestedSchoolId;
+  }
+
+  return null;
 };
 
 export const findUserWithProfile = (id: number | string) =>
@@ -166,6 +183,79 @@ export const findUserWithProfile = (id: number | string) =>
     attributes: userSafeAttributes,
     include: userInclude,
   });
+
+type PreparedUserCreate = {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  schoolId: number | null;
+  studentPayload: Record<string, unknown> | null;
+};
+
+const prepareUserCreatePayload = async (
+  actor: ActorContext,
+  body: Record<string, unknown>,
+): Promise<PreparedUserCreate> => {
+  const { name, email, password, role } = body ?? {};
+
+  if (!name || !email || !password || !role) {
+    throw new AppError("name, email, password and role are required", 400);
+  }
+
+  const normalizedRole = normalizeRole(role);
+
+  if (!normalizedRole) {
+    throw new AppError(
+      `Invalid role. Allowed roles: ${USER_ROLES.join(", ")}`,
+      400,
+    );
+  }
+
+  const schoolId = await resolveSchoolIdForCreate(actor, body, normalizedRole);
+
+  if (hasStudentPayload(body) && normalizedRole !== "student") {
+    throw new AppError(
+      "classId, sectionId and rollNumber can only be added for student users",
+      400,
+    );
+  }
+
+  return {
+    name: String(name).trim(),
+    email: String(email).trim().toLowerCase(),
+    password: String(password),
+    role: normalizedRole,
+    schoolId,
+    studentPayload: hasStudentPayload(body) ? body : null,
+  };
+};
+
+const createPreparedUser = async (
+  preparedUser: PreparedUserCreate,
+  transaction: Transaction,
+) => {
+  const createdUser = await User.create(
+    {
+      name: preparedUser.name,
+      email: preparedUser.email,
+      password: await bcrypt.hash(preparedUser.password, 10),
+      role: preparedUser.role,
+      schoolId: preparedUser.schoolId,
+    },
+    { transaction },
+  );
+
+  if (preparedUser.studentPayload) {
+    await upsertStudentProfile(
+      createdUser.get("id") as number,
+      preparedUser.studentPayload,
+      transaction,
+    );
+  }
+
+  return createdUser;
+};
 
 const upsertStudentProfile = async (
   userId: number,
@@ -266,13 +356,44 @@ export const getUsers = async (
     const actor = getActorContext(req);
     const { page, limit, offset } = getPagination(req);
     const where: Record<string, unknown> = {};
+    const requestedSchoolId = toOptionalInteger(req.query.schoolId, "schoolId");
+    const search = String(req.query.search ?? req.query.keyword ?? "").trim();
+    const requestedRole =
+      req.query.role !== undefined ? normalizeRole(String(req.query.role)) : null;
+
+    if (req.query.role !== undefined && !requestedRole) {
+      return res.status(400).json({
+        message: `Invalid role. Allowed roles: ${USER_ROLES.join(", ")}`,
+      });
+    }
+
+    if (requestedRole) {
+      where.role = requestedRole;
+    }
+
+    if (search) {
+      const searchLike = `%${search}%`;
+
+      where[Op.or as unknown as string] = [
+        { name: { [Op.like]: searchLike } },
+        { email: { [Op.like]: searchLike } },
+        { role: { [Op.like]: searchLike } },
+        { "$School.name$": { [Op.like]: searchLike } },
+      ];
+    }
 
     if (actor.role === "school_owner") {
       if (!actor.schoolId) {
         throw new AppError("school_owner is not attached to any school", 400);
       }
 
+      if (requestedSchoolId && requestedSchoolId !== actor.schoolId) {
+        throw new AppError("Access denied", 403);
+      }
+
       where.schoolId = actor.schoolId;
+    } else if (requestedSchoolId) {
+      where.schoolId = requestedSchoolId;
     }
 
     const { rows: users, count } = await User.findAndCountAll({
@@ -287,6 +408,7 @@ export const getUsers = async (
       ],
       order: [["id", "DESC"]],
       distinct: true,
+      subQuery: false,
       limit,
       offset,
     });
@@ -307,64 +429,79 @@ export const createUser = async (
 ) => {
   try {
     const actor = getActorContext(req);
-    const { name, email, password, role } = req.body ?? {};
+    const payload = req.body ?? {};
 
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({
-        message: "name, email, password and role are required",
+    if (Array.isArray(payload)) {
+      if (payload.length === 0) {
+        return res.status(400).json({ message: "users payload cannot be empty" });
+      }
+
+      const preparedUsers = await Promise.all(
+        payload.map((item) =>
+          prepareUserCreatePayload(actor, (item ?? {}) as Record<string, unknown>),
+        ),
+      );
+
+      const emails = preparedUsers.map((userPayload) => userPayload.email);
+      const uniqueEmails = new Set(emails);
+
+      if (uniqueEmails.size !== emails.length) {
+        return res
+          .status(400)
+          .json({ message: "Duplicate user emails found in payload" });
+      }
+
+      const existingUsers = await User.findAll({
+        where: { email: { [Op.in]: Array.from(uniqueEmails) } },
+        attributes: ["email"],
+      });
+
+      if (existingUsers.length > 0) {
+        return res.status(400).json({
+          message: "One or more users already exist",
+          existingEmails: existingUsers.map((user: any) => user.email),
+        });
+      }
+
+      const users = await sequelize.transaction(async (transaction) =>
+        Promise.all(
+          preparedUsers.map((preparedUser) =>
+            createPreparedUser(preparedUser, transaction),
+          ),
+        ),
+      );
+
+      const createdUsers = await User.findAll({
+        where: {
+          id: {
+            [Op.in]: users.map((user) => user.get("id") as number),
+          },
+        },
+        attributes: userSafeAttributes,
+        include: userInclude,
+        order: [["id", "DESC"]],
+      });
+
+      return res.status(201).json({
+        message: "Users created successfully",
+        users: createdUsers,
       });
     }
 
-    const normalizedRole = normalizeRole(role);
-
-    if (!normalizedRole) {
-      return res.status(400).json({
-        message: `Invalid role. Allowed roles: ${USER_ROLES.join(", ")}`,
-      });
-    }
-
-    const schoolId = await resolveSchoolIdForCreate(
+    const preparedUser = await prepareUserCreatePayload(
       actor,
-      req.body ?? {},
-      normalizedRole,
+      payload as Record<string, unknown>,
     );
 
-    if (hasStudentPayload(req.body ?? {}) && normalizedRole !== "student") {
-      return res.status(400).json({
-        message:
-          "classId, sectionId and rollNumber can only be added for student users",
-      });
-    }
-
-    const normalizedEmail = String(email).trim().toLowerCase();
-    const exist = await User.findOne({ where: { email: normalizedEmail } });
+    const exist = await User.findOne({ where: { email: preparedUser.email } });
 
     if (exist) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const user = await sequelize.transaction(async (transaction) => {
-      const createdUser = await User.create(
-        {
-          name: String(name).trim(),
-          email: normalizedEmail,
-          password: await bcrypt.hash(password, 10),
-          role: normalizedRole,
-          schoolId,
-        },
-        { transaction },
-      );
-
-      if (hasStudentPayload(req.body ?? {})) {
-        await upsertStudentProfile(
-          createdUser.get("id") as number,
-          req.body ?? {},
-          transaction,
-        );
-      }
-
-      return createdUser;
-    });
+    const user = await sequelize.transaction((transaction) =>
+      createPreparedUser(preparedUser, transaction),
+    );
 
     const createdUser = await findUserWithProfile(user.get("id") as number);
 
@@ -447,19 +584,30 @@ export const updateUser = async (
       return res.status(403).json({ message: "Access denied" });
     }
 
+    const hasSchoolIdInBody = Object.prototype.hasOwnProperty.call(
+      req.body ?? {},
+      "schoolId",
+    );
     const requestedSchoolId = toOptionalInteger(req.body?.schoolId, "schoolId");
     let nextSchoolId = user.schoolId ?? null;
 
     if (actor.role === "admin") {
-      if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "schoolId")) {
-        nextSchoolId = requestedSchoolId ?? null;
+      if (hasSchoolIdInBody) {
+        nextSchoolId =
+          nextRole === "school_owner" && !requestedSchoolId
+            ? user.schoolId ?? null
+            : requestedSchoolId ?? null;
       }
 
       if (nextSchoolId) {
         await ensureSchoolExists(nextSchoolId);
       }
 
-      if (nextRole === "school_owner" && !nextSchoolId) {
+      if (
+        user.role !== "school_owner" &&
+        nextRole === "school_owner" &&
+        !nextSchoolId
+      ) {
         return res.status(400).json({
           message: "schoolId is required when role is school_owner",
         });

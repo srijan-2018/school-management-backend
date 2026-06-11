@@ -80,6 +80,7 @@ export const MOCK_TEST_GENERATOR_ROLES: UserRole[] = [
 ];
 
 export const STAFF_ATTENDANCE_ROLES: UserRole[] = [
+  "school_owner",
   "administrator",
   "head_teacher",
   "teacher",
@@ -91,3 +92,7 @@ export const ATTENDANCE_RULE_MANAGER_ROLES: UserRole[] = [
   "admin",
   "school_owner",
 ];
+
+export const INVENTORY_ROLES: UserRole[] = USER_ROLES.filter(
+  (role) => !["admin", "student", "parent", "driver"].includes(role),
+);

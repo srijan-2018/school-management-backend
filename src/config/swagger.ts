@@ -215,6 +215,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Assignments" },
       { name: "Timetable" },
       { name: "Fees" },
+      { name: "Inventory" },
     ],
     components: {
       securitySchemes: {
@@ -241,6 +242,7 @@ const options: swaggerJsdoc.Options = {
             name: { type: "string", example: "Admin User" },
             email: { type: "string", example: "admin@example.com" },
             role: { type: "string", example: "admin" },
+            schoolId: { type: "integer", nullable: true, example: 1 },
           },
         },
         AuthResponse: {
@@ -443,6 +445,20 @@ const options: swaggerJsdoc.Options = {
         "get",
         "update",
         "delete",
+      ], [
+        queryParameter("schoolId", "Filter users by school id", {
+          type: "integer",
+          example: 1,
+          minimum: 1,
+        }),
+        queryParameter("role", "Filter users by role", {
+          type: "string",
+          example: "student",
+        }),
+        queryParameter("search", "Search users by name, email, role, or school", {
+          type: "string",
+          example: "rachhel",
+        }),
       ]),
       ...protectedCrudPaths("Roles", "role", "roles", "/roles", [
         "list",
@@ -555,6 +571,12 @@ const options: swaggerJsdoc.Options = {
         "list",
         "create",
         "update",
+      ], [
+        queryParameter("userId", "Filter parents by user id", {
+          type: "integer",
+          example: 15,
+          minimum: 1,
+        }),
       ]),
       "/parents/{id}/students": {
         get: {
@@ -1015,8 +1037,136 @@ const options: swaggerJsdoc.Options = {
           tags: ["Fees"],
           summary: "Get fee defaulters",
           security: [{ bearerAuth: [] }],
-          parameters: paginationParameters(),
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("search", "Search fee, student, class, or section", {
+              type: "string",
+              example: "rachhel",
+            }),
+          ],
           responses: { 200: messageResponse("Fee defaulters") },
+        },
+      },
+      "/fees/{id}/offline-payment": {
+        post: {
+          tags: ["Fees"],
+          summary: "Mark offline fee payment as paid",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({
+            type: "object",
+            properties: {
+              amount: { type: "number", example: 8000 },
+              method: { type: "string", example: "offline" },
+              transactionId: { type: "string", example: "CASH-001" },
+            },
+          }),
+          responses: {
+            201: messageResponse("Offline payment marked as paid"),
+            401: messageResponse("Unauthorized"),
+            403: messageResponse("Forbidden"),
+            404: messageResponse("Fee not found"),
+          },
+        },
+      },
+      "/fees/reminders/whatsapp": {
+        post: {
+          tags: ["Fees"],
+          summary: "Send WhatsApp fee reminders",
+          security: [{ bearerAuth: [] }],
+          requestBody: jsonContent({
+            type: "object",
+            properties: {
+              studentId: { type: "integer", example: 1 },
+              feeId: { type: "integer", example: 1 },
+              message: {
+                type: "string",
+                example: "Please pay your pending school fee.",
+              },
+            },
+          }),
+          responses: {
+            200: messageResponse("Fee reminders processed"),
+            401: messageResponse("Unauthorized"),
+            403: messageResponse("Forbidden"),
+          },
+        },
+      },
+      "/inventory": {
+        get: {
+          tags: ["Inventory"],
+          summary: "List inventory items",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("schoolId", "Filter inventory by school id", {
+              type: "integer",
+              example: 3,
+              minimum: 1,
+            }),
+            queryParameter("category", "Filter inventory by category", {
+              type: "string",
+              example: "stationery",
+            }),
+            queryParameter("search", "Search inventory items", {
+              type: "string",
+              example: "notebook",
+            }),
+            queryParameter("stockStatus", "Filter by stock status", {
+              type: "string",
+              enum: ["available", "low_stock", "out_of_stock"],
+              example: "low_stock",
+            }),
+          ],
+          responses: { 200: messageResponse("Inventory items list") },
+        },
+        post: {
+          tags: ["Inventory"],
+          summary: "Create inventory item",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Create inventory item"),
+          responses: { 201: messageResponse("Inventory item created") },
+        },
+      },
+      "/inventory/{id}": {
+        get: {
+          tags: ["Inventory"],
+          summary: "Get inventory item by id",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Inventory item details") },
+        },
+        put: {
+          tags: ["Inventory"],
+          summary: "Update inventory item",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: objectBody("Update inventory item"),
+          responses: { 200: messageResponse("Inventory item updated") },
+        },
+        delete: {
+          tags: ["Inventory"],
+          summary: "Delete inventory item",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Inventory item deleted") },
+        },
+      },
+      "/inventory/{id}/adjust": {
+        post: {
+          tags: ["Inventory"],
+          summary: "Adjust inventory stock",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({
+            type: "object",
+            required: ["type", "quantity"],
+            properties: {
+              type: { type: "string", enum: ["in", "out"], example: "in" },
+              quantity: { type: "number", example: 10 },
+            },
+          }),
+          responses: { 200: messageResponse("Inventory stock adjusted") },
         },
       },
     },

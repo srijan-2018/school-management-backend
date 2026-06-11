@@ -16,7 +16,8 @@
     "db:dedupe-indexes": "node dist/scripts/drop-duplicate-unique-indexes.js",
     "db:sync-mock-test": "node dist/scripts/sync-mock-test-columns.js",
     "db:sync-sections": "node dist/scripts/sync-section-columns.js",
-    "db:sync-students": "node dist/scripts/sync-student-columns.js"
+    "db:sync-students": "node dist/scripts/sync-student-columns.js",
+    "db:sync-staff-attendance": "node dist/scripts/sync-staff-attendance-role-enum.js"
   },
   "keywords": [],
   "author": "",

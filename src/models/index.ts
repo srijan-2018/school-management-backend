@@ -23,3 +23,4 @@ import "./timetable.model";
 import "./fee.model";
 import "./fee-payment.model";
 import "./mock-test.model";
+import "./inventory-item.model";

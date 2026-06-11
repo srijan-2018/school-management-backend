@@ -1258,7 +1258,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"studentId\": 1,\n  \"amount\": 80000,\n  \"term\": \"First Term\",\n  \"session\": \"2026/2027\",\n  \"dueDate\": \"2026-06-01\",\n  \"description\": \"School fees for first term\"\n}",
+              "raw": "{\n  \"classId\": 1,\n  \"title\": \"First Term School Fee\",\n  \"amount\": 80000,\n  \"dueDate\": \"2026-06-01\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1298,7 +1298,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"feeId\": 1,\n  \"amount\": 80000,\n  \"paymentDate\": \"2026-05-21\",\n  \"paymentMethod\": \"bank_transfer\",\n  \"reference\": \"TXN-10001\"\n}",
+              "raw": "{\n  \"feeId\": 1,\n  \"studentId\": 1,\n  \"amount\": 80000,\n  \"method\": \"bank_transfer\",\n  \"transactionId\": \"TXN-10001\",\n  \"status\": \"success\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1333,7 +1333,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/fees/defaulters?page=1&limit=10",
+              "raw": "{{baseUrl}}/fees/defaulters?page=1&limit=10&search=rachhel",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1353,6 +1353,12 @@
                   "key": "limit",
                   "value": "10",
                   "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "rachhel",
+                  "description": "Search fee, student, class, or section",
                   "disabled": false
                 }
               ]
@@ -1446,6 +1452,361 @@
               ]
             },
             "description": "Get fees by student"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Mark offline fee payment as paid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 80000,\n  \"method\": \"offline\",\n  \"transactionId\": \"CASH-10001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fees/:id/offline-payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees",
+                ":id",
+                "offline-payment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Mark offline fee payment as paid"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Send WhatsApp fee reminders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": 1,\n  \"message\": \"Please pay your pending school fee.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fees/reminders/whatsapp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fees",
+                "reminders",
+                "whatsapp"
+              ],
+              "variable": []
+            },
+            "description": "Send WhatsApp fee reminders"
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Adjust inventory stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"out\",\n  \"quantity\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id/adjust",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                ":id",
+                "adjust"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Adjust inventory stock"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Create inventory item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schoolId\": 3,\n  \"name\": \"A4 Notebook\",\n  \"category\": \"stationery\",\n  \"quantity\": 100,\n  \"unit\": \"pieces\",\n  \"minQuantity\": 20,\n  \"description\": \"80-page ruled notebook\",\n  \"location\": \"Store Room A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory"
+              ],
+              "variable": []
+            },
+            "description": "Create inventory item"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete inventory item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Delete inventory item"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get inventory item by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get inventory item by id"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List inventory items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/inventory?page=1&limit=10&schoolId=3&category=stationery&search=notebook&stockStatus=low_stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "schoolId",
+                  "value": "3",
+                  "description": "Filter inventory by school id",
+                  "disabled": false
+                },
+                {
+                  "key": "category",
+                  "value": "stationery",
+                  "description": "Filter inventory by category",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "notebook",
+                  "description": "Search inventory items",
+                  "disabled": false
+                },
+                {
+                  "key": "stockStatus",
+                  "value": "low_stock",
+                  "description": "Filter by stock status",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "List inventory items"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update inventory item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"A4 Notebook Updated\",\n  \"quantity\": 120,\n  \"minQuantity\": 25,\n  \"location\": \"Store Room B\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Update inventory item"
           },
           "response": [],
           "event": []
@@ -2070,7 +2431,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/parents?page=1&limit=10",
+              "raw": "{{baseUrl}}/parents?page=1&limit=10&userId=15",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2089,6 +2450,12 @@
                   "key": "limit",
                   "value": "10",
                   "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "userId",
+                  "value": "15",
+                  "description": "Filter parents by user id",
                   "disabled": false
                 }
               ]
@@ -3953,7 +4320,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users?page=1&limit=10",
+              "raw": "{{baseUrl}}/users?page=1&limit=10&schoolId=1&role=student&search=rachhel",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -3972,6 +4339,24 @@
                   "key": "limit",
                   "value": "10",
                   "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "schoolId",
+                  "value": "1",
+                  "description": "Filter users by school id",
+                  "disabled": false
+                },
+                {
+                  "key": "role",
+                  "value": "student",
+                  "description": "Filter users by role",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "rachhel",
+                  "description": "Search users by name, email, role, or school",
                   "disabled": false
                 }
               ]

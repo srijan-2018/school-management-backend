@@ -124,19 +124,21 @@ export const login = async (
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Wrong password" });
 
-    const { accessToken, refreshToken } = generateTokens(user);
+    const loginUser = {
+      id: user.get("id") as number,
+      name: user.get("name"),
+      email: user.get("email"),
+      role: user.get("role") as string,
+      schoolId: (user.get("schoolId") as number | null | undefined) ?? null,
+    };
+
+    const { accessToken, refreshToken } = generateTokens(loginUser);
 
     res.json({
       message: "Login successful",
       accessToken,
       refreshToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        schoolId: user.schoolId ?? null,
-      },
+      user: loginUser,
     });
   } catch (err) {
     next(err);

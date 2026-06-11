@@ -958,7 +958,6 @@ export const getMockTests = async (
       }
     } else {
       where.studentId = student.id;
-      where.generatedByUserId = currentUser.id;
     }
 
     if (queryClassId !== undefined) {
@@ -973,12 +972,8 @@ export const getMockTests = async (
       where.status = status;
     }
 
-    if (
-      onlyAssigned &&
-      queryStudentId === undefined &&
-      isManagerRole(currentUser.role)
-    ) {
-      where.studentId = { [Op.not]: null };
+    if (onlyAssigned) {
+      where.assignedByUserId = { [Op.not]: null };
     }
 
     const { rows: mockTests, count } = await MockTest.findAndCountAll({

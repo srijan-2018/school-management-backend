@@ -14,10 +14,12 @@ import * as mockTest from "../controllers/mock-test.controller";
 import * as assignment from "../controllers/assignment.controller";
 import * as timetable from "../controllers/timetable.controller";
 import * as fee from "../controllers/fee.controller";
+import * as inventory from "../controllers/inventory.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
   ATTENDANCE_RULE_MANAGER_ROLES,
   MOCK_TEST_GENERATOR_ROLES,
+  INVENTORY_ROLES,
   MOCK_TEST_MANAGER_ROLES,
   OWNER_LEVEL_ROLES,
   SCHOOL_CREATION_ROLES,
@@ -239,5 +241,46 @@ router.get("/fees/student/:id", fee.getFeesByStudent);
 router.post("/fees/payment", fee.createFeePayment);
 router.get("/fees/transactions", fee.getFeeTransactions);
 router.get("/fees/defaulters", fee.getFeeDefaulters);
+router.post(
+  "/fees/:id/offline-payment",
+  allowRoles(...OWNER_LEVEL_ROLES),
+  fee.markOfflineFeePayment,
+);
+router.post(
+  "/fees/reminders/whatsapp",
+  allowRoles(...OWNER_LEVEL_ROLES),
+  fee.sendFeeWhatsappReminders,
+);
+
+router.get(
+  "/inventory",
+  allowRoles(...INVENTORY_ROLES),
+  inventory.getInventoryItems,
+);
+router.post(
+  "/inventory",
+  allowRoles(...INVENTORY_ROLES),
+  inventory.createInventoryItem,
+);
+router.get(
+  "/inventory/:id",
+  allowRoles(...INVENTORY_ROLES),
+  inventory.getInventoryItemById,
+);
+router.put(
+  "/inventory/:id",
+  allowRoles(...INVENTORY_ROLES),
+  inventory.updateInventoryItem,
+);
+router.post(
+  "/inventory/:id/adjust",
+  allowRoles(...INVENTORY_ROLES),
+  inventory.adjustInventoryStock,
+);
+router.delete(
+  "/inventory/:id",
+  allowRoles(...INVENTORY_ROLES),
+  inventory.deleteInventoryItem,
+);
 
 export default router;
