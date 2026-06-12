@@ -15,9 +15,14 @@ import * as assignment from "../controllers/assignment.controller";
 import * as timetable from "../controllers/timetable.controller";
 import * as fee from "../controllers/fee.controller";
 import * as inventory from "../controllers/inventory.controller";
+import * as elearning from "../controllers/elearning.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
   ATTENDANCE_RULE_MANAGER_ROLES,
+  ELEARNING_MANAGER_ROLES,
+  ELEARNING_VIEW_ROLES,
+  EXAM_MANAGER_ROLES,
+  EXAM_VIEW_ROLES,
   MOCK_TEST_GENERATOR_ROLES,
   INVENTORY_ROLES,
   MOCK_TEST_MANAGER_ROLES,
@@ -187,10 +192,51 @@ router.get(
 );
 router.put("/attendance/:id", attendance.updateAttendance);
 
-router.post("/exams", exam.createExam);
-router.get("/exams", exam.getExams);
-router.get("/exams/:id", exam.getExamById);
-router.put("/exams/:id", exam.updateExam);
+router.get(
+  "/exams/schedules",
+  allowRoles(...EXAM_VIEW_ROLES),
+  exam.getExamSchedules,
+);
+router.post(
+  "/exams/schedules",
+  allowRoles(...EXAM_MANAGER_ROLES),
+  exam.createExamSchedule,
+);
+router.get(
+  "/exams/schedules/:id",
+  allowRoles(...EXAM_VIEW_ROLES),
+  exam.getExamScheduleById,
+);
+router.put(
+  "/exams/schedules/:id",
+  allowRoles(...EXAM_MANAGER_ROLES),
+  exam.updateExamSchedule,
+);
+router.delete(
+  "/exams/schedules/:id",
+  allowRoles(...EXAM_MANAGER_ROLES),
+  exam.deleteExamSchedule,
+);
+
+router.get("/exams", allowRoles(...EXAM_VIEW_ROLES), exam.getExams);
+router.post("/exams", allowRoles(...EXAM_MANAGER_ROLES), exam.createExam);
+router.get(
+  "/exams/:id/marks",
+  allowRoles(...EXAM_VIEW_ROLES),
+  exam.getExamMarks,
+);
+router.post(
+  "/exams/:id/marks",
+  allowRoles(...EXAM_MANAGER_ROLES),
+  exam.upsertExamMarks,
+);
+router.get("/exams/:id", allowRoles(...EXAM_VIEW_ROLES), exam.getExamById);
+router.put("/exams/:id", allowRoles(...EXAM_MANAGER_ROLES), exam.updateExam);
+router.delete(
+  "/exams/:id",
+  allowRoles(...EXAM_MANAGER_ROLES),
+  exam.deleteExam,
+);
 
 router.post("/marks", mark.createMark);
 router.get("/marks/student/:id", mark.getMarksByStudent);
@@ -281,6 +327,58 @@ router.delete(
   "/inventory/:id",
   allowRoles(...INVENTORY_ROLES),
   inventory.deleteInventoryItem,
+);
+
+router.get(
+  "/elearning/playlists",
+  allowRoles(...ELEARNING_VIEW_ROLES),
+  elearning.getElearningPlaylists,
+);
+router.post(
+  "/elearning/playlists",
+  allowRoles(...ELEARNING_MANAGER_ROLES),
+  elearning.createElearningPlaylist,
+);
+router.get(
+  "/elearning/playlists/:id",
+  allowRoles(...ELEARNING_VIEW_ROLES),
+  elearning.getElearningPlaylistById,
+);
+router.put(
+  "/elearning/playlists/:id",
+  allowRoles(...ELEARNING_MANAGER_ROLES),
+  elearning.updateElearningPlaylist,
+);
+router.delete(
+  "/elearning/playlists/:id",
+  allowRoles(...ELEARNING_MANAGER_ROLES),
+  elearning.deleteElearningPlaylist,
+);
+
+router.get(
+  "/elearning/contents",
+  allowRoles(...ELEARNING_VIEW_ROLES),
+  elearning.getElearningContents,
+);
+router.post(
+  "/elearning/contents",
+  allowRoles(...ELEARNING_MANAGER_ROLES),
+  elearning.createElearningContent,
+);
+router.get(
+  "/elearning/contents/:id",
+  allowRoles(...ELEARNING_VIEW_ROLES),
+  elearning.getElearningContentById,
+);
+router.put(
+  "/elearning/contents/:id",
+  allowRoles(...ELEARNING_MANAGER_ROLES),
+  elearning.updateElearningContent,
+);
+router.delete(
+  "/elearning/contents/:id",
+  allowRoles(...ELEARNING_MANAGER_ROLES),
+  elearning.deleteElearningContent,
 );
 
 export default router;

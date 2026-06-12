@@ -234,17 +234,52 @@ const requestExamples: Record<string, JsonValue> = {
     longitude: 3.3792,
     locationText: "Main office gate",
   },
+  "POST /exams/schedules": {
+    title: "First Term Exams 2026",
+    description: "Class 10 first term examination schedule",
+    classId: 1,
+    academicYear: "2025-2026",
+    term: "First Term",
+    status: "active",
+  },
+  "PUT /exams/schedules/{id}": {
+    title: "First Term Exams 2026 Updated",
+    status: "active",
+  },
   "POST /exams": {
+    scheduleId: 1,
     name: "First Term Mathematics Exam",
     classId: 1,
     subjectId: 1,
-    examDate: "2026-06-10",
+    date: "2026-06-10",
+    startTime: "09:00",
+    endTime: "12:00",
+    durationMinutes: 180,
     totalMarks: 100,
+    passingMarks: 35,
+    status: "scheduled",
   },
   "PUT /exams/{id}": {
     name: "First Term Mathematics Exam Updated",
-    examDate: "2026-06-12",
+    date: "2026-06-12",
     totalMarks: 100,
+    status: "scheduled",
+  },
+  "POST /exams/{id}/marks": {
+    marks: [
+      {
+        studentId: 1,
+        marks: 85,
+        grade: "A",
+        remarks: "Excellent work",
+      },
+      {
+        studentId: 2,
+        marks: 72,
+        grade: "B",
+        remarks: "Good effort",
+      },
+    ],
   },
   "POST /marks": {
     studentId: 1,
@@ -350,6 +385,30 @@ const requestExamples: Record<string, JsonValue> = {
   "POST /inventory/{id}/adjust": {
     type: "out",
     quantity: 10,
+  },
+  "POST /elearning/playlists": {
+    title: "Class 10 Mathematics",
+    description: "Math learning playlist",
+    classId: 1,
+  },
+  "PUT /elearning/playlists/{id}": {
+    title: "Class 10 Mathematics Updated",
+    description: "Updated math playlist",
+  },
+  "POST /elearning/contents": {
+    playlistId: 1,
+    title: "Algebra Basics Video",
+    description: "Introduction to algebra",
+    type: "video",
+    contentUrl: "https://www.youtube.com/watch?v=example",
+    thumbnailUrl: "https://example.com/thumb.jpg",
+    classId: 1,
+    sortOrder: 1,
+  },
+  "PUT /elearning/contents/{id}": {
+    title: "Algebra Basics Video Updated",
+    description: "Updated introduction to algebra",
+    type: "video",
   },
 };
 

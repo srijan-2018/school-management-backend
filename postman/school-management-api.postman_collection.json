@@ -1075,6 +1075,437 @@
       ]
     },
     {
+      "name": "E-Learning",
+      "item": [
+        {
+          "name": "Create e-learning content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playlistId\": 1,\n  \"title\": \"Algebra Basics Video\",\n  \"description\": \"Introduction to algebra\",\n  \"type\": \"video\",\n  \"contentUrl\": \"https://www.youtube.com/watch?v=example\",\n  \"thumbnailUrl\": \"https://example.com/thumb.jpg\",\n  \"classId\": 1,\n  \"sortOrder\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elearning/contents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "contents"
+              ],
+              "variable": []
+            },
+            "description": "Create e-learning content"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Create e-learning playlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Class 10 Mathematics\",\n  \"description\": \"Math learning playlist\",\n  \"classId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elearning/playlists",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "playlists"
+              ],
+              "variable": []
+            },
+            "description": "Create e-learning playlist"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete content",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/elearning/contents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "contents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Delete content"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete playlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/elearning/playlists/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "playlists",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Delete playlist"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get content by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/elearning/contents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "contents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get content by id"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Get playlist by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/elearning/playlists/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "playlists",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get playlist by id"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List e-learning contents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/elearning/contents?page=1&limit=10&classId=1&playlistId=1&type=video&search=algebra",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "contents"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "classId",
+                  "value": "1",
+                  "description": "Filter contents by class id",
+                  "disabled": false
+                },
+                {
+                  "key": "playlistId",
+                  "value": "1",
+                  "description": "Filter contents by playlist id",
+                  "disabled": false
+                },
+                {
+                  "key": "type",
+                  "value": "video",
+                  "description": "Filter by content type",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "algebra",
+                  "description": "Search contents",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "List e-learning contents"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List e-learning playlists",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/elearning/playlists?page=1&limit=10&classId=1&search=math",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "playlists"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "classId",
+                  "value": "1",
+                  "description": "Filter playlists by class id",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "math",
+                  "description": "Search playlists",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "List e-learning playlists"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update content",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Algebra Basics Video Updated\",\n  \"description\": \"Updated introduction to algebra\",\n  \"type\": \"video\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elearning/contents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "contents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Update content"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update playlist",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Class 10 Mathematics Updated\",\n  \"description\": \"Updated math playlist\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/elearning/playlists/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "elearning",
+                "playlists",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Update playlist"
+          },
+          "response": [],
+          "event": []
+        }
+      ]
+    },
+    {
       "name": "Exams",
       "item": [
         {
@@ -1095,7 +1526,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"First Term Mathematics Exam\",\n  \"classId\": 1,\n  \"subjectId\": 1,\n  \"examDate\": \"2026-06-10\",\n  \"totalMarks\": 100\n}",
+              "raw": "{\n  \"scheduleId\": 1,\n  \"name\": \"First Term Mathematics Exam\",\n  \"classId\": 1,\n  \"subjectId\": 1,\n  \"date\": \"2026-06-10\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"12:00\",\n  \"durationMinutes\": 180,\n  \"totalMarks\": 100,\n  \"passingMarks\": 35,\n  \"status\": \"scheduled\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1113,6 +1544,159 @@
               "variable": []
             },
             "description": "Create exam"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Create exam schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"First Term Exams 2026\",\n  \"description\": \"Class 10 first term examination schedule\",\n  \"classId\": 1,\n  \"academicYear\": \"2025-2026\",\n  \"term\": \"First Term\",\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/schedules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                "schedules"
+              ],
+              "variable": []
+            },
+            "description": "Create exam schedule"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Create or update exam marks in bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marks\": [\n    {\n      \"studentId\": 1,\n      \"marks\": 85,\n      \"grade\": \"A\",\n      \"remarks\": \"Excellent work\"\n    },\n    {\n      \"studentId\": 2,\n      \"marks\": 72,\n      \"grade\": \"B\",\n      \"remarks\": \"Good effort\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/:id/marks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                ":id",
+                "marks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Create or update exam marks in bulk"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete exam",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/exams/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Delete exam"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Delete exam schedule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/exams/schedules/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                "schedules",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Delete exam schedule"
           },
           "response": [],
           "event": []
@@ -1150,6 +1734,98 @@
           "event": []
         },
         {
+          "name": "Get exam schedule by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/exams/schedules/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                "schedules",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get exam schedule by id"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List exam schedules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/exams/schedules?page=1&limit=10&classId=1&status=active&search=first%20term",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                "schedules"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "classId",
+                  "value": "1",
+                  "description": "Filter schedules by class id",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by schedule status",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "first term",
+                  "description": "Search exam schedules",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "List exam schedules"
+          },
+          "response": [],
+          "event": []
+        },
+        {
           "name": "List exams",
           "request": {
             "method": "GET",
@@ -1161,7 +1837,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/exams?page=1&limit=10",
+              "raw": "{{baseUrl}}/exams?page=1&limit=10&classId=1&scheduleId=1&subjectId=1&status=scheduled&search=mathematics",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1181,10 +1857,93 @@
                   "value": "10",
                   "description": "Items per page",
                   "disabled": false
+                },
+                {
+                  "key": "classId",
+                  "value": "1",
+                  "description": "Filter exams by class id",
+                  "disabled": false
+                },
+                {
+                  "key": "scheduleId",
+                  "value": "1",
+                  "description": "Filter exams by schedule id",
+                  "disabled": false
+                },
+                {
+                  "key": "subjectId",
+                  "value": "1",
+                  "description": "Filter exams by subject id",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "description": "Filter by exam status",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "mathematics",
+                  "description": "Search exams",
+                  "disabled": false
                 }
               ]
             },
             "description": "List exams"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "List marks for an exam",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/exams/:id/marks?page=1&limit=10&search=rahul",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                ":id",
+                "marks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number",
+                  "disabled": false
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "rahul",
+                  "description": "Search marks by student name, email, or roll number",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "List marks for an exam"
           },
           "response": [],
           "event": []
@@ -1207,7 +1966,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"First Term Mathematics Exam Updated\",\n  \"examDate\": \"2026-06-12\",\n  \"totalMarks\": 100\n}",
+              "raw": "{\n  \"name\": \"First Term Mathematics Exam Updated\",\n  \"date\": \"2026-06-12\",\n  \"totalMarks\": 100,\n  \"status\": \"scheduled\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1231,6 +1990,53 @@
               ]
             },
             "description": "Update exam"
+          },
+          "response": [],
+          "event": []
+        },
+        {
+          "name": "Update exam schedule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"First Term Exams 2026 Updated\",\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/schedules/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "exams",
+                "schedules",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Update exam schedule"
           },
           "response": [],
           "event": []

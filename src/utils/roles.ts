@@ -96,3 +96,27 @@ export const ATTENDANCE_RULE_MANAGER_ROLES: UserRole[] = [
 export const INVENTORY_ROLES: UserRole[] = USER_ROLES.filter(
   (role) => !["admin", "student", "parent", "driver"].includes(role),
 );
+
+export const ELEARNING_MANAGER_ROLES: UserRole[] = [
+  "school_owner",
+  "head_teacher",
+  "teacher",
+  "staff",
+];
+
+export const ELEARNING_VIEW_ROLES: UserRole[] = [
+  ...ELEARNING_MANAGER_ROLES,
+  "student",
+];
+
+export const EXAM_MANAGER_ROLES: UserRole[] = [
+  "school_owner",
+  "head_teacher",
+  "teacher",
+  "staff",
+];
+
+export const EXAM_VIEW_ROLES: UserRole[] = [
+  ...EXAM_MANAGER_ROLES,
+  "student",
+];

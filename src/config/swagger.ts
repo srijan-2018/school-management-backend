@@ -216,6 +216,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Timetable" },
       { name: "Fees" },
       { name: "Inventory" },
+      { name: "E-Learning" },
     ],
     components: {
       securitySchemes: {
@@ -825,12 +826,166 @@ const options: swaggerJsdoc.Options = {
         "/attendance",
         ["update"],
       ),
-      ...protectedCrudPaths("Exams", "exam", "exams", "/exams", [
-        "list",
-        "create",
-        "get",
-        "update",
-      ]),
+      "/exams/schedules": {
+        get: {
+          tags: ["Exams"],
+          summary: "List exam schedules",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("classId", "Filter schedules by class id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("status", "Filter by schedule status", {
+              type: "string",
+              enum: ["draft", "active", "completed"],
+              example: "active",
+            }),
+            queryParameter("search", "Search exam schedules", {
+              type: "string",
+              example: "first term",
+            }),
+          ],
+          responses: { 200: messageResponse("Exam schedules list") },
+        },
+        post: {
+          tags: ["Exams"],
+          summary: "Create exam schedule",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Create exam schedule"),
+          responses: { 201: messageResponse("Exam schedule created") },
+        },
+      },
+      "/exams/schedules/{id}": {
+        get: {
+          tags: ["Exams"],
+          summary: "Get exam schedule by id",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Exam schedule details") },
+        },
+        put: {
+          tags: ["Exams"],
+          summary: "Update exam schedule",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: objectBody("Update exam schedule"),
+          responses: { 200: messageResponse("Exam schedule updated") },
+        },
+        delete: {
+          tags: ["Exams"],
+          summary: "Delete exam schedule",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Exam schedule deleted") },
+        },
+      },
+      "/exams": {
+        get: {
+          tags: ["Exams"],
+          summary: "List exams",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("classId", "Filter exams by class id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("scheduleId", "Filter exams by schedule id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("subjectId", "Filter exams by subject id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("status", "Filter by exam status", {
+              type: "string",
+              enum: ["draft", "scheduled", "completed", "cancelled"],
+              example: "scheduled",
+            }),
+            queryParameter("search", "Search exams", {
+              type: "string",
+              example: "mathematics",
+            }),
+          ],
+          responses: { 200: messageResponse("Exams list") },
+        },
+        post: {
+          tags: ["Exams"],
+          summary: "Create exam",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Create exam"),
+          responses: { 201: messageResponse("Exam created") },
+        },
+      },
+      "/exams/{id}": {
+        get: {
+          tags: ["Exams"],
+          summary: "Get exam by id",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Exam details") },
+        },
+        put: {
+          tags: ["Exams"],
+          summary: "Update exam",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: objectBody("Update exam"),
+          responses: { 200: messageResponse("Exam updated") },
+        },
+        delete: {
+          tags: ["Exams"],
+          summary: "Delete exam",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Exam deleted") },
+        },
+      },
+      "/exams/{id}/marks": {
+        get: {
+          tags: ["Exams"],
+          summary: "List marks for an exam",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            idParameter(),
+            ...paginationParameters(),
+            queryParameter("search", "Search marks by student name, email, or roll number", {
+              type: "string",
+              example: "rahul",
+            }),
+          ],
+          responses: { 200: messageResponse("Exam marks list") },
+        },
+        post: {
+          tags: ["Exams"],
+          summary: "Create or update exam marks in bulk",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({
+            type: "object",
+            required: ["marks"],
+            properties: {
+              marks: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["studentId", "marks"],
+                  properties: {
+                    studentId: { type: "integer", example: 1 },
+                    marks: { type: "number", example: 85 },
+                    grade: { type: "string", example: "A" },
+                    remarks: { type: "string", example: "Excellent work" },
+                  },
+                },
+              },
+            },
+          }),
+          responses: { 201: messageResponse("Exam marks saved") },
+        },
+      },
       ...protectedCrudPaths("Marks", "mark", "marks", "/marks", [
         "create",
         "update",
@@ -1167,6 +1322,115 @@ const options: swaggerJsdoc.Options = {
             },
           }),
           responses: { 200: messageResponse("Inventory stock adjusted") },
+        },
+      },
+      "/elearning/playlists": {
+        get: {
+          tags: ["E-Learning"],
+          summary: "List e-learning playlists",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("classId", "Filter playlists by class id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("search", "Search playlists", {
+              type: "string",
+              example: "math",
+            }),
+          ],
+          responses: { 200: messageResponse("Playlists list") },
+        },
+        post: {
+          tags: ["E-Learning"],
+          summary: "Create e-learning playlist",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Create playlist"),
+          responses: { 201: messageResponse("Playlist created") },
+        },
+      },
+      "/elearning/playlists/{id}": {
+        get: {
+          tags: ["E-Learning"],
+          summary: "Get playlist by id",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Playlist details") },
+        },
+        put: {
+          tags: ["E-Learning"],
+          summary: "Update playlist",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: objectBody("Update playlist"),
+          responses: { 200: messageResponse("Playlist updated") },
+        },
+        delete: {
+          tags: ["E-Learning"],
+          summary: "Delete playlist",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Playlist deleted") },
+        },
+      },
+      "/elearning/contents": {
+        get: {
+          tags: ["E-Learning"],
+          summary: "List e-learning contents",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter("classId", "Filter contents by class id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("playlistId", "Filter contents by playlist id", {
+              type: "integer",
+              example: 1,
+            }),
+            queryParameter("type", "Filter by content type", {
+              type: "string",
+              enum: ["video", "pdf", "document", "file"],
+              example: "video",
+            }),
+            queryParameter("search", "Search contents", {
+              type: "string",
+              example: "algebra",
+            }),
+          ],
+          responses: { 200: messageResponse("Contents list") },
+        },
+        post: {
+          tags: ["E-Learning"],
+          summary: "Create e-learning content",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Create content"),
+          responses: { 201: messageResponse("Content created") },
+        },
+      },
+      "/elearning/contents/{id}": {
+        get: {
+          tags: ["E-Learning"],
+          summary: "Get content by id",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Content details") },
+        },
+        put: {
+          tags: ["E-Learning"],
+          summary: "Update content",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: objectBody("Update content"),
+          responses: { 200: messageResponse("Content updated") },
+        },
+        delete: {
+          tags: ["E-Learning"],
+          summary: "Delete content",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Content deleted") },
         },
       },
     },
