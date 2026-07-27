@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import PDFDocument from "pdfkit";
 import { Op } from "sequelize";
+import Chapter from "../models/chapter.model";
 import Class from "../models/class.model";
 import MockTest from "../models/mock-test.model";
 import Student from "../models/student.model";
@@ -340,8 +341,14 @@ const buildPerformanceSuggestion = (
   return `More practice is needed in ${subjectName}. Revisit the basics, study each explanation carefully, and attempt an easier mock test before moving up.`;
 };
 
-const buildGenerationSuggestion = (subjectName: string, level: string) =>
-  `Attempt this ${level} ${subjectName} mock test carefully, review each explanation after submission, and use the missed questions to plan your next revision.`;
+const buildGenerationSuggestion = (
+  subjectName: string,
+  level: string,
+  chapterName?: string | null,
+) =>
+  `Attempt this ${level} ${subjectName}${
+    chapterName ? ` (${chapterName})` : ""
+  } mock test carefully, review each explanation after submission, and use the missed questions to plan your next revision.`;
 
 const optionLabels = ["A", "B", "C", "D"] as const;
 
@@ -523,6 +530,8 @@ const serializeMockTestSummary = (
     className: mockTest.className,
     subjectId: mockTest.subjectId,
     subjectName: mockTest.subjectName,
+    chapterId: mockTest.chapterId ?? null,
+    chapterName: mockTest.chapterName ?? null,
     title: mockTest.title,
     level: mockTest.level,
     status: mockTest.status,
@@ -562,6 +571,8 @@ const serializeMockTestDetail = (
     className: mockTest.className,
     subjectId: mockTest.subjectId,
     subjectName: mockTest.subjectName,
+    chapterId: mockTest.chapterId ?? null,
+    chapterName: mockTest.chapterName ?? null,
     title: mockTest.title,
     level: mockTest.level,
     status: mockTest.status,
@@ -690,7 +701,7 @@ const buildMockTestResult = (
   };
 };
 
-const resolveClassAndSubject = async (
+const resolveClassSubjectAndChapter = async (
   body: Record<string, unknown>,
   targetStudent: any,
 ) => {
@@ -698,6 +709,10 @@ const resolveClassAndSubject = async (
   const requestedSubjectId = toOptionalPositiveInteger(
     body.subjectId,
     "subjectId",
+  );
+  const requestedChapterId = toOptionalPositiveInteger(
+    body.chapterId,
+    "chapterId",
   );
 
   const selectedSubject: any = requestedSubjectId
@@ -708,8 +723,39 @@ const resolveClassAndSubject = async (
     throw new AppError("Subject not found", 400);
   }
 
+  const selectedChapter: any = requestedChapterId
+    ? await Chapter.findByPk(String(requestedChapterId))
+    : null;
+
+  if (requestedChapterId && !selectedChapter) {
+    throw new AppError("Chapter not found", 400);
+  }
+
+  if (
+    selectedChapter &&
+    selectedSubject &&
+    Number(selectedChapter.subjectId) !== Number(selectedSubject.id)
+  ) {
+    throw new AppError("chapterId does not belong to subjectId", 400);
+  }
+
+  if (selectedChapter && !selectedSubject) {
+    const chapterSubject: any = await Subject.findByPk(
+      String(selectedChapter.subjectId),
+    );
+    if (!chapterSubject) {
+      throw new AppError("Subject not found for chapter", 400);
+    }
+  }
+
+  const resolvedSubject: any =
+    selectedSubject ??
+    (selectedChapter
+      ? await Subject.findByPk(String(selectedChapter.subjectId))
+      : null);
+
   const resolvedClassId =
-    requestedClassId ?? targetStudent?.classId ?? selectedSubject?.classId;
+    requestedClassId ?? targetStudent?.classId ?? resolvedSubject?.classId;
 
   const selectedClass: any = resolvedClassId
     ? await Class.findByPk(String(resolvedClassId))
@@ -720,9 +766,9 @@ const resolveClassAndSubject = async (
   }
 
   if (
-    selectedSubject &&
+    resolvedSubject &&
     selectedClass &&
-    Number(selectedSubject.classId) !== Number(selectedClass.id)
+    Number(resolvedSubject.classId) !== Number(selectedClass.id)
   ) {
     throw new AppError("subjectId does not belong to classId", 400);
   }
@@ -730,7 +776,9 @@ const resolveClassAndSubject = async (
   const resolvedClassName =
     selectedClass?.name ?? toOptionalString(body.className);
   const resolvedSubjectName =
-    selectedSubject?.name ?? toOptionalString(body.subjectName);
+    resolvedSubject?.name ?? toOptionalString(body.subjectName);
+  const resolvedChapterName =
+    selectedChapter?.name ?? toOptionalString(body.chapterName);
 
   if (!resolvedClassName || !resolvedSubjectName) {
     throw new AppError(
@@ -742,8 +790,10 @@ const resolveClassAndSubject = async (
   return {
     classId: selectedClass?.id ?? requestedClassId ?? null,
     className: resolvedClassName,
-    subjectId: selectedSubject?.id ?? requestedSubjectId ?? null,
+    subjectId: resolvedSubject?.id ?? requestedSubjectId ?? null,
     subjectName: resolvedSubjectName,
+    chapterId: selectedChapter?.id ?? requestedChapterId ?? null,
+    chapterName: resolvedChapterName,
   };
 };
 
@@ -853,6 +903,9 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
 
     doc.fontSize(11).text(`Class: ${mockTest.className ?? "N/A"}`);
     doc.text(`Subject: ${mockTest.subjectName ?? "N/A"}`);
+    if (mockTest.chapterName) {
+      doc.text(`Chapter: ${mockTest.chapterName}`);
+    }
     doc.text(`Level: ${mockTest.level ?? "N/A"}`);
     doc.text(`Status: ${mockTest.status ?? "N/A"}`);
 
@@ -1046,7 +1099,7 @@ export const generateMockTest = async (
       );
     }
 
-    const resolvedContext = await resolveClassAndSubject(
+    const resolvedContext = await resolveClassSubjectAndChapter(
       req.body ?? {},
       targetStudent,
     );
@@ -1055,6 +1108,7 @@ export const generateMockTest = async (
     const generated = await generateMockTestWithAi({
       className: String(resolvedContext.className),
       subjectName: String(resolvedContext.subjectName),
+      chapterName: resolvedContext.chapterName,
       level: normalizedLevel as "easy" | "medium" | "hard",
       questionCount: count,
     });
@@ -1068,12 +1122,15 @@ export const generateMockTest = async (
       className: String(resolvedContext.className),
       subjectId: resolvedContext.subjectId,
       subjectName: String(resolvedContext.subjectName),
+      chapterId: resolvedContext.chapterId,
+      chapterName: resolvedContext.chapterName,
       title: generated.title,
       level: normalizedLevel,
       questions: generated.questions,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,
+        resolvedContext.chapterName,
       ),
       status: "generated",
     });

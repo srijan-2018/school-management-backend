@@ -79,6 +79,15 @@ export const MOCK_TEST_GENERATOR_ROLES: UserRole[] = [
   "student",
 ];
 
+/** Teachers and academic leads can manage subject chapters. */
+export const CHAPTER_MANAGE_ROLES: UserRole[] = [
+  "admin",
+  "administrator",
+  "school_owner",
+  "head_teacher",
+  "teacher",
+];
+
 export const STAFF_ATTENDANCE_ROLES: UserRole[] = [
   "school_owner",
   "administrator",

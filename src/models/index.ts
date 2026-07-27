@@ -27,3 +27,5 @@ import "./mock-test.model";
 import "./inventory-item.model";
 import "./elearning-playlist.model";
 import "./elearning-content.model";
+import "./audit-log.model";
+import "./chapter.model";

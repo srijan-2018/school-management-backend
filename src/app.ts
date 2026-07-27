@@ -22,10 +22,12 @@ import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
 import permissionRoutes from "./routes/permission.routes";
 import erpRoutes from "./routes/erp.routes";
+import auditRoutes from "./routes/audit.routes";
 
 // ===============================
 // Middlewares
 // ===============================
+import { auditRequestLogger } from "./middlewares/audit.middleware";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 
 const app = express();
@@ -49,6 +51,7 @@ app.use(
 );
 
 app.use(morgan("dev"));
+app.use(auditRequestLogger);
 
 // ===============================
 // Environment Logs
@@ -64,6 +67,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/permissions", permissionRoutes);
+app.use("/api/audit-logs", auditRoutes);
 app.use("/api", erpRoutes);
 
 // ===============================

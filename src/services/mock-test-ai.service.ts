@@ -17,6 +17,7 @@ export interface MockQuestion {
 export interface GenerateMockTestInput {
   className: string;
   subjectName: string;
+  chapterName?: string | null;
   level: MockTestLevel;
   questionCount: number;
 }
@@ -108,6 +109,7 @@ const isWeakOptionText = (value: string, index: number) => {
 const buildPrompt = ({
   className,
   subjectName,
+  chapterName,
   level,
   questionCount,
 }: GenerateMockTestInput) => `
@@ -115,6 +117,7 @@ Generate a school mock test.
 
 Class: ${className}
 Subject: ${subjectName}
+${chapterName ? `Chapter: ${chapterName}` : "Chapter: General (whole subject)"}
 Difficulty level: ${level}
 Number of questions: ${questionCount}
 
@@ -138,7 +141,8 @@ Return ONLY valid JSON in this exact structure:
 }
 
 Rules:
-- Questions must match the class, subject, and difficulty level.
+- Questions must match the class, subject${chapterName ? ", chapter" : ""}, and difficulty level.
+${chapterName ? `- Focus questions specifically on the chapter "${chapterName}".` : "- Cover core topics from the subject."}
 - Each question must contain exactly 4 options.
 - Every option must be an object with key and text.
 - Keys must be exactly A, B, C, and D.

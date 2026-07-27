@@ -7,6 +7,7 @@ import * as parent from "../controllers/parent.controller";
 import * as classController from "../controllers/class.controller";
 import * as section from "../controllers/section.controller";
 import * as subject from "../controllers/subject.controller";
+import * as chapter from "../controllers/chapter.controller";
 import * as attendance from "../controllers/attendance.controller";
 import * as exam from "../controllers/exam.controller";
 import * as mark from "../controllers/mark.controller";
@@ -19,6 +20,7 @@ import * as elearning from "../controllers/elearning.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
   ATTENDANCE_RULE_MANAGER_ROLES,
+  CHAPTER_MANAGE_ROLES,
   ELEARNING_MANAGER_ROLES,
   ELEARNING_VIEW_ROLES,
   EXAM_MANAGER_ROLES,
@@ -164,6 +166,24 @@ router.delete(
   "/subjects/:id",
   allowRoles(...OWNER_LEVEL_ROLES),
   subject.deleteSubject,
+);
+
+router.get("/chapters", chapter.getChapters);
+router.get("/chapters/subject/:subjectId", chapter.getChaptersBySubjectId);
+router.post(
+  "/chapters",
+  allowRoles(...CHAPTER_MANAGE_ROLES),
+  chapter.createChapter,
+);
+router.put(
+  "/chapters/:id",
+  allowRoles(...CHAPTER_MANAGE_ROLES),
+  chapter.updateChapter,
+);
+router.delete(
+  "/chapters/:id",
+  allowRoles(...CHAPTER_MANAGE_ROLES),
+  chapter.deleteChapter,
 );
 
 router.post("/attendance/mark", attendance.markAttendance);
