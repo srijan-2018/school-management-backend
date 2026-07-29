@@ -132,6 +132,7 @@ const syncClassSections = async (
   classId: number | string,
   sections: SectionInput[],
   transaction: any,
+  schoolId?: number | null,
 ) => {
   const existingSections = await validateSectionIds(
     sections,
@@ -153,7 +154,7 @@ const syncClassSections = async (
 
   if (existingSectionIds.length > 0) {
     await Section.update(
-      { classId },
+      { classId, ...(schoolId ? { schoolId } : {}) },
       {
         where: { id: existingSectionIds },
         transaction,
@@ -166,6 +167,7 @@ const syncClassSections = async (
       newSections.map((section) => ({
         name: String(section.name).trim(),
         classId,
+        schoolId: schoolId ?? null,
       })),
       { transaction, validate: true },
     );
@@ -175,6 +177,7 @@ const syncClassSections = async (
 const createClassWithSections = async (
   payload: Record<string, unknown>,
   transaction: any,
+  schoolId?: number | null,
 ) => {
   if (!payload.name || !String(payload.name).trim()) {
     throw new AppError("name is required", 400);
@@ -186,12 +189,13 @@ const createClassWithSections = async (
     {
       name: String(payload.name).trim(),
       section: sectionName,
+      schoolId: schoolId ?? null,
     },
     { transaction },
   );
 
   if (sections.length > 0) {
-    await syncClassSections(classRow.id, sections, transaction);
+    await syncClassSections(classRow.id, sections, transaction, schoolId);
   }
 
   return classRow.id;
@@ -209,7 +213,9 @@ export const getClasses = async (
 ) => {
   try {
     const { page, limit, offset } = getPagination(req);
+    const where = req.schoolId ? { schoolId: req.schoolId } : undefined;
     const { rows: classes, count } = await Class.findAndCountAll({
+      where,
       include: classInclude,
       order: [["id", "DESC"]],
       distinct: true,
@@ -232,6 +238,11 @@ export const createClass = async (
   next: NextFunction,
 ) => {
   try {
+    if (!req.schoolId) {
+      return res.status(400).json({ message: "School context is required" });
+    }
+
+    const schoolId = req.schoolId;
     const payload = req.body ?? {};
 
     if (Array.isArray(payload)) {
@@ -244,7 +255,7 @@ export const createClass = async (
       const classIds = await sequelize.transaction((transaction) =>
         Promise.all(
           payload.map((classPayload) =>
-            createClassWithSections(classPayload, transaction),
+            createClassWithSections(classPayload, transaction, schoolId),
           ),
         ),
       );
@@ -261,7 +272,7 @@ export const createClass = async (
     }
 
     const classId = await sequelize.transaction((transaction) =>
-      createClassWithSections(payload, transaction),
+      createClassWithSections(payload, transaction, schoolId),
     );
     const classRow = await findClassWithSections(classId);
 
@@ -280,7 +291,13 @@ export const getClassById = async (
   next: NextFunction,
 ) => {
   try {
-    const classRow = await findClassWithSections(String(req.params.id));
+    const where: Record<string, unknown> = { id: String(req.params.id) };
+    if (req.schoolId) where.schoolId = req.schoolId;
+
+    const classRow = await Class.findOne({
+      where,
+      include: classInclude,
+    });
 
     if (!classRow) {
       return res.status(404).json({ message: "class not found" });
@@ -300,9 +317,13 @@ export const updateClass = async (
   try {
     const classId = String(req.params.id);
     const payload = req.body ?? {};
+    const schoolId = req.schoolId;
 
     await sequelize.transaction(async (transaction) => {
-      const classRow: any = await Class.findByPk(classId, { transaction });
+      const where: Record<string, unknown> = { id: classId };
+      if (schoolId) where.schoolId = schoolId;
+
+      const classRow: any = await Class.findOne({ where, transaction });
 
       if (!classRow) {
         throw new AppError("class not found", 404);
@@ -325,7 +346,7 @@ export const updateClass = async (
       if (payload.sections !== undefined || payload.section !== undefined) {
         const sections = getSectionsForPayload(payload);
 
-        await syncClassSections(classId, sections, transaction);
+        await syncClassSections(classId, sections, transaction, schoolId);
       }
     });
 
@@ -347,9 +368,13 @@ export const deleteClass = async (
 ) => {
   try {
     const classId = String(req.params.id);
+    const schoolId = req.schoolId;
 
     await sequelize.transaction(async (transaction) => {
-      const classRow = await Class.findByPk(classId, { transaction });
+      const where: Record<string, unknown> = { id: classId };
+      if (schoolId) where.schoolId = schoolId;
+
+      const classRow = await Class.findOne({ where, transaction });
 
       if (!classRow) {
         throw new AppError("class not found", 404);

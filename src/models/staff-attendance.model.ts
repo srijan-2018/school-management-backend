@@ -1,12 +1,14 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
 import User from "./user.model";
+import School from "./school.model";
 import { STAFF_ATTENDANCE_ROLES, type UserRole } from "../utils/roles";
 
 class StaffAttendance extends Model {
   public id!: number;
   public userId!: number;
   public role!: UserRole;
+  public schoolId?: number | null;
   public date!: string;
   public status!: "present" | "late";
   public checkInTime!: Date;
@@ -22,6 +24,10 @@ StaffAttendance.init(
     role: {
       type: DataTypes.ENUM(...STAFF_ATTENDANCE_ROLES),
       allowNull: false,
+    },
+    schoolId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
     date: {
       type: DataTypes.DATEONLY,
@@ -74,5 +80,10 @@ StaffAttendance.init(
 
 StaffAttendance.belongsTo(User, { foreignKey: "userId" });
 User.hasMany(StaffAttendance, { foreignKey: "userId", as: "staffAttendance" });
+StaffAttendance.belongsTo(School, { foreignKey: "schoolId" });
+School.hasMany(StaffAttendance, {
+  foreignKey: "schoolId",
+  as: "staffAttendances",
+});
 
 export default StaffAttendance;

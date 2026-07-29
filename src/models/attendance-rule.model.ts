@@ -1,13 +1,19 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
 import User from "./user.model";
+import School from "./school.model";
 
 class AttendanceRule extends Model {
   public id!: number;
+  public schoolId?: number | null;
 }
 
 AttendanceRule.init(
   {
+    schoolId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     workDayStartTime: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -65,5 +71,7 @@ AttendanceRule.belongsTo(User, {
   foreignKey: "updatedByUserId",
   as: "updatedBy",
 });
+AttendanceRule.belongsTo(School, { foreignKey: "schoolId" });
+School.hasMany(AttendanceRule, { foreignKey: "schoolId", as: "attendanceRules" });
 
 export default AttendanceRule;

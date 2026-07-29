@@ -7,12 +7,65 @@ const pluralize = (key: string) => {
   return `${key}s`;
 };
 
+type CrudOptions = {
+  schoolScoped?: boolean;
+  allowlist?: string[];
+};
+
+const getTrustedSchoolId = (req: Request, schoolScoped?: boolean) => {
+  if (!schoolScoped) return undefined;
+  const schoolId = req.schoolId;
+  if (schoolId === null || schoolId === undefined) {
+    return null;
+  }
+  return schoolId;
+};
+
+const pickAllowlisted = (
+  body: Record<string, unknown> | undefined,
+  allowlist?: string[],
+) => {
+  if (!body || !allowlist?.length) return body ?? {};
+  const next: Record<string, unknown> = {};
+  for (const key of allowlist) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      next[key] = body[key];
+    }
+  }
+  return next;
+};
+
+const stampSchoolId = (
+  payload: Record<string, unknown>,
+  schoolId: number | null | undefined,
+  schoolScoped?: boolean,
+) => {
+  if (!schoolScoped || schoolId === null || schoolId === undefined) {
+    return payload;
+  }
+  return { ...payload, schoolId };
+};
+
 export const list =
-  (model: any, key: string) =>
+  (model: any, key: string, options: CrudOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { page, limit, offset } = getPagination(req);
+      const schoolId = getTrustedSchoolId(req, options.schoolScoped);
+
+      if (options.schoolScoped && (schoolId === null || schoolId === undefined)) {
+        return res.status(400).json({
+          message: "School context is required",
+        });
+      }
+
+      const where =
+        options.schoolScoped && schoolId
+          ? { schoolId }
+          : undefined;
+
       const { rows, count } = await model.findAndCountAll({
+        where,
         order: [["id", "DESC"]],
         limit,
         offset,
@@ -27,9 +80,17 @@ export const list =
   };
 
 export const create =
-  (model: any, key: string) =>
+  (model: any, key: string, options: CrudOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const schoolId = getTrustedSchoolId(req, options.schoolScoped);
+
+      if (options.schoolScoped && (schoolId === null || schoolId === undefined)) {
+        return res.status(400).json({
+          message: "School context is required",
+        });
+      }
+
       if (Array.isArray(req.body)) {
         if (req.body.length === 0) {
           return res
@@ -37,7 +98,15 @@ export const create =
             .json({ message: `${pluralize(key)} payload cannot be empty` });
         }
 
-        const rows = await model.bulkCreate(req.body, { validate: true });
+        const rowsPayload = req.body.map((item: Record<string, unknown>) =>
+          stampSchoolId(
+            pickAllowlisted(item, options.allowlist) as Record<string, unknown>,
+            schoolId,
+            options.schoolScoped,
+          ),
+        );
+
+        const rows = await model.bulkCreate(rowsPayload, { validate: true });
 
         return res.status(201).json({
           message: `${pluralize(key)} created successfully`,
@@ -45,7 +114,13 @@ export const create =
         });
       }
 
-      const row = await model.create(req.body ?? {});
+      const payload = stampSchoolId(
+        pickAllowlisted(req.body, options.allowlist) as Record<string, unknown>,
+        schoolId,
+        options.schoolScoped,
+      );
+
+      const row = await model.create(payload);
       res.status(201).json({
         message: `${key} created successfully`,
         [key]: row,
@@ -56,10 +131,23 @@ export const create =
   };
 
 export const getById =
-  (model: any, key: string) =>
+  (model: any, key: string, options: CrudOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const row = await model.findByPk(String(req.params.id));
+      const schoolId = getTrustedSchoolId(req, options.schoolScoped);
+
+      if (options.schoolScoped && (schoolId === null || schoolId === undefined)) {
+        return res.status(400).json({
+          message: "School context is required",
+        });
+      }
+
+      const where: Record<string, unknown> = { id: String(req.params.id) };
+      if (options.schoolScoped && schoolId) {
+        where.schoolId = schoolId;
+      }
+
+      const row = await model.findOne({ where });
       if (!row) return res.status(404).json({ message: `${key} not found` });
       res.json({ [key]: row });
     } catch (err) {
@@ -68,12 +156,33 @@ export const getById =
   };
 
 export const update =
-  (model: any, key: string) =>
+  (model: any, key: string, options: CrudOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const row = await model.findByPk(String(req.params.id));
+      const schoolId = getTrustedSchoolId(req, options.schoolScoped);
+
+      if (options.schoolScoped && (schoolId === null || schoolId === undefined)) {
+        return res.status(400).json({
+          message: "School context is required",
+        });
+      }
+
+      const where: Record<string, unknown> = { id: String(req.params.id) };
+      if (options.schoolScoped && schoolId) {
+        where.schoolId = schoolId;
+      }
+
+      const row = await model.findOne({ where });
       if (!row) return res.status(404).json({ message: `${key} not found` });
-      await row.update(req.body ?? {});
+
+      const payload = pickAllowlisted(req.body, options.allowlist) as Record<
+        string,
+        unknown
+      >;
+      delete payload.schoolId;
+      delete payload.id;
+
+      await row.update(payload);
       res.json({ message: `${key} updated successfully`, [key]: row });
     } catch (err) {
       next(err);
@@ -81,10 +190,23 @@ export const update =
   };
 
 export const remove =
-  (model: any, key: string) =>
+  (model: any, key: string, options: CrudOptions = {}) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const row = await model.findByPk(String(req.params.id));
+      const schoolId = getTrustedSchoolId(req, options.schoolScoped);
+
+      if (options.schoolScoped && (schoolId === null || schoolId === undefined)) {
+        return res.status(400).json({
+          message: "School context is required",
+        });
+      }
+
+      const where: Record<string, unknown> = { id: String(req.params.id) };
+      if (options.schoolScoped && schoolId) {
+        where.schoolId = schoolId;
+      }
+
+      const row = await model.findOne({ where });
       if (!row) return res.status(404).json({ message: `${key} not found` });
       await row.destroy();
       res.json({ message: `${key} deleted successfully` });

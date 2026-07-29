@@ -1,9 +1,11 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
 import User from "./user.model";
+import School from "./school.model";
 
 class MockTest extends Model {
   public id!: number;
+  public schoolId?: number | null;
 }
 
 MockTest.init(
@@ -11,6 +13,7 @@ MockTest.init(
     studentId: { type: DataTypes.INTEGER, allowNull: true },
     generatedByUserId: { type: DataTypes.INTEGER, allowNull: true },
     assignedByUserId: { type: DataTypes.INTEGER, allowNull: true },
+    schoolId: { type: DataTypes.INTEGER, allowNull: true },
     classId: { type: DataTypes.INTEGER, allowNull: true },
     className: { type: DataTypes.STRING, allowNull: true },
     subjectId: { type: DataTypes.INTEGER, allowNull: true },
@@ -42,5 +45,7 @@ MockTest.belongsTo(User, {
   as: "assignedByUser",
   foreignKey: "assignedByUserId",
 });
+MockTest.belongsTo(School, { foreignKey: "schoolId" });
+School.hasMany(MockTest, { foreignKey: "schoolId", as: "mockTests" });
 
 export default MockTest;

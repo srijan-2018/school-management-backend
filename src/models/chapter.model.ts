@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 
 import { sequelize } from "../config/db";
 import Subject from "./subject.model";
+import School from "./school.model";
 
 class Chapter extends Model {
   public id!: number;
@@ -9,6 +10,7 @@ class Chapter extends Model {
   public description!: string | null;
   public subjectId!: number;
   public sortOrder!: number | null;
+  public schoolId?: number | null;
 }
 
 Chapter.init(
@@ -30,6 +32,10 @@ Chapter.init(
       allowNull: true,
       defaultValue: 0,
     },
+    schoolId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -41,5 +47,7 @@ Chapter.init(
 
 Chapter.belongsTo(Subject, { foreignKey: "subjectId", as: "subject" });
 Subject.hasMany(Chapter, { foreignKey: "subjectId", as: "chapters" });
+Chapter.belongsTo(School, { foreignKey: "schoolId" });
+School.hasMany(Chapter, { foreignKey: "schoolId", as: "chapters" });
 
 export default Chapter;

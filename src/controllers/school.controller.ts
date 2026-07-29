@@ -118,3 +118,29 @@ export const updateSchool = async (
 		next(err);
 	}
 };
+
+export const deleteSchool = async (
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	try {
+		const actorRole = normalizeRole(req.user?.role);
+		if (actorRole !== "admin") {
+			return res.status(403).json({ message: "Access denied" });
+		}
+
+		const school: any = await School.findByPk(String(req.params.id));
+		if (!school) {
+			return res.status(404).json({ message: "school not found" });
+		}
+
+		await school.update({ isActive: false });
+		res.json({
+			message: "school archived successfully",
+			school,
+		});
+	} catch (err) {
+		next(err);
+	}
+};

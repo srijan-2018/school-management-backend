@@ -6,11 +6,13 @@ import {
   getUsers,
   updateUser,
 } from "../controllers/user.controller";
-import { verifyToken } from "../middlewares/auth.middleware";
+import { allowRoles, verifyToken } from "../middlewares/auth.middleware";
+import { resolveSchoolContext } from "../middlewares/school-context.middleware";
+import { USER_MANAGER_ROLES } from "../utils/roles";
 
 const router = Router();
 
-router.use(verifyToken);
+router.use(verifyToken, resolveSchoolContext(), allowRoles(...USER_MANAGER_ROLES));
 
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);

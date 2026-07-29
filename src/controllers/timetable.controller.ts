@@ -216,6 +216,11 @@ export const createTimetable = async (
   next: NextFunction,
 ) => {
   try {
+    const schoolId = req.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({ message: "School context is required" });
+    }
+
     if (Array.isArray(req.body)) {
       if (req.body.length === 0) {
         return res
@@ -223,9 +228,10 @@ export const createTimetable = async (
           .json({ message: "timetables payload cannot be empty" });
       }
 
-      const payloads = req.body.map((payload) =>
-        normalizeTimetablePayload((payload ?? {}) as Record<string, unknown>),
-      );
+      const payloads = req.body.map((payload) => ({
+        ...normalizeTimetablePayload((payload ?? {}) as Record<string, unknown>),
+        schoolId,
+      })) as Array<Record<string, unknown>>;
       const pendingSlots: TimetableSlot[] = [];
 
       for (const payload of payloads) {
@@ -246,7 +252,7 @@ export const createTimetable = async (
         }
       }
 
-      const timetables = await Timetable.bulkCreate(payloads, {
+      const timetables = await Timetable.bulkCreate(payloads as any, {
         validate: true,
       });
 
@@ -256,9 +262,12 @@ export const createTimetable = async (
       });
     }
 
-    const payload = normalizeTimetablePayload(
-      (req.body ?? {}) as Record<string, unknown>,
-    );
+    const payload = {
+      ...normalizeTimetablePayload(
+        (req.body ?? {}) as Record<string, unknown>,
+      ),
+      schoolId,
+    };
 
     await validateTeacherSchedule(payload);
 
@@ -279,7 +288,11 @@ export const updateTimetable = async (
   next: NextFunction,
 ) => {
   try {
-    const timetable: any = await Timetable.findByPk(String(req.params.id));
+    const schoolId = req.schoolId;
+    const where: Record<string, unknown> = { id: String(req.params.id) };
+    if (schoolId) where.schoolId = schoolId;
+
+    const timetable: any = await Timetable.findOne({ where });
 
     if (!timetable) {
       return res.status(404).json({ message: "timetable not found" });
@@ -288,6 +301,7 @@ export const updateTimetable = async (
     const payload = normalizeTimetablePayload(
       (req.body ?? {}) as Record<string, unknown>,
     );
+    delete (payload as any).schoolId;
 
     await validateTeacherSchedule(
       {
@@ -311,6 +325,28 @@ export const updateTimetable = async (
   }
 };
 
+export const deleteTimetable = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = req.schoolId;
+    const where: Record<string, unknown> = { id: String(req.params.id) };
+    if (schoolId) where.schoolId = schoolId;
+
+    const timetable = await Timetable.findOne({ where });
+    if (!timetable) {
+      return res.status(404).json({ message: "timetable not found" });
+    }
+
+    await timetable.destroy();
+    res.json({ message: "timetable deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getTimetableByClass = async (
   req: Request,
   res: Response,
@@ -323,9 +359,11 @@ export const getTimetableByClass = async (
       throw new AppError("classId must be a positive integer", 400);
     }
 
-    // Fetch timetable entries with associations
+    const where: Record<string, unknown> = { classId };
+    if (req.schoolId) where.schoolId = req.schoolId;
+
     const { rows, count } = await Timetable.findAndCountAll({
-      where: { classId },
+      where,
       limit,
       offset,
       order: [["id", "DESC"]],
@@ -342,13 +380,13 @@ export const getTimetableByClass = async (
       ],
     });
 
-    // Map results to include names
     const timetable = rows.map((entry: any) => ({
       id: entry.id,
       classId: entry.classId,
       sectionId: entry.sectionId,
       subjectId: entry.subjectId,
       teacherId: entry.teacherId,
+      schoolId: entry.schoolId,
       day: entry.day,
       startTime: entry.startTime,
       endTime: entry.endTime,

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { UserRole, normalizeRole } from "../utils/roles";
+import type { AuthUserPayload } from "../types/express";
 
 export const verifyToken = (
   req: Request,
@@ -26,18 +27,30 @@ export const verifyToken = (
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    (req as any).user = decoded;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string,
+    ) as AuthUserPayload;
+
+    if (typeof decoded?.id !== "number") {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    req.user = {
+      id: decoded.id,
+      role: decoded.role,
+      schoolId: decoded.schoolId ?? null,
+    };
 
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: "Invalid token" });
   }
 };
 
 export const allowRoles = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const currentRole = normalizeRole((req as any).user?.role);
+    const currentRole = normalizeRole(req.user?.role);
 
     if (!currentRole) {
       return res.status(403).json({ message: "Access denied" });

@@ -1,5 +1,9 @@
 import { Router } from "express";
 import { allowRoles, verifyToken } from "../middlewares/auth.middleware";
+import {
+  requireSchoolContext,
+  resolveSchoolContext,
+} from "../middlewares/school-context.middleware";
 import * as school from "../controllers/school.controller";
 import * as student from "../controllers/student.controller";
 import * as teacher from "../controllers/teacher.controller";
@@ -17,29 +21,48 @@ import * as timetable from "../controllers/timetable.controller";
 import * as fee from "../controllers/fee.controller";
 import * as inventory from "../controllers/inventory.controller";
 import * as elearning from "../controllers/elearning.controller";
+import * as lifecycle from "../controllers/lifecycle.controller";
+import * as transport from "../controllers/transport.controller";
+import * as hostel from "../controllers/hostel.controller";
+import * as hr from "../controllers/hr.controller";
+import * as analytics from "../controllers/analytics.controller";
+import * as dashboard from "../controllers/dashboard.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
+  ANALYTICS_VIEW_ROLES,
   ATTENDANCE_RULE_MANAGER_ROLES,
   CHAPTER_MANAGE_ROLES,
   ELEARNING_MANAGER_ROLES,
   ELEARNING_VIEW_ROLES,
   EXAM_MANAGER_ROLES,
   EXAM_VIEW_ROLES,
+  FINANCE_MANAGER_ROLES,
+  HOSTEL_MANAGER_ROLES,
+  HR_MANAGER_ROLES,
   MOCK_TEST_GENERATOR_ROLES,
   INVENTORY_ROLES,
   MOCK_TEST_MANAGER_ROLES,
   OWNER_LEVEL_ROLES,
   SCHOOL_CREATION_ROLES,
   STAFF_ATTENDANCE_ROLES,
+  TRANSPORT_MANAGER_ROLES,
 } from "../utils/roles";
 
 const router = Router();
 
 router.use(verifyToken);
+router.use(resolveSchoolContext());
 
 const methodNotAllowed = (message: string) => (_req: any, res: any) => {
   res.status(405).json({ message });
 };
+
+router.get("/dashboard/overview", requireSchoolContext, dashboard.getOverview);
+router.get(
+  "/dashboard/platform-overview",
+  allowRoles(...SCHOOL_CREATION_ROLES),
+  dashboard.getPlatformOverview,
+);
 
 router.get("/schools", school.getSchools);
 router.post("/schools", allowRoles(...SCHOOL_CREATION_ROLES), school.createSchool);
@@ -48,6 +71,11 @@ router.put(
   "/schools/:id",
   allowRoles(...OWNER_LEVEL_ROLES),
   school.updateSchool,
+);
+router.delete(
+  "/schools/:id",
+  allowRoles(...SCHOOL_CREATION_ROLES),
+  school.deleteSchool,
 );
 
 router.get("/students", student.getStudents);
@@ -170,6 +198,11 @@ router.delete(
 
 router.get("/chapters", chapter.getChapters);
 router.get("/chapters/subject/:subjectId", chapter.getChaptersBySubjectId);
+router.post(
+  "/chapters/bulk",
+  allowRoles(...CHAPTER_MANAGE_ROLES),
+  chapter.bulkCreateChapters,
+);
 router.post(
   "/chapters",
   allowRoles(...CHAPTER_MANAGE_ROLES),
@@ -301,6 +334,7 @@ router.get("/assignments/student/:id", assignment.getAssignmentsByStudent);
 router.post("/timetable", timetable.createTimetable);
 router.get("/timetable/class/:id", timetable.getTimetableByClass);
 router.put("/timetable/:id", timetable.updateTimetable);
+router.delete("/timetable/:id", allowRoles(...ACADEMIC_MANAGER_ROLES), timetable.deleteTimetable);
 
 router.post("/fees", fee.createFee);
 router.get("/fees/student/:id", fee.getFeesByStudent);
@@ -399,6 +433,256 @@ router.delete(
   "/elearning/contents/:id",
   allowRoles(...ELEARNING_MANAGER_ROLES),
   elearning.deleteElearningContent,
+);
+
+// Student Lifecycle
+router.get(
+  "/lifecycle/admissions",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.listAdmissions,
+);
+router.post(
+  "/lifecycle/admissions",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.createAdmission,
+);
+router.put(
+  "/lifecycle/admissions/:id",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.updateAdmission,
+);
+router.post(
+  "/lifecycle/admissions/:id/enroll",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.enrollAdmission,
+);
+router.post(
+  "/lifecycle/promotions",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.promoteStudents,
+);
+router.get(
+  "/lifecycle/documents",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.listDocuments,
+);
+router.post(
+  "/lifecycle/documents",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  lifecycle.createDocument,
+);
+
+// Transport
+router.get(
+  "/transport/vehicles",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.listVehicles,
+);
+router.post(
+  "/transport/vehicles",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.createVehicle,
+);
+router.put(
+  "/transport/vehicles/:id",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.updateVehicle,
+);
+router.delete(
+  "/transport/vehicles/:id",
+  requireSchoolContext,
+  allowRoles(...OWNER_LEVEL_ROLES),
+  transport.deleteVehicle,
+);
+router.get(
+  "/transport/routes",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.listRoutes,
+);
+router.post(
+  "/transport/routes",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.createRoute,
+);
+router.put(
+  "/transport/routes/:id",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.updateRoute,
+);
+router.delete(
+  "/transport/routes/:id",
+  requireSchoolContext,
+  allowRoles(...OWNER_LEVEL_ROLES),
+  transport.deleteRoute,
+);
+router.get(
+  "/transport/assignments",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.listAssignments,
+);
+router.post(
+  "/transport/assignments",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.createAssignment,
+);
+router.delete(
+  "/transport/assignments/:id",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  transport.deleteAssignment,
+);
+
+// Hostel
+router.get(
+  "/hostel/buildings",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.listBuildings,
+);
+router.post(
+  "/hostel/buildings",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.createBuilding,
+);
+router.put(
+  "/hostel/buildings/:id",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.updateBuilding,
+);
+router.get(
+  "/hostel/rooms",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.listRooms,
+);
+router.post(
+  "/hostel/rooms",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.createRoom,
+);
+router.put(
+  "/hostel/rooms/:id",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.updateRoom,
+);
+router.get(
+  "/hostel/allocations",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.listAllocations,
+);
+router.post(
+  "/hostel/allocations",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.createAllocation,
+);
+router.delete(
+  "/hostel/allocations/:id",
+  requireSchoolContext,
+  allowRoles(...HOSTEL_MANAGER_ROLES),
+  hostel.deleteAllocation,
+);
+
+// HR / Payroll
+router.get(
+  "/hr/staff",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.listStaffProfiles,
+);
+router.post(
+  "/hr/staff",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.createStaffProfile,
+);
+router.put(
+  "/hr/staff/:id",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.updateStaffProfile,
+);
+router.get(
+  "/hr/leaves",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.listLeaves,
+);
+router.post(
+  "/hr/leaves",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES, "teacher", "staff"),
+  hr.createLeave,
+);
+router.put(
+  "/hr/leaves/:id",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.updateLeave,
+);
+router.get(
+  "/hr/salary-structures",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.listSalaryStructures,
+);
+router.post(
+  "/hr/salary-structures",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.createSalaryStructure,
+);
+router.get(
+  "/hr/payroll-runs",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.listPayrollRuns,
+);
+router.post(
+  "/hr/payroll-runs",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.createPayrollRun,
+);
+
+// Analytics
+router.get(
+  "/analytics/overview",
+  requireSchoolContext,
+  allowRoles(...ANALYTICS_VIEW_ROLES),
+  analytics.getOverview,
+);
+router.get(
+  "/analytics/attendance",
+  requireSchoolContext,
+  allowRoles(...ANALYTICS_VIEW_ROLES),
+  analytics.getAttendanceAnalytics,
+);
+router.get(
+  "/analytics/finance",
+  requireSchoolContext,
+  allowRoles(...ANALYTICS_VIEW_ROLES, ...FINANCE_MANAGER_ROLES),
+  analytics.getFinanceAnalytics,
 );
 
 export default router;

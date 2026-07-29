@@ -3,7 +3,11 @@ import User from "../models/user.model";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { normalizeRole, USER_ROLES } from "../utils/roles";
+import {
+  normalizeRole,
+  PUBLIC_REGISTER_ROLES,
+  USER_ROLES,
+} from "../utils/roles";
 import { findUserWithProfile } from "./user.controller";
 
 const getJwtSecret = () => process.env.JWT_SECRET;
@@ -29,7 +33,11 @@ const generateTokens = (user: {
     throw new Error("JWT_REFRESH_SECRET is not configured");
   }
 
-  const payload = { id: user.id, role: user.role, schoolId: user.schoolId ?? null };
+  const payload = {
+    id: user.id,
+    role: user.role,
+    schoolId: user.schoolId ?? null,
+  };
 
   const accessToken = jwt.sign(payload, jwtSecret, { expiresIn: "30m" });
   const refreshToken = jwt.sign(payload, refreshTokenSecret, {
@@ -39,7 +47,7 @@ const generateTokens = (user: {
   return { accessToken, refreshToken };
 };
 
-// REGISTER
+/** Public registration is limited to non-privileged roles. Admin/owner accounts must be created via /api/users. */
 export const register = async (
   req: Request,
   res: Response,
@@ -63,6 +71,19 @@ export const register = async (
       });
     }
 
+    if (!PUBLIC_REGISTER_ROLES.includes(normalizedRole)) {
+      return res.status(403).json({
+        message:
+          "Public registration is limited to student and parent. Contact an administrator.",
+      });
+    }
+
+    if (String(password).length < 6) {
+      return res.status(400).json({
+        message: "password must be at least 6 characters",
+      });
+    }
+
     const exist = await User.findOne({ where: { email: normalizedEmail } });
     if (exist) {
       return res.status(400).json({ message: "User already exists" });
@@ -75,6 +96,7 @@ export const register = async (
       email: normalizedEmail,
       password: hashedPassword,
       role: normalizedRole,
+      schoolId: null,
     });
 
     const { accessToken, refreshToken } = generateTokens({
@@ -101,7 +123,6 @@ export const register = async (
   }
 };
 
-// LOGIN
 export const login = async (
   req: Request,
   res: Response,
@@ -117,12 +138,16 @@ export const login = async (
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-
     const user: any = await User.findOne({ where: { email: normalizedEmail } });
-    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Wrong password" });
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
     const loginUser = {
       id: user.get("id") as number,
@@ -148,16 +173,16 @@ export const login = async (
 export const refreshToken = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  _next: NextFunction,
 ) => {
   try {
-    const { refreshToken } = req.body ?? {};
+    const { refreshToken: token } = req.body ?? {};
 
-    if (!refreshToken) {
+    if (!token) {
       return res.status(400).json({ message: "refreshToken is required" });
     }
 
-    if (revokedRefreshTokens.has(refreshToken)) {
+    if (revokedRefreshTokens.has(token)) {
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
@@ -169,7 +194,7 @@ export const refreshToken = async (
       });
     }
 
-    const decoded = jwt.verify(refreshToken, refreshTokenSecret);
+    const decoded = jwt.verify(token, refreshTokenSecret);
 
     if (
       typeof decoded === "string" ||
@@ -185,7 +210,13 @@ export const refreshToken = async (
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
-    const tokens = generateTokens(user);
+    revokedRefreshTokens.add(token);
+
+    const tokens = generateTokens({
+      id: user.get("id") as number,
+      role: user.get("role") as string,
+      schoolId: (user.get("schoolId") as number | null | undefined) ?? null,
+    });
 
     res.json({
       message: "Token refreshed",
@@ -193,7 +224,7 @@ export const refreshToken = async (
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     });
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: "Invalid refresh token" });
   }
 };
@@ -204,13 +235,13 @@ export const logout = async (
   next: NextFunction,
 ) => {
   try {
-    const { refreshToken } = req.body ?? {};
+    const { refreshToken: token } = req.body ?? {};
 
-    if (!refreshToken) {
+    if (!token) {
       return res.status(400).json({ message: "refreshToken is required" });
     }
 
-    revokedRefreshTokens.add(refreshToken);
+    revokedRefreshTokens.add(token);
 
     res.json({
       message: "Logout successful",
@@ -227,7 +258,7 @@ export const changePassword = async (
 ) => {
   try {
     const { currentPassword, newPassword } = req.body ?? {};
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -274,7 +305,7 @@ export const getProfile = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -307,10 +338,11 @@ export const forgotPassword = async (
     const normalizedEmail = String(email).trim().toLowerCase();
     const user: any = await User.findOne({ where: { email: normalizedEmail } });
 
+    const genericMessage =
+      "If the email exists, a password reset link has been sent";
+
     if (!user) {
-      return res.json({
-        message: "If the email exists, a password reset token has been created",
-      });
+      return res.json({ message: genericMessage });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -324,10 +356,16 @@ export const forgotPassword = async (
     await user.save();
 
     const response: Record<string, unknown> = {
-      message: "Password reset token created",
-      resetToken,
-      expiresIn: "15 minutes",
+      message: genericMessage,
     };
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.EXPOSE_RESET_TOKEN === "true"
+    ) {
+      response.resetToken = resetToken;
+      response.expiresIn = "15 minutes";
+    }
 
     res.json(response);
   } catch (err) {
