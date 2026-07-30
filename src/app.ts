@@ -9,6 +9,7 @@ import swaggerUi from "swagger-ui-express";
 
 import { connectDB, sequelize } from "./config/db";
 import swaggerSpec from "./config/swagger";
+import { bootstrapAdmin } from "./scripts/bootstrap-admin";
 
 import "./models";
 
@@ -116,6 +117,8 @@ const startServer = async () => {
       await sequelize.authenticate();
       console.log("Production database authenticated");
     }
+
+    await bootstrapAdmin();
 
     app.listen(PORT, () => {
       console.log(`
