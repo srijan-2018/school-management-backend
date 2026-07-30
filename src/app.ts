@@ -108,14 +108,21 @@ const startServer = async () => {
       console.log("Running in DEVELOPMENT mode");
       const shouldAlter = process.env.DB_SYNC_ALTER === "true";
       console.log("DB_SYNC_ALTER:", shouldAlter);
+
       await sequelize.sync({
         alter: shouldAlter,
       });
+
       console.log("Database synced successfully");
     } else {
       console.log("Running in PRODUCTION mode");
+
       await sequelize.authenticate();
       console.log("Production database authenticated");
+
+      // First deployment only: create tables
+      await sequelize.sync();
+      console.log("Database schema created");
     }
 
     await bootstrapAdmin();
