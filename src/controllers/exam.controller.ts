@@ -10,6 +10,7 @@ import Class from "../models/class.model";
 import School from "../models/school.model";
 import Subject from "../models/subject.model";
 import Student from "../models/student.model";
+import Parent from "../models/parent.model";
 import User from "../models/user.model";
 import Section from "../models/section.model";
 import { AppError } from "../middlewares/error.middleware";
@@ -27,14 +28,19 @@ const userSafeAttributes = {
 const getActor = (req: Request) => {
   const role = normalizeRole((req as any).user?.role);
   const userId = Number((req as any).user?.id);
-  const schoolId = Number((req as any).user?.schoolId);
+  const contextSchoolId = Number(req.schoolId);
+  const jwtSchoolId = Number((req as any).user?.schoolId);
+  const schoolId =
+    Number.isInteger(contextSchoolId) && contextSchoolId > 0
+      ? contextSchoolId
+      : jwtSchoolId;
 
   if (!role || !EXAM_VIEW_ROLES.includes(role)) {
     throw new AppError("Access denied", 403);
   }
 
   if (!Number.isInteger(schoolId) || schoolId <= 0) {
-    throw new AppError("User is not attached to any school", 400);
+    throw new AppError("School context is required", 400);
   }
 
   return {
@@ -101,7 +107,7 @@ const ensureManageAccess = (req: Request) => {
   const actor = getActor(req);
 
   if (!actor.canManage) {
-    throw new AppError("Students can only view exams", 403);
+    throw new AppError("Only staff can manage exams", 403);
   }
 
   return actor;
@@ -125,6 +131,39 @@ const getStudentId = async (userId: number | null) => {
   const student = await getStudentRecord(userId);
 
   return student ? Number(student.get("id")) : null;
+};
+
+const getParentLinkedClassIds = async (userId: number | null) => {
+  if (!userId) {
+    return [] as number[];
+  }
+
+  const parent: any = await Parent.findOne({
+    where: { userId },
+    include: [
+      {
+        model: Student,
+        attributes: ["id", "classId"],
+        through: { attributes: [] },
+      },
+    ],
+  });
+
+  if (!parent) {
+    return [] as number[];
+  }
+
+  const students = Array.isArray(parent.Students)
+    ? parent.Students
+    : Array.isArray(parent.students)
+      ? parent.students
+      : [];
+
+  const classIds = students
+    .map((student: any) => Number(student.classId ?? student.get?.("classId")))
+    .filter((id: number) => Number.isInteger(id) && id > 0);
+
+  return Array.from(new Set(classIds));
 };
 
 const ensureClassExists = async (classId: number | null) => {
@@ -169,6 +208,30 @@ const buildClassAccessWhere = async (req: Request, classIdField = "classId") => 
       { [classIdField]: null },
       { [classIdField]: studentClassId },
     ];
+  } else if (actor.role === "parent") {
+    const linkedClassIds = await getParentLinkedClassIds(actor.userId);
+
+    if (!linkedClassIds.length) {
+      // No linked children — return empty result set rather than school-wide exams.
+      where[classIdField] = -1;
+      return where;
+    }
+
+    if (requestedClassId) {
+      if (!linkedClassIds.includes(requestedClassId)) {
+        throw new AppError("Access denied", 403);
+      }
+
+      where[Op.or as unknown as string] = [
+        { [classIdField]: null },
+        { [classIdField]: requestedClassId },
+      ];
+    } else {
+      where[Op.or as unknown as string] = [
+        { [classIdField]: null },
+        { [classIdField]: { [Op.in]: linkedClassIds } },
+      ];
+    }
   } else if (requestedClassId) {
     where[classIdField] = requestedClassId;
   }
@@ -195,6 +258,19 @@ const ensureResourceAccess = async (
       resourceClassId !== null &&
       resourceClassId !== undefined &&
       Number(resourceClassId) !== Number(studentClassId)
+    ) {
+      throw new AppError("Access denied", 403);
+    }
+  }
+
+  if (actor.role === "parent") {
+    const linkedClassIds = await getParentLinkedClassIds(actor.userId);
+    const resourceClassId = resource[classIdField];
+
+    if (
+      resourceClassId !== null &&
+      resourceClassId !== undefined &&
+      !linkedClassIds.includes(Number(resourceClassId))
     ) {
       throw new AppError("Access denied", 403);
     }

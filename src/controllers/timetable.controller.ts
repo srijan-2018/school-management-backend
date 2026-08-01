@@ -101,6 +101,82 @@ const timesOverlap = (
 
 const normalizeDay = (day: string) => day.trim().toLowerCase();
 
+const timetableInclude = [
+  { model: Subject, attributes: ["id", "name"], required: false },
+  {
+    model: Teacher,
+    attributes: ["id", "userId", "employeeId"],
+    required: false,
+    include: [
+      {
+        model: User,
+        attributes: ["id", "name", "email"],
+        required: false,
+      },
+    ],
+  },
+  { model: Section, attributes: ["id", "name"], required: false },
+  { model: Class, attributes: ["id", "name"], required: false },
+];
+
+const getNestedRecord = (value: any, ...keys: string[]) => {
+  if (!value) return null;
+  for (const key of keys) {
+    if (value[key]) return value[key];
+  }
+  return null;
+};
+
+const serializeTimetableEntry = (entry: any) => {
+  const plain = typeof entry?.toJSON === "function" ? entry.toJSON() : entry;
+  const subject = getNestedRecord(plain, "Subject", "subject");
+  const teacher = getNestedRecord(plain, "Teacher", "teacher");
+  const teacherUser = getNestedRecord(teacher, "User", "user");
+  const section = getNestedRecord(plain, "Section", "section");
+  const schoolClass = getNestedRecord(plain, "Class", "class");
+
+  return {
+    id: plain.id,
+    classId: plain.classId,
+    sectionId: plain.sectionId,
+    subjectId: plain.subjectId,
+    teacherId: plain.teacherId,
+    schoolId: plain.schoolId,
+    day: plain.day,
+    startTime: plain.startTime,
+    endTime: plain.endTime,
+    room: plain.room,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+    subjectName: subject?.name ?? null,
+    teacherName: teacherUser?.name ?? teacher?.name ?? null,
+    employeeId: teacher?.employeeId ?? null,
+    sectionName: section?.name ?? null,
+    className: schoolClass?.name ?? null,
+    Teacher: teacher
+      ? {
+          id: teacher.id,
+          userId: teacher.userId,
+          employeeId: teacher.employeeId ?? null,
+          User: teacherUser
+            ? {
+                id: teacherUser.id,
+                name: teacherUser.name,
+                email: teacherUser.email,
+              }
+            : null,
+        }
+      : null,
+  };
+};
+
+const loadTimetableById = async (id: number | string) => {
+  const timetable = await Timetable.findByPk(String(id), {
+    include: timetableInclude,
+  });
+  return timetable ? serializeTimetableEntry(timetable) : null;
+};
+
 const buildTeacherConflictMessage = (
   className: string,
   day: string,
@@ -272,10 +348,11 @@ export const createTimetable = async (
     await validateTeacherSchedule(payload);
 
     const timetable = await Timetable.create(payload);
+    const serialized = await loadTimetableById(timetable.get("id") as number);
 
     res.status(201).json({
       message: "timetable created successfully",
-      timetable,
+      timetable: serialized ?? timetable,
     });
   } catch (err) {
     next(err);
@@ -315,10 +392,11 @@ export const updateTimetable = async (
     );
 
     await timetable.update(payload);
+    const serialized = await loadTimetableById(timetable.id);
 
     res.json({
       message: "timetable updated successfully",
-      timetable,
+      timetable: serialized ?? timetable,
     });
   } catch (err) {
     next(err);
@@ -367,37 +445,11 @@ export const getTimetableByClass = async (
       limit,
       offset,
       order: [["id", "DESC"]],
-      include: [
-        { model: Subject, attributes: ["name"], required: false },
-        {
-          model: Teacher,
-          attributes: ["id", "userId"],
-          required: false,
-          include: [{ model: User, attributes: ["name"], required: false }],
-        },
-        { model: Section, attributes: ["name"], required: false },
-        { model: Class, attributes: ["name"], required: false },
-      ],
+      include: timetableInclude,
+      distinct: true,
     });
 
-    const timetable = rows.map((entry: any) => ({
-      id: entry.id,
-      classId: entry.classId,
-      sectionId: entry.sectionId,
-      subjectId: entry.subjectId,
-      teacherId: entry.teacherId,
-      schoolId: entry.schoolId,
-      day: entry.day,
-      startTime: entry.startTime,
-      endTime: entry.endTime,
-      room: entry.room,
-      createdAt: entry.createdAt,
-      updatedAt: entry.updatedAt,
-      subjectName: entry.Subject?.name ?? null,
-      teacherName: entry.Teacher?.User?.name ?? null,
-      sectionName: entry.Section?.name ?? null,
-      className: entry.Class?.name ?? null,
-    }));
+    const timetable = rows.map((entry) => serializeTimetableEntry(entry));
 
     res.json({
       timetable,

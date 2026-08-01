@@ -1,14 +1,15 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import Student from "../models/student.model";
 import User from "../models/user.model";
 import Attendance from "../models/attendance.model";
 import Mark from "../models/mark.model";
+import Exam from "../models/exam.model";
 import Fee from "../models/fee.model";
 import StudentDocument from "../models/student-document.model";
 import { getById, remove, update } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
-import { normalizeRole } from "../utils/roles";
 import { userInclude, userSafeAttributes } from "./user.controller";
 
 const toOptionalPositiveInteger = (value: unknown, field: string) => {
@@ -29,19 +30,15 @@ export const getStudents = async (
   next: NextFunction,
 ) => {
   try {
-    const actorRole = normalizeRole((req as any).user?.role);
-    const actorSchoolId = toOptionalPositiveInteger(
-      (req as any).user?.schoolId,
-      "schoolId",
-    );
+    const schoolId = toOptionalPositiveInteger(req.schoolId, "schoolId");
 
-    if (actorRole === "school_owner" && !actorSchoolId) {
-      return res
-        .status(400)
-        .json({ message: "school_owner is not attached to any school" });
+    if (!schoolId) {
+      return res.status(400).json({ message: "School context is required" });
     }
+
     const { page, limit, offset } = getPagination(req);
     const classId = toOptionalPositiveInteger(req.query.classId, "classId");
+    const search = String(req.query.search ?? req.query.keyword ?? "").trim();
     const include = userInclude.map((item: any) => {
       if (item.model !== Student || item.as !== "student") return item;
 
@@ -52,14 +49,23 @@ export const getStudents = async (
       };
     });
 
+    const where: Record<string, unknown> = {
+      role: "student",
+      schoolId,
+    };
+
+    if (search) {
+      const searchLike = `%${search}%`;
+
+      where[Op.or as unknown as string] = [
+        { name: { [Op.like]: searchLike } },
+        { email: { [Op.like]: searchLike } },
+        { "$student.rollNumber$": { [Op.like]: searchLike } },
+      ];
+    }
+
     const { rows: students, count } = await User.findAndCountAll({
-      where:
-        actorRole === "school_owner"
-          ? {
-              role: "student",
-              schoolId: actorSchoolId,
-            }
-          : { role: "student" },
+      where,
       attributes: userSafeAttributes,
       include,
       order: [["id", "DESC"]],
@@ -99,22 +105,10 @@ export const createStudent = async (
       return res.status(400).json({ message: "User role must be student" });
     }
 
-    const actorRole = normalizeRole((req as any).user?.role);
-    const actorSchoolId = toOptionalPositiveInteger(
-      (req as any).user?.schoolId,
-      "schoolId",
-    );
+    const schoolId = toOptionalPositiveInteger(req.schoolId, "schoolId");
 
-    if (actorRole === "school_owner") {
-      if (!actorSchoolId) {
-        return res
-          .status(400)
-          .json({ message: "school_owner is not attached to any school" });
-      }
-
-      if (Number(user.schoolId ?? 0) !== Number(actorSchoolId)) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (schoolId && Number(user.schoolId ?? 0) !== Number(schoolId)) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     const student = await Student.create(req.body ?? {});
@@ -159,6 +153,8 @@ export const getStudentResults = async (
     const { page, limit, offset } = getPagination(req);
     const { rows: marks, count } = await Mark.findAndCountAll({
       where: { studentId: req.params.id },
+      include: [{ model: Exam }],
+      order: [["id", "DESC"]],
       limit,
       offset,
     });

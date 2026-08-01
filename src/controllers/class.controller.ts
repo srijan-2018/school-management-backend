@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sequelize } from "../config/db";
 import Class from "../models/class.model";
 import Section from "../models/section.model";
+import ClassSection from "../models/class-section.model";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
 
@@ -24,6 +25,7 @@ const classInclude = [
   {
     model: Section,
     as: "sections",
+    through: { attributes: [] },
   },
 ];
 
@@ -77,8 +79,8 @@ const getSectionsForPayload = (
 
 const validateSectionIds = async (
   sections: SectionInput[],
-  classId: number | string | null,
   transaction: any,
+  schoolId?: number | null,
 ) => {
   const sectionIds = sections
     .map((section) => section.id)
@@ -88,8 +90,13 @@ const validateSectionIds = async (
     return [] as any[];
   }
 
+  const where: Record<string, unknown> = { id: sectionIds };
+  if (schoolId) {
+    where.schoolId = schoolId;
+  }
+
   const sectionRows: any[] = await Section.findAll({
-    where: { id: sectionIds },
+    where,
     transaction,
   });
   const sectionMap = new Map(
@@ -103,28 +110,6 @@ const validateSectionIds = async (
     throw new AppError(`Section not found: ${missingIds.join(", ")}`, 400);
   }
 
-  const conflictingIds = sectionRows
-    .filter((sectionRow) => {
-      const sectionClassId =
-        sectionRow.classId === null || sectionRow.classId === undefined
-          ? null
-          : Number(sectionRow.classId);
-
-      if (sectionClassId === null) {
-        return false;
-      }
-
-      return Number(classId) !== sectionClassId;
-    })
-    .map((sectionRow) => Number(sectionRow.id));
-
-  if (conflictingIds.length > 0) {
-    throw new AppError(
-      `Sections already belong to another class: ${conflictingIds.join(", ")}`,
-      400,
-    );
-  }
-
   return sectionRows;
 };
 
@@ -136,40 +121,43 @@ const syncClassSections = async (
 ) => {
   const existingSections = await validateSectionIds(
     sections,
-    classId,
     transaction,
+    schoolId,
   );
   const existingSectionIds = existingSections.map((section) =>
     Number(section.id),
   );
   const newSections = sections.filter((section) => section.id === undefined);
 
-  await Section.update(
-    { classId: null },
-    {
-      where: { classId },
-      transaction,
-    },
-  );
+  const createdSections =
+    newSections.length > 0
+      ? await Section.bulkCreate(
+          newSections.map((section) => ({
+            name: String(section.name).trim(),
+            classId: null,
+            schoolId: schoolId ?? null,
+          })),
+          { transaction, validate: true },
+        )
+      : [];
 
-  if (existingSectionIds.length > 0) {
-    await Section.update(
-      { classId, ...(schoolId ? { schoolId } : {}) },
-      {
-        where: { id: existingSectionIds },
-        transaction,
-      },
-    );
-  }
+  const linkedSectionIds = [
+    ...existingSectionIds,
+    ...createdSections.map((section: any) => Number(section.id)),
+  ];
 
-  if (newSections.length > 0) {
-    await Section.bulkCreate(
-      newSections.map((section) => ({
-        name: String(section.name).trim(),
-        classId,
-        schoolId: schoolId ?? null,
+  await ClassSection.destroy({
+    where: { classId },
+    transaction,
+  });
+
+  if (linkedSectionIds.length > 0) {
+    await ClassSection.bulkCreate(
+      linkedSectionIds.map((sectionId) => ({
+        classId: Number(classId),
+        sectionId,
       })),
-      { transaction, validate: true },
+      { transaction, ignoreDuplicates: true },
     );
   }
 };
@@ -380,13 +368,10 @@ export const deleteClass = async (
         throw new AppError("class not found", 404);
       }
 
-      await Section.update(
-        { classId: null },
-        {
-          where: { classId },
-          transaction,
-        },
-      );
+      await ClassSection.destroy({
+        where: { classId },
+        transaction,
+      });
 
       await classRow.destroy({ transaction });
     });

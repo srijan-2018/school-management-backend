@@ -8,7 +8,6 @@ import Section from "../models/section.model";
 import { update } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
-import { normalizeRole } from "../utils/roles";
 
 const userSafeAttributes = {
   exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
@@ -34,16 +33,10 @@ export const getParents = async (
   next: NextFunction,
 ) => {
   try {
-    const actorRole = normalizeRole((req as any).user?.role);
-    const actorSchoolId = Number((req as any).user?.schoolId);
+    const schoolId = Number(req.schoolId);
 
-    if (
-      actorRole === "school_owner" &&
-      (!Number.isInteger(actorSchoolId) || actorSchoolId <= 0)
-    ) {
-      return res
-        .status(400)
-        .json({ message: "school_owner is not attached to any school" });
+    if (!Number.isInteger(schoolId) || schoolId <= 0) {
+      return res.status(400).json({ message: "School context is required" });
     }
 
     const { page, limit, offset } = getPagination(req);
@@ -61,10 +54,7 @@ export const getParents = async (
           model: User,
           required: true,
           attributes: userSafeAttributes,
-          where:
-            actorRole === "school_owner"
-              ? { schoolId: actorSchoolId }
-              : undefined,
+          where: { schoolId },
         },
         {
           model: Student,
@@ -125,32 +115,27 @@ export const createParent = async (
       return res.status(400).json({ message: "User role must be parent" });
     }
 
-    const actorRole = normalizeRole((req as any).user?.role);
-    const actorSchoolId = Number((req as any).user?.schoolId);
+    const schoolId = Number(req.schoolId);
 
-    if (actorRole === "school_owner") {
-      if (!Number.isInteger(actorSchoolId) || actorSchoolId <= 0) {
-        return res
-          .status(400)
-          .json({ message: "school_owner is not attached to any school" });
-      }
-
-      if (Number(user.schoolId ?? 0) !== actorSchoolId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (
+      Number.isInteger(schoolId) &&
+      schoolId > 0 &&
+      Number(user.schoolId ?? 0) !== schoolId
+    ) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     const parent: any = await Parent.create(payload);
 
     if (Array.isArray(studentIds)) {
-      if (actorRole === "school_owner") {
+      if (Number.isInteger(schoolId) && schoolId > 0) {
         const students: any[] = await Student.findAll({
           where: { id: studentIds },
           include: [
             {
               model: User,
               required: true,
-              where: { schoolId: actorSchoolId },
+              where: { schoolId },
             },
           ],
         });

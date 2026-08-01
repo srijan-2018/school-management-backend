@@ -5,7 +5,10 @@ import Timetable from "../models/timetable.model";
 import User from "../models/user.model";
 import { remove, update } from "../helpers/crud.helpers";
 import { buildPagination, getPagination } from "../utils/pagination";
-import { normalizeRole } from "../utils/roles";
+
+const userSafeAttributes = {
+  exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
+};
 
 export const getTeachers = async (
   req: Request,
@@ -13,16 +16,10 @@ export const getTeachers = async (
   next: NextFunction,
 ) => {
   try {
-    const actorRole = normalizeRole((req as any).user?.role);
-    const actorSchoolId = Number((req as any).user?.schoolId);
+    const schoolId = Number(req.schoolId);
 
-    if (
-      actorRole === "school_owner" &&
-      (!Number.isInteger(actorSchoolId) || actorSchoolId <= 0)
-    ) {
-      return res
-        .status(400)
-        .json({ message: "school_owner is not attached to any school" });
+    if (!Number.isInteger(schoolId) || schoolId <= 0) {
+      return res.status(400).json({ message: "School context is required" });
     }
 
     const { page, limit, offset } = getPagination(req);
@@ -30,21 +27,29 @@ export const getTeachers = async (
       include: [
         {
           model: User,
-          where:
-            actorRole === "school_owner"
-              ? {
-                  schoolId: actorSchoolId,
-                }
-              : undefined,
+          required: true,
+          attributes: userSafeAttributes,
+          where: { schoolId },
         },
       ],
       order: [["id", "DESC"]],
+      distinct: true,
       limit,
       offset,
     });
 
     res.json({
-      teachers,
+      teachers: teachers.map((teacher: any) => {
+        const plain =
+          typeof teacher.toJSON === "function" ? teacher.toJSON() : teacher;
+        const user = plain.User ?? plain.user ?? null;
+        return {
+          ...plain,
+          name: user?.name ?? null,
+          email: user?.email ?? null,
+          role: user?.role ?? null,
+        };
+      }),
       pagination: buildPagination(page, limit, count),
     });
   } catch (err) {
@@ -75,19 +80,14 @@ export const createTeacher = async (
         .json({ message: "User role must be teacher or head_teacher" });
     }
 
-    const actorRole = normalizeRole((req as any).user?.role);
-    const actorSchoolId = Number((req as any).user?.schoolId);
+    const schoolId = Number(req.schoolId);
 
-    if (actorRole === "school_owner") {
-      if (!Number.isInteger(actorSchoolId) || actorSchoolId <= 0) {
-        return res
-          .status(400)
-          .json({ message: "school_owner is not attached to any school" });
-      }
-
-      if (Number(user.schoolId ?? 0) !== actorSchoolId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
+    if (
+      Number.isInteger(schoolId) &&
+      schoolId > 0 &&
+      Number(user.schoolId ?? 0) !== schoolId
+    ) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     const teacher = await Teacher.create(req.body ?? {});

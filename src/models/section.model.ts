@@ -1,11 +1,11 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
-import Class from "./class.model";
 import School from "./school.model";
 
 class Section extends Model {
   public id!: number;
   public name!: string;
+  /** @deprecated Use ClassSection join. Kept nullable for legacy rows. */
   public classId?: number | null;
   public schoolId?: number | null;
 }
@@ -19,8 +19,6 @@ Section.init(
   { sequelize, modelName: "Section", timestamps: true },
 );
 
-Section.belongsTo(Class, { foreignKey: "classId" });
-Class.hasMany(Section, { foreignKey: "classId", as: "sections" });
 Section.belongsTo(School, { foreignKey: "schoolId" });
 School.hasMany(Section, { foreignKey: "schoolId", as: "sections" });
 

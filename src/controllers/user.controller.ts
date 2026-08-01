@@ -6,6 +6,7 @@ import User from "../models/user.model";
 import Student from "../models/student.model";
 import Class from "../models/class.model";
 import Section from "../models/section.model";
+import ClassSection from "../models/class-section.model";
 import Teacher from "../models/teacher.model";
 import Parent from "../models/parent.model";
 import School from "../models/school.model";
@@ -272,15 +273,29 @@ const upsertStudentProfile = async (
   let sectionId = requestedSectionId ?? existingStudent?.sectionId ?? null;
 
   if (!classId && requestedSectionId) {
-    const section: any = await Section.findByPk(requestedSectionId, {
+    const link: any = await ClassSection.findOne({
+      where: { sectionId: requestedSectionId },
       transaction,
     });
 
-    if (!section) {
-      throw new AppError("Section not found", 400);
+    if (!link) {
+      const section: any = await Section.findByPk(requestedSectionId, {
+        transaction,
+      });
+      if (!section) {
+        throw new AppError("Section not found", 400);
+      }
+      if (section.classId) {
+        classId = section.classId;
+      } else {
+        throw new AppError(
+          "classId is required when section is linked to multiple classes",
+          400,
+        );
+      }
+    } else {
+      classId = link.classId;
     }
-
-    classId = section.classId;
   }
 
   if (!classId) {
@@ -298,27 +313,47 @@ const upsertStudentProfile = async (
       transaction,
     });
 
-    if (!section || Number(section.classId) !== Number(classId)) {
+    if (!section) {
+      throw new AppError("Section not found", 400);
+    }
+
+    const membership = await ClassSection.findOne({
+      where: {
+        classId: Number(classId),
+        sectionId: Number(requestedSectionId),
+      },
+      transaction,
+    });
+
+    if (!membership) {
       const classSectionName = selectedClass.section;
       const fallbackSectionId = getSectionIdFromName(classSectionName);
 
       if (fallbackSectionId !== requestedSectionId || !classSectionName) {
-        throw new AppError(
-          section
-            ? "sectionId does not belong to classId"
-            : "Section not found",
-          400,
-        );
+        throw new AppError("sectionId does not belong to classId", 400);
       }
 
       const [classSection] = await Section.findOrCreate({
         where: {
-          classId,
           name: String(classSectionName).trim(),
+          schoolId: selectedClass.schoolId ?? null,
         },
         defaults: {
-          classId,
           name: String(classSectionName).trim(),
+          classId: null,
+          schoolId: selectedClass.schoolId ?? null,
+        },
+        transaction,
+      });
+
+      await ClassSection.findOrCreate({
+        where: {
+          classId: Number(classId),
+          sectionId: Number(classSection.id),
+        },
+        defaults: {
+          classId: Number(classId),
+          sectionId: Number(classSection.id),
         },
         transaction,
       });

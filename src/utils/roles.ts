@@ -85,6 +85,10 @@ export const MOCK_TEST_MANAGER_ROLES: UserRole[] = [
   "teacher",
 ];
 
+export const ASSIGNMENT_MANAGER_ROLES: UserRole[] = [
+  ...MOCK_TEST_MANAGER_ROLES,
+];
+
 export const MOCK_TEST_GENERATOR_ROLES: UserRole[] = [
   ...MOCK_TEST_MANAGER_ROLES,
   "student",
@@ -138,6 +142,19 @@ export const ELEARNING_VIEW_ROLES: UserRole[] = [
   "student",
 ];
 
+export const PLAYGROUND_MANAGER_ROLES: UserRole[] = [
+  "admin",
+  "school_owner",
+  "administrator",
+  "head_teacher",
+  "teacher",
+];
+
+export const PLAYGROUND_VIEW_ROLES: UserRole[] = [
+  ...PLAYGROUND_MANAGER_ROLES,
+  "student",
+];
+
 export const EXAM_MANAGER_ROLES: UserRole[] = [
   "admin",
   "school_owner",
@@ -150,6 +167,7 @@ export const EXAM_MANAGER_ROLES: UserRole[] = [
 export const EXAM_VIEW_ROLES: UserRole[] = [
   ...EXAM_MANAGER_ROLES,
   "student",
+  "parent",
 ];
 
 export const FINANCE_MANAGER_ROLES: UserRole[] = [
@@ -164,6 +182,25 @@ export const HR_MANAGER_ROLES: UserRole[] = [
   "school_owner",
   "administrator",
 ];
+
+/** Employees who can request leave (not student/parent). */
+export const EMPLOYEE_LEAVE_ROLES: UserRole[] = [
+  "teacher",
+  "staff",
+  "head_teacher",
+  "accountant",
+  "driver",
+  "administrator",
+];
+
+/** Anyone who can list/create leave: managers + employees. */
+export const LEAVE_ACCESS_ROLES: UserRole[] = [
+  ...HR_MANAGER_ROLES,
+  ...EMPLOYEE_LEAVE_ROLES.filter((role) => !HR_MANAGER_ROLES.includes(role)),
+];
+
+/** School members who can view the holiday/event calendar. */
+export const CALENDAR_VIEW_ROLES: UserRole[] = [...USER_ROLES];
 
 export const TRANSPORT_MANAGER_ROLES: UserRole[] = [
   "admin",

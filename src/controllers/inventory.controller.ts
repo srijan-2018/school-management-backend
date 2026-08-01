@@ -16,7 +16,14 @@ const getActorSchoolId = (schoolId: number | null) => {
 
 const getActor = (req: Request) => {
   const role = normalizeRole((req as any).user?.role);
-  const schoolId = Number((req as any).user?.schoolId);
+  const contextSchoolId = Number(req.schoolId);
+  const jwtSchoolId = Number((req as any).user?.schoolId);
+  const schoolId =
+    Number.isInteger(contextSchoolId) && contextSchoolId > 0
+      ? contextSchoolId
+      : Number.isInteger(jwtSchoolId) && jwtSchoolId > 0
+        ? jwtSchoolId
+        : null;
 
   if (!role) {
     throw new AppError("Access denied", 403);
@@ -24,7 +31,7 @@ const getActor = (req: Request) => {
 
   return {
     role,
-    schoolId: Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null,
+    schoolId,
   };
 };
 

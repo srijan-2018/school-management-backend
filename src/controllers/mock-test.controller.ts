@@ -62,6 +62,18 @@ const mockTestUserInclude = [
     attributes: ["id", "name", "email", "role"],
     required: false,
   },
+  {
+    model: Student,
+    as: "student",
+    required: false,
+    include: [
+      {
+        model: User,
+        attributes: ["id", "name", "email", "role"],
+        required: false,
+      },
+    ],
+  },
 ];
 
 const roundToTwo = (value: number) => Math.round(value * 100) / 100;
@@ -487,6 +499,35 @@ const serializeMockTestUser = (user: any) => {
   };
 };
 
+const serializeAssignedStudent = (mockTest: any) => {
+  const student =
+    mockTest?.student ?? mockTest?.get?.("student") ?? null;
+
+  if (!student) {
+    return mockTest?.studentId
+      ? {
+          id: Number(mockTest.studentId),
+          userId: null,
+          rollNumber: null,
+          name: null,
+          email: null,
+          role: "student",
+        }
+      : null;
+  }
+
+  const user = student.User ?? student.user ?? student.get?.("User") ?? null;
+
+  return {
+    id: Number(student.id),
+    userId: student.userId ? Number(student.userId) : user?.id ?? null,
+    rollNumber: student.rollNumber ?? null,
+    name: user?.name ?? null,
+    email: user?.email ?? null,
+    role: user?.role ?? "student",
+  };
+};
+
 const getIncludedUser = (mockTest: any, alias: string) =>
   mockTest?.[alias] ?? mockTest?.get?.(alias) ?? null;
 
@@ -506,6 +547,7 @@ const serializeOwnership = (mockTest: any, currentUser?: CurrentUser) => {
     assignedByUserId,
     generatedBy: serializeMockTestUser(generatedByUser),
     assignedBy: serializeMockTestUser(assignedByUser),
+    assignedStudent: serializeAssignedStudent(mockTest),
     generatedByMe:
       !!currentUser && Number(generatedByUserId) === Number(currentUser.id),
     assignedByMe:

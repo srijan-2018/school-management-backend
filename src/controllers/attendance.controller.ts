@@ -1,11 +1,14 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import Attendance from "../models/attendance.model";
 import StaffAttendance from "../models/staff-attendance.model";
 import AttendanceRule from "../models/attendance-rule.model";
+import User from "../models/user.model";
 import { create, update } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import {
   normalizeRole,
+  OWNER_LEVEL_ROLES,
   STAFF_ATTENDANCE_ROLES,
   type UserRole,
 } from "../utils/roles";
@@ -15,7 +18,13 @@ export const markAttendance = create(Attendance, "attendance");
 export const updateAttendance = update(Attendance, "attendance");
 
 const staffAttendanceRoleSet = new Set<UserRole>(STAFF_ATTENDANCE_ROLES);
+const ownerLevelRoleSet = new Set<UserRole>(OWNER_LEVEL_ROLES);
+const teachingStaffRoles: UserRole[] = ["teacher", "head_teacher"];
 const attendanceRulesSingletonId = 1;
+
+const userSafeAttributes = {
+  exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
+};
 
 type CurrentUser = {
   id: number;
@@ -328,9 +337,14 @@ export const checkInStaffAttendance = async (
         ? "late"
         : "present";
 
+    const actorSchoolId = Number(req.schoolId ?? (req as any).user?.schoolId);
     const attendance = await StaffAttendance.create({
       userId: currentUser.id,
       role: currentUser.role,
+      schoolId:
+        Number.isInteger(actorSchoolId) && actorSchoolId > 0
+          ? actorSchoolId
+          : null,
       date: today,
       status,
       checkInTime: now,
@@ -429,6 +443,103 @@ export const getMyStaffAttendance = async (
     res.json({
       attendance: attendance.map(serializeStaffAttendance),
       pagination: buildPagination(page, limit, count),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getStaffAttendanceToday = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const currentUser = getCurrentUser(req);
+
+    if (!ownerLevelRoleSet.has(currentUser.role)) {
+      throw new AppError("Access denied", 403);
+    }
+
+    const schoolId = Number(req.schoolId ?? (req as any).user?.schoolId);
+
+    if (!Number.isInteger(schoolId) || schoolId <= 0) {
+      throw new AppError("School context is required", 400);
+    }
+
+    const requestedDate = toOptionalString(req.query.date);
+    const date =
+      requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate)
+        ? requestedDate
+        : getTodayDate();
+
+    const staffUsers: any[] = await User.findAll({
+      where: {
+        schoolId,
+        role: { [Op.in]: teachingStaffRoles },
+      },
+      attributes: userSafeAttributes,
+      order: [
+        ["role", "ASC"],
+        ["name", "ASC"],
+      ],
+    });
+
+    const userIds = staffUsers.map((user) => Number(user.id));
+    const attendanceRows: any[] =
+      userIds.length === 0
+        ? []
+        : await StaffAttendance.findAll({
+            where: {
+              date,
+              userId: { [Op.in]: userIds },
+            },
+            order: [["id", "DESC"]],
+          });
+
+    const attendanceByUserId = new Map<number, any>();
+    for (const row of attendanceRows) {
+      const userId = Number(row.userId);
+      if (!attendanceByUserId.has(userId)) {
+        attendanceByUserId.set(userId, row);
+      }
+    }
+
+    const staff = staffUsers.map((user) => {
+      const attendance = attendanceByUserId.get(Number(user.id));
+      const checkedIn = Boolean(attendance?.checkInTime);
+
+      return {
+        userId: Number(user.id),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        loginId: user.email,
+        checkedInToday: checkedIn,
+        status: checkedIn ? attendance.status : "absent",
+        checkInTime: attendance?.checkInTime ?? null,
+        checkOutTime: attendance?.checkOutTime ?? null,
+        attendanceId: attendance?.id ?? null,
+      };
+    });
+
+    const checkedInCount = staff.filter((item) => item.checkedInToday).length;
+    const lateCount = staff.filter((item) => item.status === "late").length;
+    const checkedOutCount = staff.filter((item) =>
+      Boolean(item.checkOutTime),
+    ).length;
+
+    res.json({
+      date,
+      schoolId,
+      staff,
+      summary: {
+        total: staff.length,
+        checkedIn: checkedInCount,
+        notCheckedIn: staff.length - checkedInCount,
+        late: lateCount,
+        checkedOut: checkedOutCount,
+      },
     });
   } catch (err) {
     next(err);

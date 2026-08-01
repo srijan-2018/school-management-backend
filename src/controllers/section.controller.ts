@@ -2,12 +2,13 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import Section from "../models/section.model";
 import Class from "../models/class.model";
+import ClassSection from "../models/class-section.model";
 import { getById, list, remove } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 
-export const getSections = list(Section, "sections");
-export const getSectionById = getById(Section, "section");
-export const deleteSection = remove(Section, "section");
+export const getSections = list(Section, "sections", { schoolScoped: true });
+export const getSectionById = getById(Section, "section", { schoolScoped: true });
+export const deleteSection = remove(Section, "section", { schoolScoped: true });
 
 const toOptionalClassId = (value: unknown) => {
   if (value === undefined || value === null || value === "") {
@@ -52,20 +53,14 @@ const getRequestClassId = (req: Request) => {
   return toOptionalClassId(params.classId) ?? toOptionalClassId(query.classId);
 };
 
-const normalizeSectionPayload = (
-  payload: Record<string, unknown>,
-  fallbackClassId?: number,
-) => {
+const normalizeSectionPayload = (payload: Record<string, unknown>) => {
   if (!payload.name || !String(payload.name).trim()) {
     throw new AppError("name is required", 400);
   }
 
-  const classId = getPayloadClassId(payload, fallbackClassId);
-
   return {
-    ...payload,
     name: String(payload.name).trim(),
-    ...(classId !== undefined ? { classId } : { classId: null }),
+    classId: null,
   };
 };
 
@@ -99,6 +94,13 @@ const validateClassIds = async (
   }
 };
 
+const linkSectionToClass = async (sectionId: number, classId: number) => {
+  await ClassSection.findOrCreate({
+    where: { classId, sectionId },
+    defaults: { classId, sectionId },
+  });
+};
+
 export const createSection = async (
   req: Request,
   res: Response,
@@ -117,11 +119,25 @@ export const createSection = async (
 
       await validateClassIds(payload, fallbackClassId);
 
+      const schoolId = req.schoolId;
       const sections = await Section.bulkCreate(
-        payload.map((sectionPayload) =>
-          normalizeSectionPayload(sectionPayload, fallbackClassId),
-        ),
+        payload.map((sectionPayload) => ({
+          ...normalizeSectionPayload(sectionPayload),
+          ...(schoolId ? { schoolId } : {}),
+        })),
         { validate: true },
+      );
+
+      await Promise.all(
+        sections.map(async (section: any, index: number) => {
+          const classId = getPayloadClassId(
+            payload[index] ?? {},
+            fallbackClassId,
+          );
+          if (classId) {
+            await linkSectionToClass(Number(section.id), classId);
+          }
+        }),
       );
 
       return res.status(201).json({
@@ -132,9 +148,15 @@ export const createSection = async (
 
     await validateClassIds([payload], fallbackClassId);
 
-    const section = await Section.create(
-      normalizeSectionPayload(payload, fallbackClassId),
-    );
+    const section = await Section.create({
+      ...normalizeSectionPayload(payload),
+      ...(req.schoolId ? { schoolId: req.schoolId } : {}),
+    });
+
+    const classId = getPayloadClassId(payload, fallbackClassId);
+    if (classId) {
+      await linkSectionToClass(Number(section.id), classId);
+    }
 
     return res.status(201).json({
       message: "section created successfully",
@@ -159,23 +181,21 @@ export const updateSection = async (
 
     const payload = req.body ?? {};
 
-    if (payload.classId !== undefined) {
-      await validateClassIds([payload]);
-    }
-
     if (payload.name !== undefined && !String(payload.name).trim()) {
       throw new AppError("name cannot be empty", 400);
     }
 
     await section.update({
-      ...payload,
       ...(payload.name !== undefined
         ? { name: String(payload.name).trim() }
         : {}),
-      ...(payload.classId !== undefined
-        ? { classId: toClassId(payload.classId) }
-        : {}),
     });
+
+    if (payload.classId !== undefined && payload.classId !== null && payload.classId !== "") {
+      const classId = toClassId(payload.classId);
+      await validateClassIds([{ classId }]);
+      await linkSectionToClass(Number(section.id), classId);
+    }
 
     return res.json({
       message: "section updated successfully",

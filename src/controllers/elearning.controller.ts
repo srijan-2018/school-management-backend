@@ -24,14 +24,19 @@ const userSafeAttributes = {
 const getActor = (req: Request) => {
   const role = normalizeRole((req as any).user?.role);
   const userId = Number((req as any).user?.id);
-  const schoolId = Number((req as any).user?.schoolId);
+  const contextSchoolId = Number(req.schoolId);
+  const jwtSchoolId = Number((req as any).user?.schoolId);
+  const schoolId =
+    Number.isInteger(contextSchoolId) && contextSchoolId > 0
+      ? contextSchoolId
+      : jwtSchoolId;
 
   if (!role || !ELEARNING_VIEW_ROLES.includes(role)) {
     throw new AppError("Access denied", 403);
   }
 
   if (!Number.isInteger(schoolId) || schoolId <= 0) {
-    throw new AppError("User is not attached to any school", 400);
+    throw new AppError("School context is required", 400);
   }
 
   return {

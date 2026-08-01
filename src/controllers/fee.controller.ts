@@ -5,12 +5,13 @@ import Fee from "../models/fee.model";
 import FeePayment from "../models/fee-payment.model";
 import Class from "../models/class.model";
 import Parent from "../models/parent.model";
+import ParentStudent from "../models/parent-student.model";
 import Section from "../models/section.model";
 import Student from "../models/student.model";
 import User from "../models/user.model";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
-import { normalizeRole } from "../utils/roles";
+import { FINANCE_MANAGER_ROLES, normalizeRole } from "../utils/roles";
 
 const defaulterStatuses = ["pending", "partial", "overdue"];
 
@@ -20,7 +21,14 @@ const userSafeAttributes = {
 
 const getActor = (req: Request) => {
   const role = normalizeRole((req as any).user?.role);
-  const schoolId = Number((req as any).user?.schoolId);
+  const contextSchoolId = Number(req.schoolId);
+  const jwtSchoolId = Number((req as any).user?.schoolId);
+  const schoolId =
+    Number.isInteger(contextSchoolId) && contextSchoolId > 0
+      ? contextSchoolId
+      : Number.isInteger(jwtSchoolId) && jwtSchoolId > 0
+        ? jwtSchoolId
+        : null;
 
   if (!role) {
     throw new AppError("Access denied", 403);
@@ -28,22 +36,19 @@ const getActor = (req: Request) => {
 
   return {
     role,
-    schoolId: Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null,
+    schoolId,
   };
 };
 
 const ensureSchoolOwnerCanAccessStudent = (req: Request, studentUser: any) => {
   const actor = getActor(req);
+  const schoolId = actor.schoolId ?? Number(req.schoolId);
 
-  if (actor.role !== "school_owner") {
+  if (!schoolId) {
     return;
   }
 
-  if (!actor.schoolId) {
-    throw new AppError("school_owner is not attached to any school", 400);
-  }
-
-  if (Number(studentUser?.schoolId ?? 0) !== actor.schoolId) {
+  if (Number(studentUser?.schoolId ?? 0) !== schoolId) {
     throw new AppError("Access denied", 403);
   }
 };
@@ -234,10 +239,8 @@ export const createFee = async (
 
     const actor = getActor(req);
 
-    if (actor.role === "school_owner" && !actor.schoolId) {
-      return res
-        .status(400)
-        .json({ message: "school_owner is not attached to any school" });
+    if (!actor.schoolId) {
+      return res.status(400).json({ message: "School context is required" });
     }
 
     const students: any[] = await Student.findAll({
@@ -247,12 +250,9 @@ export const createFee = async (
           model: User,
           required: true,
           attributes: userSafeAttributes,
-          where:
-            actor.role === "school_owner"
-              ? {
-                  schoolId: actor.schoolId,
-                }
-              : undefined,
+          where: {
+            schoolId: actor.schoolId,
+          },
         },
       ],
     });
@@ -281,20 +281,279 @@ export const createFee = async (
   }
 };
 
+const PENDING_FEE_STATUSES = ["pending", "partial", "overdue"] as const;
+
+const toNetFeeAmount = (fee: any) => {
+  const amount = Number(fee.amount ?? 0);
+  const concession = Number(fee.concessionAmount ?? 0);
+  const waiver = Number(fee.waiverAmount ?? 0);
+  return Math.max(0, amount - concession - waiver);
+};
+
+const serializeStudentFee = (fee: any) => {
+  const json = typeof fee.toJSON === "function" ? fee.toJSON() : fee;
+  const netAmount = toNetFeeAmount(json);
+  return {
+    ...json,
+    netAmount,
+    amountDue: PENDING_FEE_STATUSES.includes(
+      String(json.status ?? "").toLowerCase() as (typeof PENDING_FEE_STATUSES)[number],
+    )
+      ? netAmount
+      : 0,
+  };
+};
+
+const buildFeeSummary = (fees: any[]) => {
+  const pendingFees = fees.filter((fee) =>
+    PENDING_FEE_STATUSES.includes(
+      String(fee.status ?? "").toLowerCase() as (typeof PENDING_FEE_STATUSES)[number],
+    ),
+  );
+  const paidFees = fees.filter(
+    (fee) => String(fee.status ?? "").toLowerCase() === "paid",
+  );
+  const now = Date.now();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const dueSoonCount = pendingFees.filter((fee) => {
+    if (!fee.dueDate) return false;
+    const due = new Date(String(fee.dueDate)).getTime();
+    if (!Number.isFinite(due)) return false;
+    return due >= now && due - now <= sevenDaysMs;
+  }).length;
+
+  return {
+    totalPending: pendingFees.reduce((sum, fee) => sum + toNetFeeAmount(fee), 0),
+    totalPaid: paidFees.reduce((sum, fee) => sum + toNetFeeAmount(fee), 0),
+    pendingCount: pendingFees.length,
+    paidCount: paidFees.length,
+    dueSoonCount,
+  };
+};
+
+const assertCanAccessStudentFees = async (
+  req: Request,
+  studentId: number,
+) => {
+  const actor = getActor(req);
+  const userId = Number((req as any).user?.id);
+
+  if (!Number.isInteger(studentId) || studentId <= 0) {
+    throw new AppError("Invalid student id", 400);
+  }
+
+  const student: any = await Student.findByPk(studentId, {
+    include: [
+      {
+        model: User,
+        attributes: userSafeAttributes,
+      },
+      {
+        model: Parent,
+        through: { attributes: [] },
+        include: [
+          {
+            model: User,
+            attributes: userSafeAttributes,
+          },
+        ],
+      },
+    ],
+  });
+
+  if (!student) {
+    throw new AppError("Student not found", 404);
+  }
+
+  if (FINANCE_MANAGER_ROLES.includes(actor.role as any) || actor.role === "admin") {
+    ensureSchoolOwnerCanAccessStudent(req, student.User);
+    return student;
+  }
+
+  if (actor.role === "student") {
+    if (!Number.isInteger(userId) || Number(student.userId) !== userId) {
+      throw new AppError("Access denied", 403);
+    }
+    return student;
+  }
+
+  if (actor.role === "parent") {
+    const parents = Array.isArray(student.Parents) ? student.Parents : [];
+    const linked = parents.some(
+      (parent: any) => Number(parent?.userId) === userId,
+    );
+    if (!linked) {
+      throw new AppError("Access denied", 403);
+    }
+    return student;
+  }
+
+  throw new AppError("Access denied", 403);
+};
+
+const resolveAccessibleStudentIds = async (req: Request) => {
+  const actor = getActor(req);
+  const userId = Number((req as any).user?.id);
+  const requestedStudentId = toOptionalPositiveInteger(
+    req.query.studentId,
+    "studentId",
+  );
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    throw new AppError("Access denied", 403);
+  }
+
+  if (actor.role === "student") {
+    const student = await Student.findOne({ where: { userId } });
+    if (!student) {
+      throw new AppError("Student profile not found", 404);
+    }
+    return [Number(student.id)];
+  }
+
+  if (actor.role === "parent") {
+    const parent = await Parent.findOne({ where: { userId } });
+    if (!parent) {
+      throw new AppError("Parent profile not found", 404);
+    }
+
+    const links = await ParentStudent.findAll({
+      where: { parentId: parent.id },
+    });
+    const studentIds = links
+      .map((link) => Number(link.studentId))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    if (!studentIds.length) {
+      return [];
+    }
+
+    if (requestedStudentId) {
+      if (!studentIds.includes(requestedStudentId)) {
+        throw new AppError("Access denied", 403);
+      }
+      return [requestedStudentId];
+    }
+
+    return studentIds;
+  }
+
+  throw new AppError("Access denied", 403);
+};
+
+export const getMyFees = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const studentIds = await resolveAccessibleStudentIds(req);
+    const { page, limit, offset } = getPagination(req);
+
+    if (!studentIds.length) {
+      return res.json({
+        fees: [],
+        summary: {
+          totalPending: 0,
+          totalPaid: 0,
+          pendingCount: 0,
+          paidCount: 0,
+          dueSoonCount: 0,
+        },
+        studentIds,
+        pagination: buildPagination(page, limit, 0),
+      });
+    }
+
+    const { rows: fees, count } = await Fee.findAndCountAll({
+      where: { studentId: { [Op.in]: studentIds } },
+      include: [
+        {
+          model: Student,
+          attributes: ["id", "rollNumber", "classId", "sectionId", "userId"],
+          include: [
+            {
+              model: User,
+              attributes: userSafeAttributes,
+            },
+            {
+              model: Class,
+              attributes: ["id", "name"],
+            },
+            {
+              model: Section,
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+      ],
+      order: [
+        ["dueDate", "ASC"],
+        ["id", "DESC"],
+      ],
+      limit,
+      offset,
+      distinct: true,
+    });
+
+    const allFeesForSummary = await Fee.findAll({
+      where: { studentId: { [Op.in]: studentIds } },
+      attributes: [
+        "id",
+        "amount",
+        "concessionAmount",
+        "waiverAmount",
+        "status",
+        "dueDate",
+      ],
+    });
+
+    res.json({
+      fees: fees.map(serializeStudentFee),
+      summary: buildFeeSummary(allFeesForSummary),
+      studentIds,
+      pagination: buildPagination(page, limit, count),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getFeesByStudent = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
+    const studentId = Number(req.params.id);
+    await assertCanAccessStudentFees(req, studentId);
+
     const { page, limit, offset } = getPagination(req);
     const { rows: fees, count } = await Fee.findAndCountAll({
-      where: { studentId: req.params.id },
+      where: { studentId },
+      order: [
+        ["dueDate", "ASC"],
+        ["id", "DESC"],
+      ],
       limit,
       offset,
     });
+
+    const allFeesForSummary = await Fee.findAll({
+      where: { studentId },
+      attributes: [
+        "id",
+        "amount",
+        "concessionAmount",
+        "waiverAmount",
+        "status",
+        "dueDate",
+      ],
+    });
+
     res.json({
-      fees,
+      fees: fees.map(serializeStudentFee),
+      summary: buildFeeSummary(allFeesForSummary),
       pagination: buildPagination(page, limit, count),
     });
   } catch (err) {
@@ -310,10 +569,8 @@ export const getFeeTransactions = async (
   try {
     const actor = getActor(req);
 
-    if (actor.role === "school_owner" && !actor.schoolId) {
-      return res
-        .status(400)
-        .json({ message: "school_owner is not attached to any school" });
+    if (!actor.schoolId) {
+      return res.status(400).json({ message: "School context is required" });
     }
 
     const { page, limit, offset } = getPagination(req);
@@ -330,12 +587,9 @@ export const getFeeTransactions = async (
               model: User,
               required: true,
               attributes: userSafeAttributes,
-              where:
-                actor.role === "school_owner"
-                  ? {
-                      schoolId: actor.schoolId,
-                    }
-                  : undefined,
+              where: {
+                schoolId: actor.schoolId,
+              },
             },
             {
               model: Class,
@@ -571,6 +825,12 @@ export const getFeeDefaulters = async (
   next: NextFunction,
 ) => {
   try {
+    const actor = getActor(req);
+
+    if (!actor.schoolId) {
+      return res.status(400).json({ message: "School context is required" });
+    }
+
     const { page, limit, offset } = getPagination(req);
     const search = String(req.query.search ?? req.query.keyword ?? "").trim();
     const where: Record<string, unknown> = {
@@ -597,10 +857,13 @@ export const getFeeDefaulters = async (
       include: [
         {
           model: Student,
+          required: true,
           include: [
             {
               model: User,
+              required: true,
               attributes: userSafeAttributes,
+              where: { schoolId: actor.schoolId },
             },
             {
               model: Class,

@@ -2,6 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
 import User from "./user.model";
 import School from "./school.model";
+import Student from "./student.model";
 
 class MockTest extends Model {
   public id!: number;
@@ -44,6 +45,10 @@ MockTest.belongsTo(User, {
 MockTest.belongsTo(User, {
   as: "assignedByUser",
   foreignKey: "assignedByUserId",
+});
+MockTest.belongsTo(Student, {
+  as: "student",
+  foreignKey: "studentId",
 });
 MockTest.belongsTo(School, { foreignKey: "schoolId" });
 School.hasMany(MockTest, { foreignKey: "schoolId", as: "mockTests" });

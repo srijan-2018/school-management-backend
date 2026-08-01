@@ -27,19 +27,46 @@ export const errorHandler = (
   res: Response,
   next: NextFunction,
 ) => {
-  const error = err instanceof Error ? err : new Error("Internal Server Error");
-  const statusCode = err instanceof AppError ? err.statusCode : 500;
-  const message =
-    statusCode === 500 && process.env.NODE_ENV === "production"
-      ? "Internal Server Error"
-      : error.message || "Internal Server Error";
+  let statusCode = err instanceof AppError ? err.statusCode : 500;
+  let message =
+    err instanceof Error ? err.message || "Internal Server Error" : "Internal Server Error";
+
+  const sequelizeError = err as {
+    name?: string;
+    message?: string;
+    errors?: Array<{ message?: string; path?: string }>;
+    parent?: { code?: string; sqlMessage?: string };
+  };
+
+  if (sequelizeError?.name === "SequelizeForeignKeyConstraintError") {
+    statusCode = 400;
+    message =
+      "One or more classId values are invalid. Use class IDs from the selected school.";
+  } else if (sequelizeError?.name === "SequelizeUniqueConstraintError") {
+    statusCode = 409;
+    message =
+      sequelizeError.errors?.[0]?.message ||
+      "A subject with the same details already exists.";
+  } else if (sequelizeError?.name === "SequelizeValidationError") {
+    statusCode = 400;
+    message =
+      sequelizeError.errors?.map((item) => item.message).filter(Boolean).join("; ") ||
+      sequelizeError.message ||
+      "Validation failed";
+  } else if (sequelizeError?.parent?.sqlMessage) {
+    message = sequelizeError.parent.sqlMessage;
+  }
+
+  if (statusCode === 500 && process.env.NODE_ENV === "production") {
+    message = "Internal Server Error";
+  }
 
   console.error("Request failed", {
     method: req.method,
     path: req.originalUrl,
     statusCode,
-    message: error.message,
-    stack: error.stack,
+    message,
+    stack: err instanceof Error ? err.stack : undefined,
   });
 
   const response: Record<string, unknown> = {
@@ -47,8 +74,8 @@ export const errorHandler = (
     message,
   };
 
-  if (process.env.NODE_ENV !== "production") {
-    response.stack = error.stack;
+  if (process.env.NODE_ENV !== "production" && err instanceof Error) {
+    response.stack = err.stack;
   }
 
   res.status(statusCode).json(response);

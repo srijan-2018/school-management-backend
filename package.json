@@ -17,9 +17,11 @@
     "db:sync-mock-test": "node dist/scripts/sync-mock-test-columns.js",
     "db:sync-mock-test-chapters": "ts-node src/scripts/sync-mock-test-chapter-columns.ts",
     "db:sync-sections": "node dist/scripts/sync-section-columns.js",
+    "db:sync-class-sections": "ts-node src/scripts/sync-class-sections.ts",
     "db:sync-students": "node dist/scripts/sync-student-columns.js",
     "db:sync-staff-attendance": "node dist/scripts/sync-staff-attendance-role-enum.js",
-    "db:sync-exams": "node dist/scripts/sync-exam-columns.js"
+    "db:sync-exams": "node dist/scripts/sync-exam-columns.js",
+    "db:sync-hr-leave-calendar": "ts-node src/scripts/sync-hr-leave-calendar.ts"
   },
   "keywords": [],
   "author": "",
