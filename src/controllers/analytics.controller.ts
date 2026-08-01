@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { Op, fn, col, literal } from "sequelize";
+import { Op, fn, col } from "sequelize";
 import Student from "../models/student.model";
 import Teacher from "../models/teacher.model";
 import Class from "../models/class.model";
@@ -18,6 +18,16 @@ const parseDays = (value: unknown, fallback = 30, max = 90) => {
 };
 
 const toDateOnly = (date: Date) => date.toISOString().slice(0, 10);
+
+type StatusCountRow = { status: string };
+type AttendanceGroupRow = {
+  date: string;
+  status: string;
+  count: string | number;
+};
+type FinancePeriodRow = { period: string; paid: string | number };
+
+const asRawRows = <T>(rows: unknown): T[] => rows as T[];
 
 export const getOverview = async (
   req: Request,
@@ -113,7 +123,7 @@ export const getAttendanceAnalytics = async (
       half_day: 0,
     };
 
-    for (const row of rows as Array<{ status: string }>) {
+    for (const row of asRawRows<StatusCountRow>(rows)) {
       const status = String(row.status);
       byStatus[status] = (byStatus[status] ?? 0) + 1;
     }
@@ -207,11 +217,7 @@ export const getAttendanceTimeseries = async (
       });
     }
 
-    for (const row of rows as Array<{
-      date: string;
-      status: string;
-      count: string | number;
-    }>) {
+    for (const row of asRawRows<AttendanceGroupRow>(rows)) {
       const point = byDate.get(String(row.date));
       if (!point) continue;
       const count = Number(row.count ?? 0);
@@ -261,6 +267,7 @@ export const getFinanceTimeseries = async (
     since.setMonth(since.getMonth() - (months - 1), 1);
     since.setHours(0, 0, 0, 0);
 
+    const periodExpr = fn("DATE_FORMAT", col("updatedAt"), "%Y-%m");
     const rows = await Fee.findAll({
       where: {
         schoolId,
@@ -268,16 +275,16 @@ export const getFinanceTimeseries = async (
         updatedAt: { [Op.gte]: since },
       },
       attributes: [
-        [fn("DATE_FORMAT", col("updatedAt"), "%Y-%m"), "period"],
+        [periodExpr, "period"],
         [fn("SUM", col("amount")), "paid"],
       ],
-      group: [literal("period")],
-      order: [[literal("period"), "ASC"]],
+      group: [periodExpr],
+      order: [[periodExpr, "ASC"]],
       raw: true,
     });
 
     const paidByPeriod = new Map(
-      (rows as Array<{ period: string; paid: string | number }>).map((row) => [
+      asRawRows<FinancePeriodRow>(rows).map((row) => [
         String(row.period),
         Number(row.paid ?? 0),
       ]),
@@ -452,8 +459,8 @@ export const getReports = async (
           [fn("DATE_FORMAT", col("updatedAt"), "%Y-%m"), "period"],
           [fn("SUM", col("amount")), "paid"],
         ],
-        group: [literal("period")],
-        order: [[literal("period"), "ASC"]],
+        group: [fn("DATE_FORMAT", col("updatedAt"), "%Y-%m")],
+        order: [[fn("DATE_FORMAT", col("updatedAt"), "%Y-%m"), "ASC"]],
         raw: true,
       }),
       Class.findAll({
@@ -469,7 +476,7 @@ export const getReports = async (
       late: 0,
       half_day: 0,
     };
-    for (const row of attendanceRows as Array<{ status: string }>) {
+    for (const row of asRawRows<StatusCountRow>(attendanceRows)) {
       const status = String(row.status);
       byStatus[status] = (byStatus[status] ?? 0) + 1;
     }
@@ -500,11 +507,7 @@ export const getReports = async (
         rate: 0,
       });
     }
-    for (const row of attendanceGrouped as Array<{
-      date: string;
-      status: string;
-      count: string | number;
-    }>) {
+    for (const row of asRawRows<AttendanceGroupRow>(attendanceGrouped)) {
       const point = byDate.get(String(row.date));
       if (!point) continue;
       const count = Number(row.count ?? 0);
@@ -534,9 +537,10 @@ export const getReports = async (
     >;
 
     const paidByPeriod = new Map(
-      (
-        financeMonthRows as Array<{ period: string; paid: string | number }>
-      ).map((row) => [String(row.period), Number(row.paid ?? 0)]),
+      asRawRows<FinancePeriodRow>(financeMonthRows).map((row) => [
+        String(row.period),
+        Number(row.paid ?? 0),
+      ]),
     );
     const financePoints: Array<{
       period: string;
