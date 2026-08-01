@@ -63,7 +63,7 @@ jobs:
             npm run build
 
             echo "Restarting PM2..."
-            pm2 restart school-backend || pm2 start dist/app.js --name school-backend
+            pm2 reload school-backend || pm2 start dist/app.js --name school-backend
 
             pm2 save
 
