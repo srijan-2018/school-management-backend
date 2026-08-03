@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import Subject from "../models/subject.model";
 import Class from "../models/class.model";
-import { create, list, remove, update } from "../helpers/crud.helpers";
+import { create, list, remove, update, bulkRemove } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
 
@@ -101,6 +101,9 @@ export const getSubjects = list(Subject, "subjects", { schoolScoped: true });
 export const createSubject = create(Subject, "subject", { schoolScoped: true });
 export const updateSubject = update(Subject, "subject", { schoolScoped: true });
 export const deleteSubject = remove(Subject, "subject", { schoolScoped: true });
+export const bulkDeleteSubjects = bulkRemove(Subject, "subject", {
+  schoolScoped: true,
+});
 
 export const getSubjectsByClassId = async (
   req: Request,

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 
 import { AppError } from "../middlewares/error.middleware";
 import Chapter from "../models/chapter.model";
@@ -318,6 +319,52 @@ export const deleteChapter = async (
 
     res.json({
       message: "Chapter deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const bulkDeleteChapters = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req);
+    const rawIds = req.body?.ids;
+
+    if (!Array.isArray(rawIds) || rawIds.length === 0) {
+      throw new AppError("ids must be a non-empty array", 400);
+    }
+
+    const ids = Array.from(
+      new Set(
+        rawIds.map((item: unknown, index: number) =>
+          toPositiveInteger(item, `ids[${index}]`),
+        ),
+      ),
+    );
+
+    const chapters = await Chapter.findAll({
+      where: { id: { [Op.in]: ids }, schoolId },
+      attributes: ["id"],
+    });
+
+    if (chapters.length !== ids.length) {
+      throw new AppError("One or more chapters were not found", 404);
+    }
+
+    await Chapter.destroy({
+      where: { id: { [Op.in]: ids }, schoolId },
+    });
+
+    res.json({
+      message:
+        ids.length === 1
+          ? "Chapter deleted successfully"
+          : `${ids.length} chapters deleted successfully`,
+      deleted: ids.length,
     });
   } catch (error) {
     next(error);

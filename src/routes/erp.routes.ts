@@ -163,6 +163,11 @@ router.post(
   allowRoles(...ACADEMIC_MANAGER_ROLES),
   classController.createClass,
 );
+router.post(
+  "/classes/bulk-delete",
+  allowRoles(...OWNER_LEVEL_ROLES),
+  classController.bulkDeleteClasses,
+);
 router.get("/classes/:id", classController.getClassById);
 router.post(
   "/classes/:classId/sections",
@@ -186,6 +191,11 @@ router.post(
   allowRoles(...ACADEMIC_MANAGER_ROLES),
   section.createSection,
 );
+router.post(
+  "/sections/bulk-delete",
+  allowRoles(...OWNER_LEVEL_ROLES),
+  section.bulkDeleteSections,
+);
 router.get("/sections/:id", section.getSectionById);
 router.put(
   "/sections/:id",
@@ -205,6 +215,12 @@ router.post(
   requireSchoolContext,
   allowRoles(...ACADEMIC_MANAGER_ROLES),
   subject.bulkCreateSubjects,
+);
+router.post(
+  "/subjects/bulk-delete",
+  requireSchoolContext,
+  allowRoles(...OWNER_LEVEL_ROLES),
+  subject.bulkDeleteSubjects,
 );
 router.post(
   "/subjects",
@@ -229,6 +245,11 @@ router.post(
   "/chapters/bulk",
   allowRoles(...CHAPTER_MANAGE_ROLES),
   chapter.bulkCreateChapters,
+);
+router.post(
+  "/chapters/bulk-delete",
+  allowRoles(...CHAPTER_MANAGE_ROLES),
+  chapter.bulkDeleteChapters,
 );
 router.post(
   "/chapters",

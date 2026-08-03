@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
+
 import { buildPagination, getPagination } from "../utils/pagination";
 
 const pluralize = (key: string) => {
@@ -210,6 +212,78 @@ export const remove =
       if (!row) return res.status(404).json({ message: `${key} not found` });
       await row.destroy();
       res.json({ message: `${key} deleted successfully` });
+    } catch (err) {
+      next(err);
+    }
+  };
+
+export const parsePositiveIntegerIds = (value: unknown, field = "ids") => {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${field} must be a non-empty array`);
+  }
+
+  const ids = Array.from(
+    new Set(
+      value.map((item, index) => {
+        const parsed = Number(item);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          throw new Error(`${field}[${index}] must be a positive integer`);
+        }
+        return parsed;
+      }),
+    ),
+  );
+
+  return ids;
+};
+
+export const bulkRemove =
+  (model: any, key: string, options: CrudOptions = {}) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const schoolId = getTrustedSchoolId(req, options.schoolScoped);
+
+      if (options.schoolScoped && (schoolId === null || schoolId === undefined)) {
+        return res.status(400).json({
+          message: "School context is required",
+        });
+      }
+
+      let ids: number[];
+      try {
+        ids = parsePositiveIntegerIds(req.body?.ids);
+      } catch (error) {
+        return res.status(400).json({
+          message:
+            error instanceof Error ? error.message : "ids must be a non-empty array",
+        });
+      }
+
+      const where: Record<string, unknown> = { id: { [Op.in]: ids } };
+      if (options.schoolScoped && schoolId) {
+        where.schoolId = schoolId;
+      }
+
+      const rows = await model.findAll({
+        where,
+        attributes: ["id"],
+      });
+
+      if (rows.length !== ids.length) {
+        return res.status(404).json({
+          message: `One or more ${pluralize(key)} were not found`,
+        });
+      }
+
+      await model.destroy({ where });
+
+      res.json({
+        message:
+          ids.length === 1
+            ? `${key} deleted successfully`
+            : `${ids.length} ${pluralize(key)} deleted successfully`,
+        deleted: ids.length,
+      });
     } catch (err) {
       next(err);
     }

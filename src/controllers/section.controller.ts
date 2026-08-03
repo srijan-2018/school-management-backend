@@ -3,12 +3,15 @@ import { Op } from "sequelize";
 import Section from "../models/section.model";
 import Class from "../models/class.model";
 import ClassSection from "../models/class-section.model";
-import { getById, list, remove } from "../helpers/crud.helpers";
+import { getById, list, remove, bulkRemove } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 
 export const getSections = list(Section, "sections", { schoolScoped: true });
 export const getSectionById = getById(Section, "section", { schoolScoped: true });
 export const deleteSection = remove(Section, "section", { schoolScoped: true });
+export const bulkDeleteSections = bulkRemove(Section, "section", {
+  schoolScoped: true,
+});
 
 const toOptionalClassId = (value: unknown) => {
   if (value === undefined || value === null || value === "") {

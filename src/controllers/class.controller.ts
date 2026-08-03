@@ -394,3 +394,65 @@ export const deleteClass = async (
     next(err);
   }
 };
+
+export const bulkDeleteClasses = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = req.schoolId;
+    const rawIds = req.body?.ids;
+
+    if (!Array.isArray(rawIds) || rawIds.length === 0) {
+      throw new AppError("ids must be a non-empty array", 400);
+    }
+
+    const ids = Array.from(
+      new Set(
+        rawIds.map((item: unknown, index: number) => {
+          const parsed = Number(item);
+          if (!Number.isInteger(parsed) || parsed <= 0) {
+            throw new AppError(
+              `ids[${index}] must be a positive integer`,
+              400,
+            );
+          }
+          return parsed;
+        }),
+      ),
+    );
+
+    await sequelize.transaction(async (transaction) => {
+      const where: Record<string, unknown> = { id: { [Op.in]: ids } };
+      if (schoolId) where.schoolId = schoolId;
+
+      const classRows = await Class.findAll({
+        where,
+        attributes: ["id"],
+        transaction,
+      });
+
+      if (classRows.length !== ids.length) {
+        throw new AppError("One or more classes were not found", 404);
+      }
+
+      await ClassSection.destroy({
+        where: { classId: { [Op.in]: ids } },
+        transaction,
+      });
+
+      await Class.destroy({ where, transaction });
+    });
+
+    return res.json({
+      message:
+        ids.length === 1
+          ? "class deleted successfully"
+          : `${ids.length} classes deleted successfully`,
+      deleted: ids.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
