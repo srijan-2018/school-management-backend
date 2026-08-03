@@ -346,6 +346,11 @@ router.post(
   allowRoles(...MOCK_TEST_GENERATOR_ROLES),
   mockTest.generateMockTest,
 );
+router.post(
+  "/mock-tests",
+  allowRoles(...MOCK_TEST_MANAGER_ROLES),
+  mockTest.createMockTest,
+);
 router.get("/mock-tests", mockTest.getMockTests);
 router.get("/mock-tests/progress", mockTest.getMockTestProgress);
 router.post("/mock-tests/submit", mockTest.submitMockTest);

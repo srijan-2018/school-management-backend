@@ -1029,6 +1029,13 @@ const options: swaggerJsdoc.Options = {
           ],
           responses: { 200: messageResponse("Mock tests list") },
         },
+        post: {
+          tags: ["Mock Tests"],
+          summary: "Create mock test manually",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody("Create mock test with questions"),
+          responses: { 201: messageResponse("Mock test created") },
+        },
       },
       "/mock-tests/progress": {
         get: {

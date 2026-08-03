@@ -10,6 +10,7 @@ import User from "../models/user.model";
 import { AppError } from "../middlewares/error.middleware";
 import {
   generateMockTestWithAi,
+  validateMockTestQuestions,
   type MockOption,
   type MockQuestion,
 } from "../services/mock-test-ai.service";
@@ -1084,6 +1085,100 @@ export const getMockTests = async (
         serializeMockTestSummary(mockTest, currentUser),
       ),
       pagination: buildPagination(page, limit, count),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createMockTest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const currentUser = getCurrentUser(req);
+
+    if (!isManagerRole(currentUser.role)) {
+      throw new AppError("Access denied", 403);
+    }
+
+    const { title, level, questions, studentId } = req.body ?? {};
+
+    let targetStudent: any = null;
+    const requestedStudentId = toOptionalPositiveInteger(
+      studentId,
+      "studentId",
+    );
+
+    if (requestedStudentId !== undefined) {
+      targetStudent = await Student.findByPk(String(requestedStudentId));
+
+      if (!targetStudent) {
+        throw new AppError("Student not found", 404);
+      }
+    }
+
+    const normalizedLevel = String(level ?? "").toLowerCase();
+    if (
+      !allowedLevels.includes(normalizedLevel as (typeof allowedLevels)[number])
+    ) {
+      throw new AppError(
+        "level is required and must be one of: easy, medium, hard",
+        400,
+      );
+    }
+
+    let validatedQuestions: MockQuestion[];
+    try {
+      validatedQuestions = validateMockTestQuestions(questions);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : "Invalid questions payload",
+        400,
+      );
+    }
+
+    if (validatedQuestions.length > 50) {
+      throw new AppError("A mock test can include at most 50 questions", 400);
+    }
+
+    const resolvedContext = await resolveClassSubjectAndChapter(
+      req.body ?? {},
+      targetStudent,
+    );
+
+    const resolvedTitle =
+      toOptionalString(title) ||
+      `${resolvedContext.className} ${resolvedContext.subjectName} Mock Test`;
+
+    const mockTest = await MockTest.create({
+      studentId: targetStudent?.id ?? null,
+      generatedByUserId: currentUser.id,
+      assignedByUserId: targetStudent ? currentUser.id : null,
+      classId: resolvedContext.classId,
+      className: String(resolvedContext.className),
+      subjectId: resolvedContext.subjectId,
+      subjectName: String(resolvedContext.subjectName),
+      chapterId: resolvedContext.chapterId,
+      chapterName: resolvedContext.chapterName,
+      title: resolvedTitle,
+      level: normalizedLevel,
+      questions: validatedQuestions,
+      aiSuggestion: buildGenerationSuggestion(
+        String(resolvedContext.subjectName),
+        normalizedLevel,
+        resolvedContext.chapterName,
+      ),
+      status: "generated",
+    });
+
+    res.status(201).json({
+      message: targetStudent
+        ? "mock test created and assigned successfully"
+        : "mock test created successfully",
+      provider: "manual",
+      mockTest: serializeMockTestDetail(mockTest, true, currentUser),
     });
   } catch (err) {
     next(err);

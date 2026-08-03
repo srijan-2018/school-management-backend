@@ -156,11 +156,11 @@ ${chapterName ? `- Focus questions specifically on the chapter "${chapterName}".
 
 const validateQuestions = (questions: unknown): MockQuestion[] => {
   if (!Array.isArray(questions)) {
-    throw new Error("AI response questions must be an array");
+    throw new Error("questions must be an array");
   }
 
   if (questions.length === 0) {
-    throw new Error("AI response questions must not be empty");
+    throw new Error("questions must not be empty");
   }
 
   return questions.map((question, index) => {
@@ -176,7 +176,7 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
       typeof item.correctAnswer !== "string" ||
       typeof item.explanation !== "string"
     ) {
-      throw new Error(`AI response question ${index + 1} is invalid`);
+      throw new Error(`Question ${index + 1} is invalid`);
     }
 
     const normalizedOptions = item.options.map((option) => ({
@@ -193,13 +193,13 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
 
     if (normalizedQuestion.length < minQuestionLength) {
       throw new Error(
-        `AI response question ${index + 1} must contain a complete question`,
+        `Question ${index + 1} must contain a complete question`,
       );
     }
 
     if (normalizedExplanation.length < minExplanationLength) {
       throw new Error(
-        `AI response question ${index + 1} must include a meaningful explanation`,
+        `Question ${index + 1} must include a meaningful explanation`,
       );
     }
 
@@ -209,13 +209,13 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
       )
     ) {
       throw new Error(
-        `AI response question ${index + 1} must use option keys A, B, C, and D in order`,
+        `Question ${index + 1} must use option keys A, B, C, and D in order`,
       );
     }
 
     if (uniqueKeys.size !== normalizedOptions.length) {
       throw new Error(
-        `AI response question ${index + 1} contains duplicate option keys`,
+        `Question ${index + 1} contains duplicate option keys`,
       );
     }
 
@@ -225,13 +225,13 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
       )
     ) {
       throw new Error(
-        `AI response question ${index + 1} has a correctAnswer not present in options`,
+        `Question ${index + 1} has a correctAnswer not present in options`,
       );
     }
 
     if (hasPlaceholderOptions(normalizedOptions)) {
       throw new Error(
-        `AI response question ${index + 1} contains placeholder options instead of answer text`,
+        `Question ${index + 1} contains placeholder options instead of answer text`,
       );
     }
 
@@ -241,13 +241,13 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
       )
     ) {
       throw new Error(
-        `AI response question ${index + 1} contains weak option text`,
+        `Question ${index + 1} contains weak option text`,
       );
     }
 
     if (uniqueTexts.size !== normalizedOptions.length) {
       throw new Error(
-        `AI response question ${index + 1} contains duplicate option texts`,
+        `Question ${index + 1} contains duplicate option texts`,
       );
     }
 
@@ -259,6 +259,8 @@ const validateQuestions = (questions: unknown): MockQuestion[] => {
     };
   });
 };
+
+export const validateMockTestQuestions = validateQuestions;
 
 const normalizeGeneratedMockTest = (
   generated: any,
