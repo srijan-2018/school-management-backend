@@ -4,7 +4,9 @@ import {
   requireSchoolContext,
   resolveSchoolContext,
 } from "../middlewares/school-context.middleware";
+import { enforceSchoolFeatures } from "../middlewares/school-feature.middleware";
 import * as school from "../controllers/school.controller";
+import * as schoolFeature from "../controllers/school-feature.controller";
 import * as student from "../controllers/student.controller";
 import * as teacher from "../controllers/teacher.controller";
 import * as parent from "../controllers/parent.controller";
@@ -58,6 +60,7 @@ const router = Router();
 
 router.use(verifyToken);
 router.use(resolveSchoolContext());
+router.use(enforceSchoolFeatures);
 
 const methodNotAllowed = (message: string) => (_req: any, res: any) => {
   res.status(405).json({ message });
@@ -69,6 +72,13 @@ router.get(
   allowRoles(...SCHOOL_CREATION_ROLES),
   dashboard.getPlatformOverview,
 );
+
+router.get(
+  "/school-features/catalog",
+  allowRoles(...SCHOOL_CREATION_ROLES),
+  schoolFeature.getFeatureCatalog,
+);
+router.get("/school-features/me", schoolFeature.getMySchoolFeatures);
 
 router.get("/schools", school.getSchools);
 router.post("/schools", allowRoles(...SCHOOL_CREATION_ROLES), school.createSchool);
@@ -82,6 +92,15 @@ router.delete(
   "/schools/:id",
   allowRoles(...SCHOOL_CREATION_ROLES),
   school.deleteSchool,
+);
+router.get(
+  "/schools/:id/features",
+  schoolFeature.getSchoolFeatures,
+);
+router.put(
+  "/schools/:id/features",
+  allowRoles(...SCHOOL_CREATION_ROLES),
+  schoolFeature.updateSchoolFeatures,
 );
 
 router.get("/students", requireSchoolContext, student.getStudents);

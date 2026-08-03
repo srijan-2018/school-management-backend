@@ -6,6 +6,7 @@ import "./role.model";
 import "./permission.model";
 import "./role-permission.model";
 import "./school.model";
+import "./school-feature.model";
 import "./section.model";
 import "./teacher.model";
 import "./parent.model";

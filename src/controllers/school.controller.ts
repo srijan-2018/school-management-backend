@@ -1,8 +1,9 @@
 import School from "../models/school.model";
 import { NextFunction, Request, Response } from "express";
-import { create } from "../helpers/crud.helpers";
+import { Op } from "sequelize";
 import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
+import { ensureSchoolFeatures } from "../services/school-feature.service";
 
 export const getSchools = async (
 	req: Request,
@@ -23,15 +24,24 @@ export const getSchools = async (
 		}
 
 		const { page, limit, offset } = getPagination(req);
-		const where =
-			actorRole === "school_owner"
-				? {
-						id: actorSchoolId,
-					}
-				: undefined;
+		const search = String(req.query.search ?? req.query.keyword ?? "").trim();
+		const where: Record<string, unknown> = {};
+
+		if (actorRole === "school_owner") {
+			where.id = actorSchoolId;
+		}
+
+		if (search) {
+			const searchLike = `%${search}%`;
+			where[Op.or as unknown as string] = [
+				{ name: { [Op.like]: searchLike } },
+				{ code: { [Op.like]: searchLike } },
+				{ email: { [Op.like]: searchLike } },
+			];
+		}
 
 		const { rows: schools, count } = await School.findAndCountAll({
-			where,
+			where: Object.keys(where).length > 0 ? where : undefined,
 			order: [["id", "DESC"]],
 			limit,
 			offset,
@@ -45,7 +55,40 @@ export const getSchools = async (
 		next(err);
 	}
 };
-export const createSchool = create(School, "school");
+export const createSchool = async (
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	try {
+		const payload = req.body ?? {};
+		if (Array.isArray(payload)) {
+			if (payload.length === 0) {
+				return res.status(400).json({ message: "schools payload cannot be empty" });
+			}
+
+			const schools = await School.bulkCreate(payload, { validate: true });
+			await Promise.all(
+				schools.map((school) => ensureSchoolFeatures(Number(school.id))),
+			);
+
+			return res.status(201).json({
+				message: "schools created successfully",
+				schools,
+			});
+		}
+
+		const school = await School.create(payload);
+		await ensureSchoolFeatures(Number(school.id));
+
+		return res.status(201).json({
+			message: "school created successfully",
+			school,
+		});
+	} catch (err) {
+		next(err);
+	}
+};
 
 export const getSchoolById = async (
 	req: Request,

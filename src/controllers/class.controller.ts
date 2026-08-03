@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import { sequelize } from "../config/db";
 import Class from "../models/class.model";
 import Section from "../models/section.model";
@@ -201,9 +202,21 @@ export const getClasses = async (
 ) => {
   try {
     const { page, limit, offset } = getPagination(req);
-    const where = req.schoolId ? { schoolId: req.schoolId } : undefined;
+    const search = String(req.query.search ?? req.query.keyword ?? "").trim();
+    const where: Record<string, unknown> = req.schoolId
+      ? { schoolId: req.schoolId }
+      : {};
+
+    if (search) {
+      const searchLike = `%${search}%`;
+      where[Op.or as unknown as string] = [
+        { name: { [Op.like]: searchLike } },
+        { section: { [Op.like]: searchLike } },
+      ];
+    }
+
     const { rows: classes, count } = await Class.findAndCountAll({
-      where,
+      where: Object.keys(where).length > 0 ? where : undefined,
       include: classInclude,
       order: [["id", "DESC"]],
       distinct: true,

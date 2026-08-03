@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import Role from "../models/role.model";
 import { buildPagination, getPagination } from "../utils/pagination";
 
@@ -9,7 +10,19 @@ export const getRoles = async (
 ) => {
   try {
     const { page, limit, offset } = getPagination(req);
+    const search = String(req.query.search ?? req.query.keyword ?? "").trim();
+    const where: Record<string, unknown> = {};
+
+    if (search) {
+      const searchLike = `%${search}%`;
+      where[Op.or as unknown as string] = [
+        { name: { [Op.like]: searchLike } },
+        { description: { [Op.like]: searchLike } },
+      ];
+    }
+
     const { rows: roles, count } = await Role.findAndCountAll({
+      where: Object.keys(where).length > 0 ? where : undefined,
       order: [["id", "DESC"]],
       limit,
       offset,
