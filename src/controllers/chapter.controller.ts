@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 
 import { AppError } from "../middlewares/error.middleware";
 import Chapter from "../models/chapter.model";
+import Class from "../models/class.model";
 import Subject from "../models/subject.model";
 import { buildPagination, getPagination } from "../utils/pagination";
 
@@ -43,9 +44,17 @@ export const getChapters = async (
     const subjectId = req.query.subjectId
       ? toPositiveInteger(req.query.subjectId, "subjectId")
       : undefined;
+    const classId = req.query.classId
+      ? toPositiveInteger(req.query.classId, "classId")
+      : undefined;
 
-    const where: Record<string, unknown> = subjectId ? { subjectId } : {};
+    const where: Record<string, unknown> = {};
+    if (subjectId) where.subjectId = subjectId;
     if (req.schoolId) where.schoolId = req.schoolId;
+
+    const subjectWhere: Record<string, unknown> = {};
+    if (classId) subjectWhere.classId = classId;
+
     const { rows: chapters, count } = await Chapter.findAndCountAll({
       where,
       include: [
@@ -53,6 +62,15 @@ export const getChapters = async (
           model: Subject,
           as: "subject",
           attributes: ["id", "name", "classId"],
+          ...(Object.keys(subjectWhere).length > 0
+            ? { where: subjectWhere, required: true }
+            : {}),
+          include: [
+            {
+              model: Class,
+              attributes: ["id", "name"],
+            },
+          ],
         },
       ],
       order: [
@@ -61,6 +79,7 @@ export const getChapters = async (
       ],
       limit,
       offset,
+      distinct: true,
     });
 
     res.json({

@@ -631,7 +631,8 @@ export const getHrUpcoming = async (
     if (!schoolId) return;
 
     const today = todayDateOnly();
-    const until = addDays(today, 60);
+    // Keep the manager dashboard in step with the calendar's upcoming view.
+    const until = addDays(today, 365);
 
     const [pendingLeaves, calendarItems] = await Promise.all([
       LeaveRequest.findAll({
