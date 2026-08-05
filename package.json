@@ -22,6 +22,9 @@
     "db:sync-staff-attendance": "node dist/scripts/sync-staff-attendance-role-enum.js",
     "db:sync-exams": "node dist/scripts/sync-exam-columns.js",
     "db:sync-hr-leave-calendar": "ts-node src/scripts/sync-hr-leave-calendar.ts",
+    "db:sync-leave-rules-balances": "ts-node src/scripts/sync-leave-rules-balances.ts",
+    "db:sync-user-avatar": "ts-node src/scripts/sync-user-avatar.ts",
+    "db:sync-notifications": "ts-node src/scripts/sync-notifications.ts",
     "db:sync-school-features": "ts-node src/scripts/sync-school-features.ts"
   },
   "keywords": [],

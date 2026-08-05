@@ -8,6 +8,7 @@ import {
   forgotPassword,
   resetPassword,
   getProfile,
+  updateProfile,
 } from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 
@@ -18,6 +19,7 @@ router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 router.post("/logout", logout);
 router.get("/profile", verifyToken, getProfile);
+router.patch("/profile", verifyToken, updateProfile);
 router.put("/change-password", verifyToken, changePassword);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);

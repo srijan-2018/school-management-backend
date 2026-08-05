@@ -202,6 +202,29 @@ export const LEAVE_ACCESS_ROLES: UserRole[] = [
 /** School members who can view the holiday/event calendar. */
 export const CALENDAR_VIEW_ROLES: UserRole[] = [...USER_ROLES];
 
+/** Roles that receive exam / event / notice notifications. */
+export const NOTIFICATION_AUDIENCE_ROLES: UserRole[] = [
+  "teacher",
+  "head_teacher",
+  "school_owner",
+  "admin",
+  "administrator",
+  "student",
+  "parent",
+];
+
+/** Roles that can view the notifications inbox. */
+export const NOTIFICATION_VIEW_ROLES: UserRole[] = [
+  ...NOTIFICATION_AUDIENCE_ROLES,
+];
+
+/** Roles that can publish free-form school notices. */
+export const NOTICE_PUBLISH_ROLES: UserRole[] = [
+  "admin",
+  "school_owner",
+  "administrator",
+];
+
 export const TRANSPORT_MANAGER_ROLES: UserRole[] = [
   "admin",
   "school_owner",

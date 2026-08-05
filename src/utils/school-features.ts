@@ -21,7 +21,8 @@ export type SchoolFeatureKey =
   | "transport"
   | "hostel"
   | "hr"
-  | "analytics";
+  | "analytics"
+  | "notifications";
 
 export type SchoolFeatureDefinition = {
   key: SchoolFeatureKey;
@@ -170,6 +171,12 @@ export const SCHOOL_FEATURE_CATALOG: SchoolFeatureDefinition[] = [
     description: "School analytics",
     group: "Extended",
   },
+  {
+    key: "notifications",
+    label: "Notifications",
+    description: "Exam, event, and notice alerts",
+    group: "Operations",
+  },
 ];
 
 export const SCHOOL_FEATURE_KEYS = SCHOOL_FEATURE_CATALOG.map(
@@ -212,4 +219,5 @@ export const SCHOOL_FEATURE_BY_ROUTE_PREFIX: Record<string, SchoolFeatureKey> = 
   hr: "hr",
   payroll: "hr",
   analytics: "analytics",
+  notifications: "notifications",
 };

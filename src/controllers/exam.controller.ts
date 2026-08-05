@@ -20,6 +20,10 @@ import {
   EXAM_VIEW_ROLES,
   normalizeRole,
 } from "../utils/roles";
+import {
+  notifyExamPublished,
+  notifyExamSchedulePublished,
+} from "../services/notification.service";
 
 const userSafeAttributes = {
   exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
@@ -423,6 +427,16 @@ export const createExamSchedule = async (
       include: scheduleInclude,
     });
 
+    const scheduleStatus = String(schedule.get("status") ?? "");
+    if (scheduleStatus === "active") {
+      void notifyExamSchedulePublished({
+        schoolId: actor.schoolId,
+        scheduleId: Number(schedule.get("id")),
+        title,
+        createdByUserId: actor.userId,
+      }).catch(() => undefined);
+    }
+
     res.status(201).json({
       message: "Exam schedule created successfully",
       schedule: createdSchedule,
@@ -514,6 +528,7 @@ export const updateExamSchedule = async (
       schedule.term = String(body.term).trim() || null;
     }
 
+    const previousStatus = String(schedule.status ?? "");
     if (body.status !== undefined) {
       schedule.status = normalizeScheduleStatus(body.status);
     }
@@ -523,6 +538,19 @@ export const updateExamSchedule = async (
     const updatedSchedule = await ExamSchedule.findByPk(schedule.id, {
       include: scheduleInclude,
     });
+
+    if (
+      String(schedule.status) === "active" &&
+      previousStatus !== "active"
+    ) {
+      const actor = getActor(req);
+      void notifyExamSchedulePublished({
+        schoolId: Number(schedule.schoolId),
+        scheduleId: Number(schedule.id),
+        title: String(schedule.title),
+        createdByUserId: actor.userId,
+      }).catch(() => undefined);
+    }
 
     res.json({
       message: "Exam schedule updated successfully",
@@ -683,6 +711,17 @@ export const createExam = async (
       include: examInclude,
     });
 
+    const examStatus = String(exam.get("status") ?? "");
+    if (examStatus === "scheduled") {
+      void notifyExamPublished({
+        schoolId: actor.schoolId,
+        examId: Number(exam.get("id")),
+        examName: name,
+        examDate: (exam.get("date") as string | null) ?? null,
+        createdByUserId: actor.userId,
+      }).catch(() => undefined);
+    }
+
     res.status(201).json({
       message: "Exam created successfully",
       exam: createdExam,
@@ -806,6 +845,7 @@ export const updateExam = async (
       exam.passingMarks = Number(body.passingMarks) || null;
     }
 
+    const previousStatus = String(exam.status ?? "");
     if (body.status !== undefined) {
       exam.status = normalizeExamStatus(body.status);
     }
@@ -819,6 +859,20 @@ export const updateExam = async (
     const updatedExam = await Exam.findByPk(exam.id, {
       include: examInclude,
     });
+
+    if (
+      String(exam.status) === "scheduled" &&
+      previousStatus !== "scheduled"
+    ) {
+      const actor = getActor(req);
+      void notifyExamPublished({
+        schoolId: Number(exam.schoolId),
+        examId: Number(exam.id),
+        examName: String(exam.name),
+        examDate: (exam.date as string | null) ?? null,
+        createdByUserId: actor.userId,
+      }).catch(() => undefined);
+    }
 
     res.json({
       message: "Exam updated successfully",

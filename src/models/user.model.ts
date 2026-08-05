@@ -10,6 +10,8 @@ class User extends Model {
   public password!: string;
   public role!: UserRole;
   public schoolId?: number | null;
+  public gender?: "male" | "female" | null;
+  public avatarId?: string | null;
   public resetPasswordToken?: string | null;
   public resetPasswordExpires?: Date | null;
 }
@@ -32,6 +34,14 @@ User.init(
     },
     schoolId: {
       type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    gender: {
+      type: DataTypes.ENUM("male", "female"),
+      allowNull: true,
+    },
+    avatarId: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
     resetPasswordToken: {

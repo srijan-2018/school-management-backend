@@ -9,6 +9,12 @@ import {
   USER_ROLES,
 } from "../utils/roles";
 import { findUserWithProfile } from "./user.controller";
+import {
+  getAvatarGender,
+  isValidAvatarId,
+  normalizeProfileGender,
+} from "../constants/profile-avatars";
+import { AppError } from "../middlewares/error.middleware";
 
 const getJwtSecret = () => process.env.JWT_SECRET;
 
@@ -155,6 +161,9 @@ export const login = async (
       email: user.get("email"),
       role: user.get("role") as string,
       schoolId: (user.get("schoolId") as number | null | undefined) ?? null,
+      gender:
+        (user.get("gender") as "male" | "female" | null | undefined) ?? null,
+      avatarId: (user.get("avatarId") as string | null | undefined) ?? null,
     };
 
     const { accessToken, refreshToken } = generateTokens(loginUser);
@@ -318,6 +327,88 @@ export const getProfile = async (
     }
 
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user: any = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const payload: {
+      gender?: "male" | "female" | null;
+      avatarId?: string | null;
+    } = {};
+
+    if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "gender")) {
+      if (req.body.gender === null || req.body.gender === "") {
+        payload.gender = null;
+      } else {
+        const gender = normalizeProfileGender(req.body.gender);
+        if (!gender) {
+          throw new AppError("gender must be male or female", 400);
+        }
+        payload.gender = gender;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "avatarId")) {
+      if (req.body.avatarId === null || req.body.avatarId === "") {
+        payload.avatarId = null;
+      } else {
+        const avatarId = String(req.body.avatarId).trim();
+        const nextGender =
+          payload.gender !== undefined
+            ? payload.gender
+            : normalizeProfileGender(user.gender);
+
+        if (!isValidAvatarId(avatarId, nextGender)) {
+          throw new AppError(
+            nextGender
+              ? `avatarId is not valid for ${nextGender} profiles`
+              : "avatarId is not valid. Choose a gender first.",
+            400,
+          );
+        }
+
+        payload.avatarId = avatarId;
+        if (!nextGender) {
+          payload.gender = getAvatarGender(avatarId);
+        }
+      }
+    }
+
+    if (payload.gender && user.avatarId && payload.avatarId === undefined) {
+      if (!isValidAvatarId(user.avatarId, payload.gender)) {
+        payload.avatarId = null;
+      }
+    }
+
+    if (Object.keys(payload).length === 0) {
+      throw new AppError("Provide gender and/or avatarId to update", 400);
+    }
+
+    await user.update(payload);
+
+    const refreshed = await findUserWithProfile(userId);
+    res.json({
+      message: "Profile updated",
+      user: refreshed,
+    });
   } catch (err) {
     next(err);
   }

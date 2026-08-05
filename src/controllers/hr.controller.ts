@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import StaffProfile from "../models/staff-profile.model";
 import LeaveRequest from "../models/leave-request.model";
+import LeaveRule from "../models/leave-rule.model";
+import LeaveBalance from "../models/leave-balance.model";
 import SalaryStructure from "../models/salary-structure.model";
 import PayrollRun from "../models/payroll-run.model";
 import SchoolCalendar from "../models/school-calendar.model";
@@ -9,9 +11,15 @@ import User from "../models/user.model";
 import { requireSchoolId } from "../helpers/school-scope";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
-import { HR_MANAGER_ROLES, normalizeRole } from "../utils/roles";
+import {
+  EMPLOYEE_LEAVE_ROLES,
+  HR_MANAGER_ROLES,
+  normalizeRole,
+} from "../utils/roles";
 import { LEAVE_TYPES, normalizeLeaveType } from "../constants/leave-types";
 import { userSafeAttributes } from "./user.controller";
+import { sequelize } from "../config/db";
+import { notifyCalendarPublished } from "../services/notification.service";
 
 const isHrManager = (role: unknown) => {
   const normalized = normalizeRole(role);
@@ -28,6 +36,8 @@ const leaveIncludes = [
   },
 ];
 
+const balanceIncludes = [{ model: User, attributes: userSafeAttributes }];
+
 const toDateOnly = (value: unknown) => {
   if (typeof value !== "string" || !value.trim()) return null;
   return value.trim().slice(0, 10);
@@ -40,6 +50,143 @@ const addDays = (dateOnly: string, days: number) => {
 };
 
 const todayDateOnly = () => new Date().toISOString().slice(0, 10);
+
+const currentLeaveYear = () => new Date().getUTCFullYear();
+
+const countInclusiveDays = (startDate: string, endDate: string) => {
+  const start = new Date(`${startDate}T00:00:00.000Z`).getTime();
+  const end = new Date(`${endDate}T00:00:00.000Z`).getTime();
+  return Math.floor((end - start) / 86_400_000) + 1;
+};
+
+const serializeBalance = (balance: any, pendingDays = 0) => {
+  const json =
+    typeof balance?.toJSON === "function" ? balance.toJSON() : balance;
+  const totalDays = Number(json.totalDays ?? 0);
+  const usedDays = Number(json.usedDays ?? 0);
+  const remainingDays = Math.max(0, totalDays - usedDays);
+  const availableDays = Math.max(0, remainingDays - pendingDays);
+
+  return {
+    ...json,
+    pendingDays,
+    remainingDays,
+    availableDays,
+  };
+};
+
+async function getPendingLeaveDays(params: {
+  schoolId: number;
+  userId: number;
+  leaveType: string;
+  excludeLeaveId?: number;
+}) {
+  const where: Record<string, unknown> = {
+    schoolId: params.schoolId,
+    userId: params.userId,
+    leaveType: params.leaveType,
+    status: "pending",
+  };
+  if (params.excludeLeaveId) {
+    where.id = { [Op.ne]: params.excludeLeaveId };
+  }
+
+  const pending = await LeaveRequest.findAll({
+    where,
+    attributes: ["startDate", "endDate"],
+  });
+
+  return pending.reduce((sum, row: any) => {
+    const start = toDateOnly(row.startDate);
+    const end = toDateOnly(row.endDate);
+    if (!start || !end) return sum;
+    return sum + countInclusiveDays(start, end);
+  }, 0);
+}
+
+async function assertLeaveEligibility(params: {
+  schoolId: number;
+  userId: number;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  year?: number;
+}) {
+  const year = params.year ?? currentLeaveYear();
+  const requestedDays = countInclusiveDays(params.startDate, params.endDate);
+
+  const rule = await LeaveRule.findOne({
+    where: {
+      schoolId: params.schoolId,
+      leaveType: params.leaveType,
+      isActive: true,
+    },
+  });
+
+  if (!rule) {
+    throw new AppError(
+      `No active leave rule found for ${params.leaveType}. Ask the school owner to add a leave rule first.`,
+      400,
+    );
+  }
+
+  if (
+    rule.maxConsecutiveDays != null &&
+    Number(rule.maxConsecutiveDays) > 0 &&
+    requestedDays > Number(rule.maxConsecutiveDays)
+  ) {
+    throw new AppError(
+      `This leave type allows at most ${rule.maxConsecutiveDays} consecutive day(s).`,
+      400,
+    );
+  }
+
+  if (Number(rule.minNoticeDays) > 0) {
+    const earliest = addDays(todayDateOnly(), Number(rule.minNoticeDays));
+    if (params.startDate < earliest) {
+      throw new AppError(
+        `This leave type requires at least ${rule.minNoticeDays} day(s) notice.`,
+        400,
+      );
+    }
+  }
+
+  const balance = await LeaveBalance.findOne({
+    where: {
+      schoolId: params.schoolId,
+      userId: params.userId,
+      leaveType: params.leaveType,
+      year,
+    },
+  });
+
+  if (!balance) {
+    throw new AppError(
+      `No leave balance assigned for ${params.leaveType} in ${year}. Ask the school owner to assign a leave balance.`,
+      400,
+    );
+  }
+
+  const pendingDays = await getPendingLeaveDays({
+    schoolId: params.schoolId,
+    userId: params.userId,
+    leaveType: params.leaveType,
+  });
+
+  const availableDays = Math.max(
+    0,
+    Number(balance.totalDays) - Number(balance.usedDays) - pendingDays,
+  );
+
+  if (requestedDays > availableDays) {
+    throw new AppError(
+      `Insufficient leave balance. Available: ${availableDays} day(s), requested: ${requestedDays} day(s).`,
+      400,
+    );
+  }
+
+  return { requestedDays, balance, rule, pendingDays, year };
+}
 
 export const listStaffProfiles = async (
   req: Request,
@@ -192,6 +339,14 @@ export const createLeave = async (
 
     if (!userId) throw new AppError("Unable to resolve leave requester", 400);
 
+    await assertLeaveEligibility({
+      schoolId,
+      userId,
+      leaveType,
+      startDate,
+      endDate,
+    });
+
     const leave = await LeaveRequest.create({
       schoolId,
       userId,
@@ -282,11 +437,58 @@ const reviewLeave = async (
         ? req.body.reviewNote.trim()
         : null;
 
-    await leave.update({
-      status,
-      approvedBy: req.user?.id ?? null,
-      approvedAt: new Date(),
-      reviewNote,
+    await sequelize.transaction(async (transaction) => {
+      if (status === "approved") {
+        const startDate = toDateOnly(leave.startDate);
+        const endDate = toDateOnly(leave.endDate);
+        if (!startDate || !endDate) {
+          throw new AppError("Leave request has invalid dates", 400);
+        }
+
+        const year = Number(String(startDate).slice(0, 4)) || currentLeaveYear();
+        const requestedDays = countInclusiveDays(startDate, endDate);
+        const balance = await LeaveBalance.findOne({
+          where: {
+            schoolId,
+            userId: leave.userId,
+            leaveType: leave.leaveType,
+            year,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!balance) {
+          throw new AppError(
+            `Cannot approve: no leave balance for ${leave.leaveType} in ${year}.`,
+            400,
+          );
+        }
+
+        const remainingDays =
+          Number(balance.totalDays) - Number(balance.usedDays);
+        if (requestedDays > remainingDays) {
+          throw new AppError(
+            `Cannot approve: insufficient balance. Remaining: ${remainingDays} day(s), requested: ${requestedDays} day(s).`,
+            400,
+          );
+        }
+
+        await balance.update(
+          { usedDays: Number(balance.usedDays) + requestedDays },
+          { transaction },
+        );
+      }
+
+      await leave.update(
+        {
+          status,
+          approvedBy: req.user?.id ?? null,
+          approvedAt: new Date(),
+          reviewNote,
+        },
+        { transaction },
+      );
     });
 
     const updated = await LeaveRequest.findByPk(leave.id, {
@@ -313,6 +515,367 @@ export const rejectLeave = (
   res: Response,
   next: NextFunction,
 ) => reviewLeave(req, res, next, "rejected");
+
+export const listLeaveRules = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const activeOnly =
+      String(req.query.active ?? "").toLowerCase() === "1" ||
+      String(req.query.active ?? "").toLowerCase() === "true";
+
+    const where: Record<string, unknown> = { schoolId };
+    if (activeOnly) where.isActive = true;
+
+    const rules = await LeaveRule.findAll({
+      where,
+      order: [["leaveType", "ASC"]],
+    });
+
+    res.json({ rules });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createLeaveRule = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const leaveType = normalizeLeaveType(req.body?.leaveType);
+    if (!leaveType) {
+      throw new AppError(
+        `leaveType must be one of: ${LEAVE_TYPES.join(", ")}`,
+        400,
+      );
+    }
+
+    const annualAllowance = Number(req.body?.annualAllowance);
+    if (!Number.isFinite(annualAllowance) || annualAllowance < 0) {
+      throw new AppError("annualAllowance must be a non-negative number", 400);
+    }
+
+    const maxConsecutiveDays =
+      req.body?.maxConsecutiveDays === null ||
+      req.body?.maxConsecutiveDays === undefined ||
+      req.body?.maxConsecutiveDays === ""
+        ? null
+        : Number(req.body.maxConsecutiveDays);
+    if (
+      maxConsecutiveDays !== null &&
+      (!Number.isInteger(maxConsecutiveDays) || maxConsecutiveDays < 1)
+    ) {
+      throw new AppError(
+        "maxConsecutiveDays must be a positive integer or empty",
+        400,
+      );
+    }
+
+    const minNoticeDays = Number(req.body?.minNoticeDays ?? 0);
+    if (!Number.isInteger(minNoticeDays) || minNoticeDays < 0) {
+      throw new AppError("minNoticeDays must be a non-negative integer", 400);
+    }
+
+    const existing = await LeaveRule.findOne({
+      where: { schoolId, leaveType },
+    });
+    if (existing) {
+      throw new AppError(
+        `A leave rule for ${leaveType} already exists. Update it instead.`,
+        400,
+      );
+    }
+
+    const rule = await LeaveRule.create({
+      schoolId,
+      leaveType,
+      annualAllowance,
+      maxConsecutiveDays,
+      minNoticeDays,
+      isActive: req.body?.isActive !== false,
+      description:
+        typeof req.body?.description === "string"
+          ? req.body.description.trim()
+          : null,
+    });
+
+    res.status(201).json({ message: "Leave rule created", rule });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateLeaveRule = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const rule: any = await LeaveRule.findOne({
+      where: { id: req.params.id, schoolId },
+    });
+    if (!rule) return res.status(404).json({ message: "Leave rule not found" });
+
+    const payload: Record<string, unknown> = {};
+
+    if (req.body?.leaveType != null) {
+      const leaveType = normalizeLeaveType(req.body.leaveType);
+      if (!leaveType) {
+        throw new AppError(
+          `leaveType must be one of: ${LEAVE_TYPES.join(", ")}`,
+          400,
+        );
+      }
+      payload.leaveType = leaveType;
+    }
+
+    if (req.body?.annualAllowance != null) {
+      const annualAllowance = Number(req.body.annualAllowance);
+      if (!Number.isFinite(annualAllowance) || annualAllowance < 0) {
+        throw new AppError("annualAllowance must be a non-negative number", 400);
+      }
+      payload.annualAllowance = annualAllowance;
+    }
+
+    if (req.body?.maxConsecutiveDays !== undefined) {
+      if (
+        req.body.maxConsecutiveDays === null ||
+        req.body.maxConsecutiveDays === ""
+      ) {
+        payload.maxConsecutiveDays = null;
+      } else {
+        const maxConsecutiveDays = Number(req.body.maxConsecutiveDays);
+        if (!Number.isInteger(maxConsecutiveDays) || maxConsecutiveDays < 1) {
+          throw new AppError(
+            "maxConsecutiveDays must be a positive integer or empty",
+            400,
+          );
+        }
+        payload.maxConsecutiveDays = maxConsecutiveDays;
+      }
+    }
+
+    if (req.body?.minNoticeDays != null) {
+      const minNoticeDays = Number(req.body.minNoticeDays);
+      if (!Number.isInteger(minNoticeDays) || minNoticeDays < 0) {
+        throw new AppError("minNoticeDays must be a non-negative integer", 400);
+      }
+      payload.minNoticeDays = minNoticeDays;
+    }
+
+    if (req.body?.isActive != null) {
+      payload.isActive = Boolean(req.body.isActive);
+    }
+
+    if (req.body?.description !== undefined) {
+      payload.description =
+        typeof req.body.description === "string"
+          ? req.body.description.trim()
+          : null;
+    }
+
+    await rule.update(payload);
+    res.json({ message: "Leave rule updated", rule });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteLeaveRule = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const rule = await LeaveRule.findOne({
+      where: { id: req.params.id, schoolId },
+    });
+    if (!rule) return res.status(404).json({ message: "Leave rule not found" });
+
+    await rule.destroy();
+    res.json({ message: "Leave rule deleted" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listLeaveBalances = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const manager = isHrManager(req.user?.role);
+    const year = Number(req.query.year) || currentLeaveYear();
+    const userIdFilter = Number(req.query.userId);
+
+    const where: Record<string, unknown> = { schoolId, year };
+    if (!manager) {
+      where.userId = req.user?.id;
+    } else if (Number.isInteger(userIdFilter) && userIdFilter > 0) {
+      where.userId = userIdFilter;
+    }
+
+    const balances = await LeaveBalance.findAll({
+      where,
+      include: balanceIncludes,
+      order: [
+        ["userId", "ASC"],
+        ["leaveType", "ASC"],
+      ],
+    });
+
+    const serialized = await Promise.all(
+      balances.map(async (balance: any) => {
+        const pendingDays = await getPendingLeaveDays({
+          schoolId,
+          userId: balance.userId,
+          leaveType: balance.leaveType,
+        });
+        return serializeBalance(balance, pendingDays);
+      }),
+    );
+
+    res.json({ balances: serialized, year });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const upsertLeaveBalance = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const userId = Number(req.body?.userId);
+    const leaveType = normalizeLeaveType(req.body?.leaveType);
+    const year = Number(req.body?.year) || currentLeaveYear();
+    const totalDays = Number(req.body?.totalDays);
+    const usedDays =
+      req.body?.usedDays === undefined || req.body?.usedDays === null
+        ? undefined
+        : Number(req.body.usedDays);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new AppError("userId is required", 400);
+    }
+    if (!leaveType) {
+      throw new AppError(
+        `leaveType must be one of: ${LEAVE_TYPES.join(", ")}`,
+        400,
+      );
+    }
+    if (!Number.isInteger(year) || year < 2000) {
+      throw new AppError("year must be a valid year", 400);
+    }
+    if (!Number.isFinite(totalDays) || totalDays < 0) {
+      throw new AppError("totalDays must be a non-negative number", 400);
+    }
+    if (usedDays !== undefined && (!Number.isFinite(usedDays) || usedDays < 0)) {
+      throw new AppError("usedDays must be a non-negative number", 400);
+    }
+
+    const employee = await User.findOne({
+      where: {
+        id: userId,
+        schoolId,
+        role: { [Op.in]: EMPLOYEE_LEAVE_ROLES },
+      },
+    });
+    if (!employee) {
+      throw new AppError(
+        "Employee not found in this school, or role cannot receive leave balance",
+        404,
+      );
+    }
+
+    const [balance] = await LeaveBalance.findOrCreate({
+      where: { schoolId, userId, leaveType, year },
+      defaults: {
+        schoolId,
+        userId,
+        leaveType,
+        year,
+        totalDays,
+        usedDays: usedDays ?? 0,
+      },
+    });
+
+    const nextUsed =
+      usedDays !== undefined ? usedDays : Number(balance.usedDays);
+    if (nextUsed > totalDays) {
+      throw new AppError("usedDays cannot exceed totalDays", 400);
+    }
+
+    await balance.update({
+      totalDays,
+      usedDays: nextUsed,
+    });
+
+    const pendingDays = await getPendingLeaveDays({
+      schoolId,
+      userId,
+      leaveType,
+    });
+    const refreshed = await LeaveBalance.findByPk(balance.id, {
+      include: balanceIncludes,
+    });
+
+    res.status(201).json({
+      message: "Leave balance saved",
+      balance: serializeBalance(refreshed, pendingDays),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listLeaveEmployees = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const employees = await User.findAll({
+      where: {
+        schoolId,
+        role: { [Op.in]: EMPLOYEE_LEAVE_ROLES },
+      },
+      attributes: userSafeAttributes,
+      order: [["name", "ASC"]],
+    });
+
+    res.json({ employees });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const listSalaryStructures = async (
   req: Request,
@@ -556,6 +1119,17 @@ export const createCalendarItem = async (
       description,
       isAllDay: req.body?.isAllDay !== false && req.body?.isAllDay !== "false",
     });
+
+    void notifyCalendarPublished({
+      schoolId,
+      calendarId: Number(calendarItem.get("id")),
+      title,
+      type: type as "holiday" | "event",
+      startDate,
+      endDate,
+      description,
+      createdByUserId: req.user?.id ?? null,
+    }).catch(() => undefined);
 
     res.status(201).json({ message: "Calendar item created", calendarItem });
   } catch (err) {

@@ -30,6 +30,7 @@ import * as hostel from "../controllers/hostel.controller";
 import * as hr from "../controllers/hr.controller";
 import * as analytics from "../controllers/analytics.controller";
 import * as dashboard from "../controllers/dashboard.controller";
+import * as notification from "../controllers/notification.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
   ANALYTICS_VIEW_ROLES,
@@ -50,6 +51,8 @@ import {
   INVENTORY_ROLES,
   MOCK_TEST_MANAGER_ROLES,
   ASSIGNMENT_MANAGER_ROLES,
+  NOTICE_PUBLISH_ROLES,
+  NOTIFICATION_VIEW_ROLES,
   OWNER_LEVEL_ROLES,
   SCHOOL_CREATION_ROLES,
   STAFF_ATTENDANCE_ROLES,
@@ -759,6 +762,48 @@ router.post(
   hr.rejectLeave,
 );
 router.get(
+  "/hr/leave-rules",
+  requireSchoolContext,
+  allowRoles(...LEAVE_ACCESS_ROLES),
+  hr.listLeaveRules,
+);
+router.post(
+  "/hr/leave-rules",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.createLeaveRule,
+);
+router.put(
+  "/hr/leave-rules/:id",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.updateLeaveRule,
+);
+router.delete(
+  "/hr/leave-rules/:id",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.deleteLeaveRule,
+);
+router.get(
+  "/hr/leave-balances",
+  requireSchoolContext,
+  allowRoles(...LEAVE_ACCESS_ROLES),
+  hr.listLeaveBalances,
+);
+router.post(
+  "/hr/leave-balances",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.upsertLeaveBalance,
+);
+router.get(
+  "/hr/leave-employees",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.listLeaveEmployees,
+);
+router.get(
   "/hr/salary-structures",
   requireSchoolContext,
   allowRoles(...HR_MANAGER_ROLES),
@@ -817,6 +862,38 @@ router.delete(
   requireSchoolContext,
   allowRoles(...HR_MANAGER_ROLES),
   hr.deleteCalendarItem,
+);
+
+// Notifications
+router.get(
+  "/notifications",
+  requireSchoolContext,
+  allowRoles(...NOTIFICATION_VIEW_ROLES),
+  notification.listMyNotifications,
+);
+router.get(
+  "/notifications/unread-count",
+  requireSchoolContext,
+  allowRoles(...NOTIFICATION_VIEW_ROLES),
+  notification.getUnreadNotificationCount,
+);
+router.post(
+  "/notifications/notices",
+  requireSchoolContext,
+  allowRoles(...NOTICE_PUBLISH_ROLES),
+  notification.publishNotice,
+);
+router.patch(
+  "/notifications/read-all",
+  requireSchoolContext,
+  allowRoles(...NOTIFICATION_VIEW_ROLES),
+  notification.markAllAsRead,
+);
+router.patch(
+  "/notifications/:id/read",
+  requireSchoolContext,
+  allowRoles(...NOTIFICATION_VIEW_ROLES),
+  notification.markNotificationAsRead,
 );
 
 // Analytics
