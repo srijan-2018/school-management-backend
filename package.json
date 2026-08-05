@@ -25,6 +25,7 @@
     "db:sync-leave-rules-balances": "ts-node src/scripts/sync-leave-rules-balances.ts",
     "db:sync-user-avatar": "ts-node src/scripts/sync-user-avatar.ts",
     "db:sync-notifications": "ts-node src/scripts/sync-notifications.ts",
+    "db:sync-deploy": "node dist/scripts/sync-deploy-schema.js",
     "db:sync-school-features": "ts-node src/scripts/sync-school-features.ts"
   },
   "keywords": [],

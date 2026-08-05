@@ -63,6 +63,9 @@ jobs:
             echo "Building..."
             npm run build
 
+            echo "Applying database schema changes..."
+            npm run db:sync-deploy
+
             echo "Restarting PM2..."
             pm2 reload school-backend || pm2 start dist/app.js --name school-backend
 
