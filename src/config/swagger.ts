@@ -217,6 +217,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Fees" },
       { name: "Inventory" },
       { name: "E-Learning" },
+      { name: "Notifications" },
     ],
     components: {
       securitySchemes: {
@@ -1438,6 +1439,107 @@ const options: swaggerJsdoc.Options = {
           security: [{ bearerAuth: [] }],
           parameters: [idParameter()],
           responses: { 200: messageResponse("Content deleted") },
+        },
+      },
+      "/notifications": {
+        get: {
+          tags: ["Notifications"],
+          summary: "List my notifications",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            ...paginationParameters(),
+            queryParameter(
+              "schoolId",
+              "School context (required for platform admins without a school)",
+              {
+                type: "integer",
+                example: 5,
+                minimum: 1,
+              },
+            ),
+          ],
+          responses: {
+            200: messageResponse("Notifications list"),
+            400: messageResponse("Missing school context"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/notifications/unread-count": {
+        get: {
+          tags: ["Notifications"],
+          summary: "Get unread notification count",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            queryParameter(
+              "schoolId",
+              "School context (required for platform admins without a school)",
+              {
+                type: "integer",
+                example: 5,
+                minimum: 1,
+              },
+            ),
+          ],
+          responses: {
+            200: messageResponse("Unread notification count"),
+            400: messageResponse("Missing school context"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/notifications/notices": {
+        post: {
+          tags: ["Notifications"],
+          summary: "Publish a notice notification",
+          security: [{ bearerAuth: [] }],
+          requestBody: jsonContent({
+            type: "object",
+            required: ["title"],
+            properties: {
+              title: { type: "string", example: "School closed tomorrow" },
+              body: {
+                type: "string",
+                example: "The school will remain closed due to heavy rain.",
+              },
+              audienceRoles: {
+                type: "array",
+                items: { type: "string" },
+                example: ["teacher", "student", "parent"],
+              },
+            },
+          }),
+          responses: {
+            201: messageResponse("Notice published"),
+            400: messageResponse("Validation error"),
+            401: messageResponse("Unauthorized"),
+            403: messageResponse("Forbidden"),
+          },
+        },
+      },
+      "/notifications/read-all": {
+        patch: {
+          tags: ["Notifications"],
+          summary: "Mark all notifications as read",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: messageResponse("All notifications marked as read"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/notifications/{id}/read": {
+        patch: {
+          tags: ["Notifications"],
+          summary: "Mark a notification as read",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter("id", "Notification id")],
+          responses: {
+            200: messageResponse("Notification marked as read"),
+            400: messageResponse("Invalid notification id"),
+            401: messageResponse("Unauthorized"),
+            404: messageResponse("Notification not found"),
+          },
         },
       },
     },
