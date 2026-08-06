@@ -1,9 +1,10 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { UserRole, normalizeRole } from "../utils/roles";
 import type { AuthUserPayload } from "../types/express";
+import { findActiveSessionById } from "../utils/session";
 
-export const verifyToken = (
+export const verifyToken = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -36,10 +37,23 @@ export const verifyToken = (
       return res.status(401).json({ message: "Invalid token" });
     }
 
+    if (typeof decoded.sessionId === "number") {
+      const session = await findActiveSessionById(decoded.sessionId, decoded.id);
+
+      if (!session) {
+        return res.status(401).json({
+          message:
+            "Session expired. You have been logged in on another device.",
+          code: "SESSION_REVOKED",
+        });
+      }
+    }
+
     req.user = {
       id: decoded.id,
       role: decoded.role,
       schoolId: decoded.schoolId ?? null,
+      sessionId: decoded.sessionId ?? null,
     };
 
     next();

@@ -1,4 +1,5 @@
 import "./user.model";
+import "./user-session.model";
 import "./class.model";
 import "./student.model";
 import "./subject.model";

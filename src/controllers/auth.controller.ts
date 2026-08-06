@@ -15,6 +15,13 @@ import {
   normalizeProfileGender,
 } from "../constants/profile-avatars";
 import { AppError } from "../middlewares/error.middleware";
+import {
+  createUserSession,
+  deactivateUserSessions,
+  findActiveSessionByRefreshToken,
+  hashToken,
+} from "../utils/session";
+import UserSession from "../models/user-session.model";
 
 const getJwtSecret = () => process.env.JWT_SECRET;
 
@@ -27,6 +34,7 @@ const generateTokens = (user: {
   id: number;
   role: string;
   schoolId?: number | null;
+  sessionId?: number | null;
 }) => {
   const jwtSecret = getJwtSecret();
   const refreshTokenSecret = getRefreshTokenSecret();
@@ -43,6 +51,7 @@ const generateTokens = (user: {
     id: user.id,
     role: user.role,
     schoolId: user.schoolId ?? null,
+    sessionId: user.sessionId ?? null,
   };
 
   const accessToken = jwt.sign(payload, jwtSecret, { expiresIn: "30m" });
@@ -135,7 +144,7 @@ export const login = async (
   next: NextFunction,
 ) => {
   try {
-    const { email, password } = req.body ?? {};
+    const { email, password, deviceId, deviceName, forceLogin } = req.body ?? {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -155,8 +164,34 @@ export const login = async (
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    const userId = user.get("id") as number;
+    const normalizedDeviceId =
+      typeof deviceId === "string" && deviceId.trim()
+        ? deviceId.trim()
+        : null;
+    const shouldForceLogin = Boolean(forceLogin);
+
+    if (normalizedDeviceId) {
+      const activeSession = await UserSession.findOne({
+        where: { userId, isActive: true },
+      });
+
+      if (
+        activeSession &&
+        activeSession.deviceId !== normalizedDeviceId &&
+        !shouldForceLogin
+      ) {
+        return res.status(409).json({
+          code: "SESSION_EXISTS",
+          message:
+            "You are already logged in on another device. If you login here, the other device will be logged out.",
+          existingDeviceName: activeSession.deviceName,
+        });
+      }
+    }
+
     const loginUser = {
-      id: user.get("id") as number,
+      id: userId,
       name: user.get("name"),
       email: user.get("email"),
       role: user.get("role") as string,
@@ -166,7 +201,37 @@ export const login = async (
       avatarId: (user.get("avatarId") as string | null | undefined) ?? null,
     };
 
-    const { accessToken, refreshToken } = generateTokens(loginUser);
+    // Web / clients without a device id keep the previous multi-device behavior.
+    if (!normalizedDeviceId) {
+      const { accessToken, refreshToken } = generateTokens(loginUser);
+
+      return res.json({
+        message: "Login successful",
+        accessToken,
+        refreshToken,
+        user: loginUser,
+      });
+    }
+
+    await deactivateUserSessions(userId);
+
+    const provisional = generateTokens(loginUser);
+    const session = await createUserSession({
+      userId,
+      deviceId: normalizedDeviceId,
+      deviceName: typeof deviceName === "string" ? deviceName : "Mobile",
+      refreshToken: provisional.refreshToken,
+    });
+
+    const { accessToken, refreshToken } = generateTokens({
+      ...loginUser,
+      sessionId: session.id,
+    });
+
+    await session.update({
+      refreshTokenHash: hashToken(refreshToken),
+      lastActiveAt: new Date(),
+    });
 
     res.json({
       message: "Login successful",
@@ -219,13 +284,35 @@ export const refreshToken = async (
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
+    const activeSession = await findActiveSessionByRefreshToken(token);
+    const hasSessionClaim =
+      typeof decoded === "object" &&
+      decoded !== null &&
+      typeof (decoded as { sessionId?: unknown }).sessionId === "number";
+
+    if (hasSessionClaim && !activeSession) {
+      return res.status(401).json({
+        message:
+          "Session expired. You have been logged in on another device.",
+        code: "SESSION_REVOKED",
+      });
+    }
+
     revokedRefreshTokens.add(token);
 
     const tokens = generateTokens({
       id: user.get("id") as number,
       role: user.get("role") as string,
       schoolId: (user.get("schoolId") as number | null | undefined) ?? null,
+      sessionId: activeSession?.id ?? null,
     });
+
+    if (activeSession) {
+      await activeSession.update({
+        refreshTokenHash: hashToken(tokens.refreshToken),
+        lastActiveAt: new Date(),
+      });
+    }
 
     res.json({
       message: "Token refreshed",
@@ -251,6 +338,11 @@ export const logout = async (
     }
 
     revokedRefreshTokens.add(token);
+
+    const session = await findActiveSessionByRefreshToken(token);
+    if (session) {
+      await session.update({ isActive: false });
+    }
 
     res.json({
       message: "Logout successful",

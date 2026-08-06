@@ -4,6 +4,7 @@ export type AuthUserPayload = {
   id: number;
   role: UserRole | string;
   schoolId?: number | null;
+  sessionId?: number | null;
 };
 
 declare global {

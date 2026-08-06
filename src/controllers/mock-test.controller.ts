@@ -4,6 +4,7 @@ import { Op } from "sequelize";
 import Chapter from "../models/chapter.model";
 import Class from "../models/class.model";
 import MockTest from "../models/mock-test.model";
+import Parent from "../models/parent.model";
 import Student from "../models/student.model";
 import Subject from "../models/subject.model";
 import User from "../models/user.model";
@@ -164,11 +165,56 @@ const normalizeStudentIds = (value: unknown) => {
 const getStudentProfileByUserId = async (userId: number) =>
   Student.findOne({ where: { userId } });
 
+const getParentLinkedStudentIds = async (userId: number) => {
+  const parent: any = await Parent.findOne({
+    where: { userId },
+    include: [
+      {
+        model: Student,
+        attributes: ["id"],
+        through: { attributes: [] },
+      },
+    ],
+  });
+
+  if (!parent) {
+    return [] as number[];
+  }
+
+  const students = Array.isArray(parent.Students)
+    ? parent.Students
+    : Array.isArray(parent.students)
+      ? parent.students
+      : [];
+
+  return students
+    .map((student: any) => Number(student.id ?? student.get?.("id")))
+    .filter((id: number) => Number.isInteger(id) && id > 0);
+};
+
 const getAccessibleStudent = async (req: Request) => {
   const currentUser = getCurrentUser(req);
 
   if (isManagerRole(currentUser.role)) {
-    return { currentUser, student: null as any };
+    return {
+      currentUser,
+      student: null as any,
+      linkedStudentIds: [] as number[],
+    };
+  }
+
+  if (currentUser.role === "parent") {
+    const linkedStudentIds = await getParentLinkedStudentIds(currentUser.id);
+
+    if (!linkedStudentIds.length) {
+      throw new AppError("No linked students found for this parent", 404);
+    }
+
+    return {
+      currentUser,
+      student: null as any,
+      linkedStudentIds,
+    };
   }
 
   const student: any = await getStudentProfileByUserId(currentUser.id);
@@ -177,23 +223,54 @@ const getAccessibleStudent = async (req: Request) => {
     throw new AppError("Student profile not found", 404);
   }
 
-  return { currentUser, student };
+  return {
+    currentUser,
+    student,
+    linkedStudentIds: [Number(student.id)],
+  };
 };
 
 const ensureMockTestAccess = async (req: Request, mockTest: any) => {
-  const { currentUser } = await getAccessibleStudent(req);
+  const { currentUser, linkedStudentIds } = await getAccessibleStudent(req);
 
   if (isManagerRole(currentUser.role)) {
     return { currentUser, student: null as any };
   }
 
-  const student: any = await getStudentProfileByUserId(currentUser.id);
+  const mockStudentId = Number(mockTest.studentId);
 
-  if (!student || Number(mockTest.studentId) !== Number(student.id)) {
+  if (
+    !Number.isInteger(mockStudentId) ||
+    mockStudentId <= 0 ||
+    !linkedStudentIds.includes(mockStudentId)
+  ) {
     throw new AppError("Access denied", 403);
   }
 
-  return { currentUser, student };
+  return { currentUser, student: null as any };
+};
+
+const resolveRequestedStudentId = (
+  requestedStudentId: number | undefined,
+  linkedStudentIds: number[],
+  role: UserRole,
+) => {
+  if (isManagerRole(role)) {
+    return requestedStudentId;
+  }
+
+  if (role === "parent") {
+    if (requestedStudentId !== undefined) {
+      if (!linkedStudentIds.includes(requestedStudentId)) {
+        throw new AppError("Access denied for this student", 403);
+      }
+      return requestedStudentId;
+    }
+
+    return linkedStudentIds[0];
+  }
+
+  return linkedStudentIds[0];
 };
 
 const normalizeSubmittedAnswers = (
@@ -344,14 +421,107 @@ const buildPerformanceSuggestion = (
   }
 
   if ((metrics.percentage ?? 0) >= 80) {
-    return `Strong ${subjectName} performance. Keep revising the few missed concepts and maintain speed with timed practice.`;
+    return `Strong ${subjectName} performance (${metrics.percentage}%). Keep revising the few missed concepts (${metrics.wrongCount} wrong, ${metrics.unansweredCount} unanswered) and maintain speed with timed practice.`;
   }
 
   if ((metrics.percentage ?? 0) >= 50) {
-    return `Decent ${subjectName} progress. Review the incorrect answers, focus on repeated mistakes, and retake a similar difficulty test.`;
+    return `Decent ${subjectName} progress (${metrics.percentage}%). Review the ${metrics.wrongCount} incorrect answers, focus on repeated mistakes, and retake a similar difficulty test this week.`;
   }
 
-  return `More practice is needed in ${subjectName}. Revisit the basics, study each explanation carefully, and attempt an easier mock test before moving up.`;
+  return `More practice is needed in ${subjectName} (${metrics.percentage}%). Revisit the basics, study each explanation carefully, and attempt an easier mock test before moving up.`;
+};
+
+const buildRoleAnalyticsInsight = (
+  role: UserRole | string,
+  summary: {
+    totalTestsTaken: number;
+    averagePercentage: number;
+    highestPercentage: number;
+    latestPercentage: number;
+  },
+  strengths: string[],
+  weaknesses: string[],
+  trend: "improving" | "declining" | "stable" | "insufficient_data",
+) => {
+  const avg = summary.averagePercentage;
+  const strengthText = strengths.length
+    ? strengths.join(", ")
+    : "no clear strengths yet";
+  const weaknessText = weaknesses.length
+    ? weaknesses.join(", ")
+    : "no major weak subjects yet";
+  const trendText =
+    trend === "improving"
+      ? "scores are improving"
+      : trend === "declining"
+        ? "scores are declining"
+        : trend === "stable"
+          ? "scores are stable"
+          : "more attempts are needed to judge the trend";
+
+  if (summary.totalTestsTaken === 0) {
+    if (role === "parent") {
+      return "No mock tests have been completed yet for this student. Encourage them to attempt assigned practice tests.";
+    }
+    if (role === "student") {
+      return "You have not completed any mock tests yet. Start with an assigned practice test to unlock personalized suggestions.";
+    }
+    return "This student has not completed any mock tests yet. Assign a practice test and review results after submission.";
+  }
+
+  if (role === "parent") {
+    return `Your child has completed ${summary.totalTestsTaken} mock test(s) with an average of ${avg}%. Strong areas: ${strengthText}. Needs attention: ${weaknessText}. Overall, ${trendText}.`;
+  }
+
+  if (role === "student") {
+    return `You have completed ${summary.totalTestsTaken} mock test(s) with an average of ${avg}%. Keep building on ${strengthText}, and revise ${weaknessText}. Your trend: ${trendText}.`;
+  }
+
+  if (role === "teacher" || role === "head_teacher") {
+    return `Student average is ${avg}% across ${summary.totalTestsTaken} mock test(s). Prioritize remediation in ${weaknessText}, while maintaining momentum in ${strengthText}. Trend: ${trendText}.`;
+  }
+
+  return `School/student mock average is ${avg}% across ${summary.totalTestsTaken} attempt(s). Focus teaching support on ${weaknessText}; celebrate progress in ${strengthText}. Trend: ${trendText}.`;
+};
+
+const buildRecommendedActions = (
+  weaknesses: string[],
+  averagePercentage: number,
+  trend: "improving" | "declining" | "stable" | "insufficient_data",
+) => {
+  const actions: string[] = [];
+
+  if (weaknesses.length) {
+    actions.push(
+      `Schedule focused revision sessions for: ${weaknesses.join(", ")}.`,
+    );
+  }
+
+  if (averagePercentage < 50) {
+    actions.push(
+      "Assign an easier mock test first, then increase difficulty after the student crosses 60%.",
+    );
+  } else if (averagePercentage < 80) {
+    actions.push(
+      "Assign a similar-level practice test this week and review every incorrect explanation together.",
+    );
+  } else {
+    actions.push(
+      "Assign a harder timed mock test to stretch accuracy under exam pressure.",
+    );
+  }
+
+  if (trend === "declining") {
+    actions.push(
+      "Compare the last two attempts question-by-question and rebuild weak concepts before the next test.",
+    );
+  }
+
+  if (!actions.length) {
+    actions.push("Keep a steady weekly mock-test practice routine.");
+  }
+
+  return actions;
 };
 
 const buildGenerationSuggestion = (
@@ -840,7 +1010,10 @@ const resolveClassSubjectAndChapter = async (
   };
 };
 
-const buildProgressSummary = (mockTests: any[]) => {
+const buildProgressSummary = (
+  mockTests: any[],
+  role: UserRole | string = "student",
+) => {
   const evaluatedTests = mockTests
     .map((mockTest) => ({ mockTest, metrics: extractMetrics(mockTest) }))
     .filter(
@@ -857,6 +1030,26 @@ const buildProgressSummary = (mockTests: any[]) => {
       },
       subjectPerformance: [],
       recentTests: [],
+      analytics: {
+        strengths: [] as string[],
+        weaknesses: [] as string[],
+        trend: "insufficient_data" as const,
+        insight: buildRoleAnalyticsInsight(
+          role,
+          {
+            totalTestsTaken: 0,
+            averagePercentage: 0,
+            highestPercentage: 0,
+            latestPercentage: 0,
+          },
+          [],
+          [],
+          "insufficient_data",
+        ),
+        recommendedActions: [
+          "Assign or attempt a mock test to unlock personalized AI analytics.",
+        ],
+      },
     };
   }
 
@@ -887,31 +1080,94 @@ const buildProgressSummary = (mockTests: any[]) => {
     subjectMap.set(key, current);
   });
 
+  const subjectPerformance = Array.from(subjectMap.values())
+    .map((subject) => ({
+      subjectName: subject.subjectName,
+      attempts: subject.attempts,
+      averagePercentage: roundToTwo(subject.totalPercentage / subject.attempts),
+    }))
+    .sort((left, right) => right.averagePercentage - left.averagePercentage);
+
+  const strengths = subjectPerformance
+    .filter((subject) => subject.averagePercentage >= 80)
+    .map((subject) => subject.subjectName);
+  const weaknesses = subjectPerformance
+    .filter((subject) => subject.averagePercentage < 60)
+    .map((subject) => subject.subjectName);
+
+  const chronological = [...evaluatedTests].reverse();
+  let trend: "improving" | "declining" | "stable" | "insufficient_data" =
+    "insufficient_data";
+
+  if (chronological.length >= 2) {
+    const firstHalf = chronological.slice(
+      0,
+      Math.floor(chronological.length / 2),
+    );
+    const secondHalf = chronological.slice(Math.floor(chronological.length / 2));
+    const firstAvg =
+      firstHalf.reduce((sum, item) => sum + (item.metrics.percentage ?? 0), 0) /
+      firstHalf.length;
+    const secondAvg =
+      secondHalf.reduce(
+        (sum, item) => sum + (item.metrics.percentage ?? 0),
+        0,
+      ) / secondHalf.length;
+    const delta = secondAvg - firstAvg;
+
+    if (delta >= 5) trend = "improving";
+    else if (delta <= -5) trend = "declining";
+    else trend = "stable";
+  }
+
+  const summary = {
+    totalTestsTaken: evaluatedTests.length,
+    averagePercentage: roundToTwo(totalPercentage / evaluatedTests.length),
+    highestPercentage: roundToTwo(highestPercentage),
+    latestPercentage: roundToTwo(latestPercentage),
+  };
+
   return {
-    summary: {
-      totalTestsTaken: evaluatedTests.length,
-      averagePercentage: roundToTwo(totalPercentage / evaluatedTests.length),
-      highestPercentage: roundToTwo(highestPercentage),
-      latestPercentage: roundToTwo(latestPercentage),
-    },
-    subjectPerformance: Array.from(subjectMap.values())
-      .map((subject) => ({
-        subjectName: subject.subjectName,
-        attempts: subject.attempts,
-        averagePercentage: roundToTwo(
-          subject.totalPercentage / subject.attempts,
-        ),
-      }))
-      .sort((left, right) => right.averagePercentage - left.averagePercentage),
-    recentTests: evaluatedTests.slice(0, 5).map(({ mockTest, metrics }) => ({
+    summary,
+    subjectPerformance,
+    recentTests: evaluatedTests.slice(0, 8).map(({ mockTest, metrics }) => ({
       id: mockTest.id,
       title: mockTest.title,
       subjectName: mockTest.subjectName,
+      chapterName: mockTest.chapterName ?? null,
+      level: mockTest.level,
       percentage: metrics.percentage,
       score: metrics.score,
       totalQuestions: metrics.totalQuestions,
+      correctCount: metrics.correctCount,
+      wrongCount: metrics.wrongCount,
+      unansweredCount: metrics.unansweredCount,
+      aiSuggestion: mockTest.aiSuggestion ?? null,
+      submittedAt:
+        (isObject(mockTest.result) &&
+        typeof mockTest.result.submittedAt === "string"
+          ? mockTest.result.submittedAt
+          : null) ||
+        mockTest.updatedAt,
       createdAt: mockTest.createdAt,
     })),
+    analytics: {
+      strengths,
+      weaknesses,
+      trend,
+      insight: buildRoleAnalyticsInsight(
+        role,
+        summary,
+        strengths,
+        weaknesses,
+        trend,
+      ),
+      recommendedActions: buildRecommendedActions(
+        weaknesses,
+        summary.averagePercentage,
+        trend,
+      ),
+    },
   };
 };
 
@@ -1028,9 +1284,10 @@ export const getMockTests = async (
   next: NextFunction,
 ) => {
   try {
-    const { currentUser, student } = await getAccessibleStudent(req);
+    const { currentUser, student, linkedStudentIds } =
+      await getAccessibleStudent(req);
     const { page, limit, offset } = getPagination(req);
-    const where: Record<string, unknown> = {};
+    const where: Record<PropertyKey, unknown> = {};
     const queryStudentId = toOptionalPositiveInteger(
       req.query.studentId,
       "studentId",
@@ -1047,11 +1304,26 @@ export const getMockTests = async (
     const onlyAssigned = toBoolean(req.query.onlyAssigned);
 
     if (isManagerRole(currentUser.role)) {
-      where.generatedByUserId = currentUser.id;
+      where[Op.or] = [
+        { generatedByUserId: currentUser.id },
+        { assignedByUserId: currentUser.id },
+      ];
 
       if (queryStudentId !== undefined) {
         where.studentId = queryStudentId;
+      } else if (onlyAssigned) {
+        where.studentId = { [Op.not]: null };
       }
+    } else if (currentUser.role === "parent") {
+      const resolvedStudentId = resolveRequestedStudentId(
+        queryStudentId,
+        linkedStudentIds,
+        currentUser.role,
+      );
+      where.studentId =
+        resolvedStudentId !== undefined
+          ? resolvedStudentId
+          : { [Op.in]: linkedStudentIds };
     } else {
       where.studentId = student.id;
     }
@@ -1066,10 +1338,6 @@ export const getMockTests = async (
 
     if (status) {
       where.status = status;
-    }
-
-    if (onlyAssigned) {
-      where.assignedByUserId = { [Op.not]: null };
     }
 
     const { rows: mockTests, count } = await MockTest.findAndCountAll({
@@ -1437,6 +1705,9 @@ export const assignMockTest = async (
       className: mockTest.className,
       subjectId: mockTest.subjectId,
       subjectName: mockTest.subjectName,
+      chapterId: mockTest.chapterId ?? null,
+      chapterName: mockTest.chapterName ?? null,
+      schoolId: mockTest.schoolId ?? null,
       title: mockTest.title,
       level: mockTest.level,
       questions: mockTest.questions,
@@ -1489,8 +1760,9 @@ export const getMockTestProgress = async (
   next: NextFunction,
 ) => {
   try {
-    const { currentUser, student } = await getAccessibleStudent(req);
-    const where: Record<string, unknown> = {};
+    const { currentUser, student, linkedStudentIds } =
+      await getAccessibleStudent(req);
+    const where: Record<PropertyKey, unknown> = {};
     const queryStudentId = toOptionalPositiveInteger(
       req.query.studentId,
       "studentId",
@@ -1499,7 +1771,23 @@ export const getMockTestProgress = async (
     if (isManagerRole(currentUser.role)) {
       if (queryStudentId !== undefined) {
         where.studentId = queryStudentId;
+      } else {
+        where[Op.or] = [
+          { generatedByUserId: currentUser.id },
+          { assignedByUserId: currentUser.id },
+        ];
+        where.studentId = { [Op.not]: null };
       }
+    } else if (currentUser.role === "parent") {
+      const resolvedStudentId = resolveRequestedStudentId(
+        queryStudentId,
+        linkedStudentIds,
+        currentUser.role,
+      );
+      where.studentId =
+        resolvedStudentId !== undefined
+          ? resolvedStudentId
+          : { [Op.in]: linkedStudentIds };
     } else {
       where.studentId = student.id;
     }
@@ -1509,7 +1797,11 @@ export const getMockTestProgress = async (
       order: [["createdAt", "DESC"]],
     });
 
-    res.json({ progress: buildProgressSummary(mockTests) });
+    res.json({
+      progress: buildProgressSummary(mockTests, currentUser.role),
+      studentId:
+        typeof where.studentId === "number" ? where.studentId : queryStudentId ?? null,
+    });
   } catch (err) {
     next(err);
   }

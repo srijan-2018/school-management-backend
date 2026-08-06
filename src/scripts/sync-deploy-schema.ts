@@ -2,6 +2,7 @@ import "dotenv/config";
 import { sequelize } from "../config/db";
 import "../models";
 import User from "../models/user.model";
+import UserSession from "../models/user-session.model";
 import Notification from "../models/notification.model";
 import NotificationRead from "../models/notification-read.model";
 
@@ -12,6 +13,7 @@ import NotificationRead from "../models/notification-read.model";
  */
 const models = [
   { name: "Users", model: User },
+  { name: "UserSessions", model: UserSession },
   { name: "Notifications", model: Notification },
   { name: "NotificationReads", model: NotificationRead },
 ];
