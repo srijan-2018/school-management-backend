@@ -1,10 +1,16 @@
 import { DataTypes, Model } from "sequelize";
 import { sequelize } from "../config/db";
 import School from "./school.model";
+import Student from "./student.model";
+import TransportRoute from "./transport-route.model";
 
 class TransportAssignment extends Model {
   public id!: number;
   public schoolId!: number;
+  public studentId!: number;
+  public routeId!: number;
+  public stopName?: string | null;
+  public pickupTime?: string | null;
 }
 
 TransportAssignment.init(
@@ -27,6 +33,18 @@ TransportAssignment.belongsTo(School, { foreignKey: "schoolId" });
 School.hasMany(TransportAssignment, {
   foreignKey: "schoolId",
   as: "transportAssignments",
+});
+TransportAssignment.belongsTo(Student, {
+  foreignKey: "studentId",
+  as: "student",
+});
+TransportAssignment.belongsTo(TransportRoute, {
+  foreignKey: "routeId",
+  as: "route",
+});
+TransportRoute.hasMany(TransportAssignment, {
+  foreignKey: "routeId",
+  as: "assignments",
 });
 
 export default TransportAssignment;

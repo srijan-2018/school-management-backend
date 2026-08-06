@@ -232,6 +232,22 @@ export const TRANSPORT_MANAGER_ROLES: UserRole[] = [
   "driver",
 ];
 
+/** Roles that can view live trips / boarding status. */
+export const TRANSPORT_VIEW_ROLES: UserRole[] = [
+  ...TRANSPORT_MANAGER_ROLES,
+  "head_teacher",
+  "teacher",
+  "parent",
+];
+
+/** Roles that can operate a trip (board / drop / GPS). */
+export const TRANSPORT_DRIVER_OPS_ROLES: UserRole[] = [
+  "admin",
+  "school_owner",
+  "administrator",
+  "driver",
+];
+
 export const HOSTEL_MANAGER_ROLES: UserRole[] = [
   "admin",
   "school_owner",

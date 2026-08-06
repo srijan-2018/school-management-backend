@@ -5,6 +5,10 @@ import User from "../models/user.model";
 import UserSession from "../models/user-session.model";
 import Notification from "../models/notification.model";
 import NotificationRead from "../models/notification-read.model";
+import TransportVehicle from "../models/transport-vehicle.model";
+import TransportTrip from "../models/transport-trip.model";
+import TransportTripStudent from "../models/transport-trip-student.model";
+import TransportTripLocation from "../models/transport-trip-location.model";
 
 /**
  * Production has no migration tool and never runs sequelize.sync() at boot, so
@@ -16,6 +20,10 @@ const models = [
   { name: "UserSessions", model: UserSession },
   { name: "Notifications", model: Notification },
   { name: "NotificationReads", model: NotificationRead },
+  { name: "TransportVehicles", model: TransportVehicle },
+  { name: "TransportTrips", model: TransportTrip },
+  { name: "TransportTripStudents", model: TransportTripStudent },
+  { name: "TransportTripLocations", model: TransportTripLocation },
 ];
 
 async function main() {

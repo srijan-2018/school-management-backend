@@ -56,7 +56,8 @@ import {
   OWNER_LEVEL_ROLES,
   SCHOOL_CREATION_ROLES,
   STAFF_ATTENDANCE_ROLES,
-  TRANSPORT_MANAGER_ROLES,
+  TRANSPORT_DRIVER_OPS_ROLES,
+  TRANSPORT_VIEW_ROLES,
 } from "../utils/roles";
 
 const router = Router();
@@ -586,19 +587,19 @@ router.post(
 router.get(
   "/transport/vehicles",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...TRANSPORT_VIEW_ROLES),
   transport.listVehicles,
 );
 router.post(
   "/transport/vehicles",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...OWNER_LEVEL_ROLES),
   transport.createVehicle,
 );
 router.put(
   "/transport/vehicles/:id",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...OWNER_LEVEL_ROLES),
   transport.updateVehicle,
 );
 router.delete(
@@ -608,21 +609,27 @@ router.delete(
   transport.deleteVehicle,
 );
 router.get(
+  "/transport/drivers",
+  requireSchoolContext,
+  allowRoles(...OWNER_LEVEL_ROLES),
+  transport.listDrivers,
+);
+router.get(
   "/transport/routes",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...TRANSPORT_VIEW_ROLES),
   transport.listRoutes,
 );
 router.post(
   "/transport/routes",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...OWNER_LEVEL_ROLES),
   transport.createRoute,
 );
 router.put(
   "/transport/routes/:id",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...OWNER_LEVEL_ROLES),
   transport.updateRoute,
 );
 router.delete(
@@ -634,20 +641,74 @@ router.delete(
 router.get(
   "/transport/assignments",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...TRANSPORT_VIEW_ROLES),
   transport.listAssignments,
 );
 router.post(
   "/transport/assignments",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...OWNER_LEVEL_ROLES),
   transport.createAssignment,
+);
+router.put(
+  "/transport/assignments/:id",
+  requireSchoolContext,
+  allowRoles(...OWNER_LEVEL_ROLES),
+  transport.updateAssignment,
 );
 router.delete(
   "/transport/assignments/:id",
   requireSchoolContext,
-  allowRoles(...TRANSPORT_MANAGER_ROLES),
+  allowRoles(...OWNER_LEVEL_ROLES),
   transport.deleteAssignment,
+);
+router.get(
+  "/transport/roster",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_DRIVER_OPS_ROLES),
+  transport.getMyRoster,
+);
+router.get(
+  "/transport/trips",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_VIEW_ROLES),
+  transport.listTrips,
+);
+router.get(
+  "/transport/trips/active",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_VIEW_ROLES),
+  transport.listActiveTrips,
+);
+router.get(
+  "/transport/trips/:id",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_VIEW_ROLES),
+  transport.getTrip,
+);
+router.post(
+  "/transport/trips/start",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_DRIVER_OPS_ROLES),
+  transport.startTrip,
+);
+router.post(
+  "/transport/trips/:id/location",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_DRIVER_OPS_ROLES),
+  transport.updateTripLocation,
+);
+router.post(
+  "/transport/trips/:id/students/:studentId/:action",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_DRIVER_OPS_ROLES, "head_teacher"),
+  transport.markStudentStatus,
+);
+router.post(
+  "/transport/trips/:id/complete",
+  requireSchoolContext,
+  allowRoles(...TRANSPORT_DRIVER_OPS_ROLES),
+  transport.completeTrip,
 );
 
 // Hostel
