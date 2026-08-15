@@ -648,7 +648,15 @@ export const createAssignment = async (
     const routeId = toRequiredNumber(req.body?.routeId, "routeId");
 
     let student: any = await Student.findOne({
-      where: { id: studentId, schoolId },
+      where: { id: studentId },
+      include: [
+        {
+          model: User,
+          where: { schoolId, role: "student" },
+          required: true,
+          attributes: ["id", "schoolId"],
+        },
+      ],
     });
     if (!student) {
       const studentUser: any = await User.findOne({
