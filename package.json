@@ -26,6 +26,9 @@
     "db:sync-user-avatar": "ts-node src/scripts/sync-user-avatar.ts",
     "db:sync-user-sessions": "ts-node src/scripts/sync-user-sessions.ts",
     "db:sync-transport-trips": "ts-node src/scripts/sync-transport-trips.ts",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:status": "sequelize-cli db:migrate:status",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:sync-notifications": "ts-node src/scripts/sync-notifications.ts",
     "db:sync-deploy": "node dist/scripts/sync-deploy-schema.js",
     "db:sync-school-features": "ts-node src/scripts/sync-school-features.ts"
@@ -61,6 +64,7 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.14",
+    "sequelize-cli": "^6.6.5",
     "ts-node-dev": "^2.0.0"
   }
 }
