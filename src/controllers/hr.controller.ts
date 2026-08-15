@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import PDFDocument from "pdfkit";
 import { Op } from "sequelize";
 import StaffProfile from "../models/staff-profile.model";
 import LeaveRequest from "../models/leave-request.model";
@@ -1278,6 +1279,127 @@ export const createPayrollRun = async (
     });
 
     res.status(201).json({ message: "Payroll run created", payrollRun });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updatePayrollRun = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+    const run: any = await PayrollRun.findOne({
+      where: { id: req.params.id, schoolId },
+    });
+    if (!run) throw new AppError("Payroll run not found", 404);
+    if (run.status === "paid") {
+      throw new AppError("Paid payroll runs cannot be regenerated", 409);
+    }
+    await run.destroy();
+    req.body = {
+      ...(req.body ?? {}),
+      month: req.body?.month ?? run.month,
+      year: req.body?.year ?? run.year,
+      notes: req.body?.notes ?? run.notes,
+    };
+    return createPayrollRun(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deletePayrollRun = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+    const run: any = await PayrollRun.findOne({
+      where: { id: req.params.id, schoolId },
+    });
+    if (!run) throw new AppError("Payroll run not found", 404);
+    if (run.status === "paid") {
+      throw new AppError("Paid payroll runs cannot be deleted", 409);
+    }
+    await run.destroy();
+    res.json({ message: "Payroll run deleted" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listMyPayrollRuns = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+    const runs: any[] = await PayrollRun.findAll({
+      where: { schoolId },
+      order: [["year", "DESC"], ["month", "DESC"]],
+    });
+    const payrollRuns = runs
+      .map((run) => run.toJSON())
+      .filter((run) =>
+        Array.isArray(run.payslips) &&
+        run.payslips.some((slip: any) => Number(slip.userId) === Number(req.user?.id)),
+      );
+    res.json({ payrollRuns });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const downloadMyPayslipPdf = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+    const run: any = await PayrollRun.findOne({
+      where: { id: req.params.id, schoolId },
+    });
+    const slip = run?.payslips?.find(
+      (item: any) => Number(item.userId) === Number(req.user?.id),
+    );
+    if (!run || !slip) throw new AppError("Payslip not found", 404);
+
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    const chunks: Buffer[] = [];
+    doc.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    doc.on("end", () => {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="payslip-${run.month}-${run.year}.pdf"`,
+      );
+      res.send(Buffer.concat(chunks));
+    });
+    doc.fontSize(20).text("Salary Payslip", { align: "center" });
+    doc.moveDown();
+    doc.fontSize(12).text(`Payroll period: ${run.month}/${run.year}`);
+    doc.text(`Status: ${run.status}`);
+    doc.moveDown();
+    doc.text(`Basic salary: ${slip.basic}`);
+    doc.text(`HRA: ${slip.hra}`);
+    doc.text(`Allowances: ${slip.allowances}`);
+    doc.text(`Present days: ${slip.presentDays}`);
+    doc.text(`Approved leave days: ${slip.approvedLeaveDays}`);
+    doc.text(`Absent days: ${slip.absentDays}`);
+    doc.text(`Deductions: ${slip.deductions}`);
+    doc.moveDown();
+    doc.fontSize(15).text(`Net salary: ${slip.net}`);
+    doc.end();
   } catch (err) {
     next(err);
   }

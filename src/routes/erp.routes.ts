@@ -43,6 +43,7 @@ import {
   EXAM_MANAGER_ROLES,
   EXAM_VIEW_ROLES,
   FINANCE_MANAGER_ROLES,
+  EMPLOYEE_LEAVE_ROLES,
   HOSTEL_MANAGER_ROLES,
   HR_MANAGER_ROLES,
   LEAVE_ACCESS_ROLES,
@@ -888,11 +889,35 @@ router.get(
   allowRoles(...HR_MANAGER_ROLES),
   hr.listPayrollRuns,
 );
+router.get(
+  "/hr/payroll-runs/mine",
+  requireSchoolContext,
+  allowRoles(...EMPLOYEE_LEAVE_ROLES),
+  hr.listMyPayrollRuns,
+);
 router.post(
   "/hr/payroll-runs",
   requireSchoolContext,
   allowRoles(...HR_MANAGER_ROLES),
   hr.createPayrollRun,
+);
+router.put(
+  "/hr/payroll-runs/:id",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.updatePayrollRun,
+);
+router.delete(
+  "/hr/payroll-runs/:id",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.deletePayrollRun,
+);
+router.get(
+  "/hr/payroll-runs/:id/payslips/me/pdf",
+  requireSchoolContext,
+  allowRoles(...EMPLOYEE_LEAVE_ROLES),
+  hr.downloadMyPayslipPdf,
 );
 router.get(
   "/hr/upcoming",
