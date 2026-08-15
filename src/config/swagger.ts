@@ -218,6 +218,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Inventory" },
       { name: "E-Learning" },
       { name: "Notifications" },
+      { name: "Transport" },
     ],
     components: {
       securitySchemes: {
@@ -294,6 +295,154 @@ const options: swaggerJsdoc.Options = {
       },
     },
     paths: {
+      "/transport/vehicles": {
+        get: {
+          tags: ["Transport"],
+          summary: "List transport vehicles",
+          security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
+          responses: {
+            200: messageResponse("Vehicles list"),
+            401: messageResponse("Unauthorized"),
+            400: messageResponse("School context required"),
+          },
+        },
+        post: {
+          tags: ["Transport"],
+          summary: "Create a vehicle and map a driver",
+          security: [{ bearerAuth: [] }],
+          requestBody: jsonContent({
+            type: "object",
+            required: ["plateNumber", "driverUserId"],
+            properties: {
+              plateNumber: { type: "string", example: "WB-111777" },
+              capacity: { type: "integer", example: 40 },
+              driverUserId: { type: "integer", example: 12 },
+              status: { type: "string", enum: ["active", "inactive", "maintenance"] },
+            },
+          }),
+          responses: {
+            201: messageResponse("Vehicle created"),
+            400: messageResponse("Validation error"),
+            401: messageResponse("Unauthorized"),
+            403: messageResponse("Forbidden"),
+          },
+        },
+      },
+      "/transport/vehicles/{id}": {
+        put: {
+          tags: ["Transport"],
+          summary: "Update a vehicle or driver mapping",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({ type: "object" }),
+          responses: {
+            200: messageResponse("Vehicle updated"),
+            404: messageResponse("Vehicle not found"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+        delete: {
+          tags: ["Transport"],
+          summary: "Delete or deactivate a vehicle",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: {
+            200: messageResponse("Vehicle deleted or deactivated"),
+            409: messageResponse("Vehicle has an active trip"),
+            404: messageResponse("Vehicle not found"),
+          },
+        },
+      },
+      "/transport/routes": {
+        get: {
+          tags: ["Transport"],
+          summary: "List routes with linked buses",
+          security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
+          responses: { 200: messageResponse("Routes list") },
+        },
+        post: {
+          tags: ["Transport"],
+          summary: "Create a route linked to a bus",
+          security: [{ bearerAuth: [] }],
+          requestBody: jsonContent({
+            type: "object",
+            required: ["name", "vehicleId"],
+            properties: {
+              name: { type: "string", example: "South Kolkata" },
+              vehicleId: { type: "integer", example: 3 },
+              stops: { type: "array", items: { type: "string" } },
+              fare: { type: "number" },
+              status: { type: "string", enum: ["active", "inactive"] },
+            },
+          }),
+          responses: { 201: messageResponse("Route created") },
+        },
+      },
+      "/transport/routes/{id}": {
+        put: {
+          tags: ["Transport"],
+          summary: "Update a route or linked bus",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({ type: "object" }),
+          responses: { 200: messageResponse("Route updated") },
+        },
+        delete: {
+          tags: ["Transport"],
+          summary: "Delete a route without student assignments",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: {
+            200: messageResponse("Route deleted"),
+            409: messageResponse("Route still has student assignments"),
+          },
+        },
+      },
+      "/transport/assignments": {
+        get: {
+          tags: ["Transport"],
+          summary: "List student route assignments",
+          security: [{ bearerAuth: [] }],
+          parameters: paginationParameters(),
+          responses: { 200: messageResponse("Assignments list") },
+        },
+        post: {
+          tags: ["Transport"],
+          summary: "Map a student to a route",
+          security: [{ bearerAuth: [] }],
+          requestBody: jsonContent({
+            type: "object",
+            required: ["studentId", "routeId"],
+            properties: {
+              studentId: { type: "integer", example: 42 },
+              routeId: { type: "integer", example: 3 },
+              stopName: { type: "string", example: "School gate" },
+              pickupTime: { type: "string", example: "07:15" },
+              sortOrder: { type: "integer", example: 0 },
+            },
+          }),
+          responses: { 201: messageResponse("Assignment created") },
+        },
+      },
+      "/transport/assignments/{id}": {
+        put: {
+          tags: ["Transport"],
+          summary: "Edit a student route assignment",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          requestBody: jsonContent({ type: "object" }),
+          responses: { 200: messageResponse("Assignment updated") },
+        },
+        delete: {
+          tags: ["Transport"],
+          summary: "Delete a student route assignment",
+          security: [{ bearerAuth: [] }],
+          parameters: [idParameter()],
+          responses: { 200: messageResponse("Assignment deleted") },
+        },
+      },
       "/auth/register": {
         post: {
           tags: ["Auth"],
