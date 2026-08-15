@@ -438,6 +438,10 @@ export const createRoute = async (
     }
 
     const payload = { ...(req.body ?? {}), schoolId };
+    if (payload.vehicleId == null || payload.vehicleId === "") {
+      throw new AppError("vehicleId is required to create a route", 400);
+    }
+
     if (payload.vehicleId != null && payload.vehicleId !== "") {
       payload.vehicleId = toRequiredNumber(payload.vehicleId, "vehicleId");
       const vehicle = await TransportVehicle.findOne({
@@ -493,7 +497,7 @@ export const updateRoute = async (
 
     if (payload.vehicleId !== undefined) {
       if (payload.vehicleId === null || payload.vehicleId === "") {
-        payload.vehicleId = null;
+        throw new AppError("vehicleId is required for a route", 400);
       } else {
         payload.vehicleId = toRequiredNumber(payload.vehicleId, "vehicleId");
         const vehicle = await TransportVehicle.findOne({
@@ -536,6 +540,15 @@ export const deleteRoute = async (
     });
     if (!route) {
       return res.status(404).json({ message: "route not found" });
+    }
+    const assignmentCount = await TransportAssignment.count({
+      where: { schoolId, routeId: route.id },
+    });
+    if (assignmentCount > 0) {
+      throw new AppError(
+        `Route has ${assignmentCount} student assignment(s). Move or delete those assignments before deleting the route.`,
+        409,
+      );
     }
     await route.destroy();
     res.json({ message: "route deleted" });
