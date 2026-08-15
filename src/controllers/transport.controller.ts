@@ -604,7 +604,7 @@ export const listAssignments = async (
           ],
         },
       ],
-      order: [["id", "DESC"]],
+      order: [["sortOrder", "ASC"], ["id", "ASC"]],
       limit,
       offset,
     });
@@ -725,7 +725,15 @@ export const updateAssignment = async (
     if (payload.studentId != null) {
       payload.studentId = toRequiredNumber(payload.studentId, "studentId");
       const student = await Student.findOne({
-        where: { id: payload.studentId, schoolId },
+        where: { id: payload.studentId },
+        include: [
+          {
+            model: User,
+            where: { schoolId, role: "student" },
+            required: true,
+            attributes: ["id", "schoolId"],
+          },
+        ],
       });
       if (!student) {
         throw new AppError("Student not found in this school", 404);
