@@ -27,6 +27,7 @@ class TransportTrip extends Model {
   public endAddress?: string | null;
   public currentLat?: number | null;
   public currentLng?: number | null;
+  public locationText?: string | null;
   public locationUpdatedAt?: Date | null;
   public startedAt?: Date | null;
   public completedAt?: Date | null;
@@ -61,6 +62,7 @@ TransportTrip.init(
     endAddress: { type: DataTypes.STRING, allowNull: true },
     currentLat: { type: DataTypes.FLOAT, allowNull: true },
     currentLng: { type: DataTypes.FLOAT, allowNull: true },
+    locationText: { type: DataTypes.STRING, allowNull: true },
     locationUpdatedAt: { type: DataTypes.DATE, allowNull: true },
     startedAt: { type: DataTypes.DATE, allowNull: true },
     completedAt: { type: DataTypes.DATE, allowNull: true },

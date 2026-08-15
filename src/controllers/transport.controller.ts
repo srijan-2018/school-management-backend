@@ -240,7 +240,7 @@ export const listVehicles = async (
           required: false,
         },
       ],
-      order: [["id", "DESC"]],
+      order: [["sortOrder", "ASC"], ["id", "ASC"]],
       limit,
       offset,
     });
@@ -688,6 +688,9 @@ export const createAssignment = async (
       routeId,
       stopName: req.body?.stopName ?? null,
       pickupTime: req.body?.pickupTime ?? null,
+      sortOrder: Number.isInteger(Number(req.body?.sortOrder))
+        ? Number(req.body.sortOrder)
+        : 0,
     });
 
     res.status(201).json({ message: "assignment created", assignment });
@@ -997,6 +1000,10 @@ export const startTrip = async (
       endAddress,
       currentLat: startLat,
       currentLng: startLng,
+      locationText:
+        typeof req.body?.locationText === "string"
+          ? req.body.locationText.trim() || null
+          : null,
       locationUpdatedAt: now,
       startedAt: now,
       notes: typeof req.body?.notes === "string" ? req.body.notes : null,
@@ -1024,6 +1031,7 @@ export const startTrip = async (
 
     const assignments = await TransportAssignment.findAll({
       where: assignmentWhere,
+      order: [["sortOrder", "ASC"], ["id", "ASC"]],
     });
 
     if (assignments.length) {
@@ -1097,6 +1105,10 @@ export const updateTripLocation = async (
     await trip.update({
       currentLat: lat,
       currentLng: lng,
+      locationText:
+        typeof req.body?.locationText === "string"
+          ? req.body.locationText.trim() || null
+          : trip.locationText,
       locationUpdatedAt: now,
     });
 
@@ -1111,6 +1123,7 @@ export const updateTripLocation = async (
         id: trip.id,
         currentLat: lat,
         currentLng: lng,
+        locationText: trip.locationText,
         locationUpdatedAt: now,
         status: trip.status,
       },
@@ -1327,7 +1340,7 @@ export const getMyRoster = async (
         },
         { model: TransportRoute, as: "route" },
       ],
-      order: [["stopName", "ASC"]],
+      order: [["sortOrder", "ASC"], ["stopName", "ASC"]],
     });
 
     res.json({

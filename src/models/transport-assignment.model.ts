@@ -11,6 +11,7 @@ class TransportAssignment extends Model {
   public routeId!: number;
   public stopName?: string | null;
   public pickupTime?: string | null;
+  public sortOrder!: number;
 }
 
 TransportAssignment.init(
@@ -20,6 +21,7 @@ TransportAssignment.init(
     routeId: { type: DataTypes.INTEGER, allowNull: false },
     stopName: { type: DataTypes.STRING, allowNull: true },
     pickupTime: { type: DataTypes.STRING, allowNull: true },
+    sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   },
   {
     sequelize,
