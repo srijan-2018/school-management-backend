@@ -240,7 +240,7 @@ export const listVehicles = async (
           required: false,
         },
       ],
-      order: [["sortOrder", "ASC"], ["id", "ASC"]],
+      order: [["id", "DESC"]],
       limit,
       offset,
     });
