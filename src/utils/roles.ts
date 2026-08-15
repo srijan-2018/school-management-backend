@@ -237,6 +237,7 @@ export const TRANSPORT_VIEW_ROLES: UserRole[] = [
   ...TRANSPORT_MANAGER_ROLES,
   "head_teacher",
   "teacher",
+  "staff",
   "parent",
 ];
 

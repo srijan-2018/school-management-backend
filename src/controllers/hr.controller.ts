@@ -853,6 +853,89 @@ export const upsertLeaveBalance = async (
   }
 };
 
+export const upsertLeaveBalances = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const leaveType = normalizeLeaveType(req.body?.leaveType);
+    const year = Number(req.body?.year) || currentLeaveYear();
+    const totalDays = Number(req.body?.totalDays);
+    const all = req.body?.all === true;
+    const requestedUserIds = Array.isArray(req.body?.userIds)
+      ? req.body.userIds.map(Number).filter((id: number) => Number.isInteger(id) && id > 0)
+      : [];
+
+    if (!leaveType) {
+      throw new AppError(
+        `leaveType must be one of: ${LEAVE_TYPES.join(", ")}`,
+        400,
+      );
+    }
+    if (!Number.isInteger(year) || year < 2000) {
+      throw new AppError("year must be a valid year", 400);
+    }
+    if (!Number.isFinite(totalDays) || totalDays < 0) {
+      throw new AppError("totalDays must be a non-negative number", 400);
+    }
+    if (!all && requestedUserIds.length === 0) {
+      throw new AppError("Set all to true or provide userIds", 400);
+    }
+
+    const users = await User.findAll({
+      where: {
+        schoolId,
+        role: { [Op.in]: EMPLOYEE_LEAVE_ROLES },
+        ...(all ? {} : { id: { [Op.in]: requestedUserIds } }),
+      },
+      attributes: ["id"],
+    });
+    if (!users.length) {
+      throw new AppError("No eligible employees found for leave balance", 404);
+    }
+
+    const transaction = await sequelize.transaction();
+    try {
+      for (const user of users) {
+        const [balance] = await LeaveBalance.findOrCreate({
+          where: { schoolId, userId: user.id, leaveType, year },
+          defaults: {
+            schoolId,
+            userId: user.id,
+            leaveType,
+            year,
+            totalDays,
+            usedDays: 0,
+          },
+          transaction,
+        });
+        if (Number(balance.usedDays) > totalDays) {
+          throw new AppError(
+            `Total days cannot be less than used days for user ${user.id}`,
+            400,
+          );
+        }
+        await balance.update({ totalDays }, { transaction });
+      }
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+
+    res.status(201).json({
+      message: `Leave balance saved for ${users.length} employee(s)`,
+      count: users.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listLeaveEmployees = async (
   req: Request,
   res: Response,

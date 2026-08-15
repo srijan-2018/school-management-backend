@@ -858,6 +858,12 @@ router.post(
   allowRoles(...HR_MANAGER_ROLES),
   hr.upsertLeaveBalance,
 );
+router.post(
+  "/hr/leave-balances/bulk",
+  requireSchoolContext,
+  allowRoles(...HR_MANAGER_ROLES),
+  hr.upsertLeaveBalances,
+);
 router.get(
   "/hr/leave-employees",
   requireSchoolContext,

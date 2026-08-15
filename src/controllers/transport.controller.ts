@@ -169,7 +169,12 @@ function summarizeChecklist(students: any[]) {
 async function assertCanAccessTrip(req: Request, trip: any) {
   const user = getAuthUser(req);
 
-  if (isOwnerLevel(user.role) || user.role === "head_teacher" || user.role === "teacher") {
+  if (
+    isOwnerLevel(user.role) ||
+    user.role === "head_teacher" ||
+    user.role === "teacher" ||
+    user.role === "staff"
+  ) {
     return;
   }
 
