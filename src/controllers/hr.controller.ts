@@ -232,7 +232,35 @@ export const listStaffProfiles = async (
       limit,
       offset,
     });
-    res.json({ staff: rows, pagination: buildPagination(page, limit, count) });
+    const profiles = rows.map((row: any) => row.toJSON());
+    const profileUserIds = new Set(profiles.map((profile) => Number(profile.userId)));
+    const users = await User.findAll({
+      where: {
+        schoolId,
+        role: { [Op.in]: EMPLOYEE_LEAVE_ROLES },
+      },
+      attributes: userSafeAttributes,
+      order: [["name", "ASC"]],
+    });
+    const missingProfiles = users
+      .filter((user: any) => !profileUserIds.has(Number(user.id)))
+      .map((user: any) => ({
+        id: -Number(user.id),
+        schoolId,
+        userId: Number(user.id),
+        employeeCode: "",
+        department: "",
+        designation: "Staff",
+        joinDate: "",
+        salary: 0,
+        status: "profile_missing",
+        User: user.toJSON(),
+      }));
+    const staff = [...profiles, ...missingProfiles];
+    res.json({
+      staff,
+      pagination: buildPagination(page, limit, Math.max(count, staff.length)),
+    });
   } catch (err) {
     next(err);
   }
@@ -1020,6 +1048,29 @@ export const createSalaryStructure = async (
   try {
     const schoolId = requireSchoolId(req, res);
     if (!schoolId) return;
+    let staffProfileId = Number(req.body?.staffProfileId);
+    const userId = Number(req.body?.userId);
+    if (!Number.isInteger(staffProfileId) || staffProfileId <= 0) {
+      if (!Number.isInteger(userId) || userId <= 0) {
+        throw new AppError("staffProfileId or userId is required", 400);
+      }
+      const employee = await User.findOne({
+        where: { id: userId, schoolId, role: { [Op.in]: EMPLOYEE_LEAVE_ROLES } },
+      });
+      if (!employee) throw new AppError("Staff user not found in this school", 404);
+      const [profile] = await StaffProfile.findOrCreate({
+        where: { schoolId, userId },
+        defaults: {
+          schoolId,
+          userId,
+          designation: "Staff",
+          status: "active",
+        },
+      });
+      staffProfileId = profile.id;
+    }
+    const profile = await StaffProfile.findOne({ where: { id: staffProfileId, schoolId } });
+    if (!profile) throw new AppError("Staff profile not found in this school", 404);
     const basic = Number(req.body?.basic);
     const hra = Number(req.body?.hra ?? 0);
     const allowances = Number(req.body?.allowances ?? 0);
@@ -1038,6 +1089,7 @@ export const createSalaryStructure = async (
     const salaryStructure = await SalaryStructure.create({
       ...(req.body ?? {}),
       schoolId,
+      staffProfileId,
       basic,
       hra,
       allowances,
