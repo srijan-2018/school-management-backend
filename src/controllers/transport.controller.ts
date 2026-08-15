@@ -647,18 +647,28 @@ export const createAssignment = async (
     const studentId = toRequiredNumber(req.body?.studentId, "studentId");
     const routeId = toRequiredNumber(req.body?.routeId, "routeId");
 
-    const student = await Student.findOne({ where: { id: studentId, schoolId } });
+    let student: any = await Student.findOne({
+      where: { id: studentId, schoolId },
+    });
+    if (!student) {
+      const studentUser: any = await User.findOne({
+        where: { id: studentId, schoolId, role: "student" },
+        include: [{ model: Student, as: "student" }],
+      });
+      student = studentUser?.student ?? null;
+    }
     if (!student) {
       throw new AppError("Student not found in this school", 404);
     }
 
+    const resolvedStudentId = Number(student.id);
     const route = await TransportRoute.findOne({ where: { id: routeId, schoolId } });
     if (!route) {
       throw new AppError("Route not found in this school", 404);
     }
 
     const existing = await TransportAssignment.findOne({
-      where: { schoolId, studentId },
+      where: { schoolId, studentId: resolvedStudentId },
     });
     if (existing) {
       throw new AppError("Student is already mapped to a transport route", 409);
@@ -666,7 +676,7 @@ export const createAssignment = async (
 
     const assignment = await TransportAssignment.create({
       schoolId,
-      studentId,
+      studentId: resolvedStudentId,
       routeId,
       stopName: req.body?.stopName ?? null,
       pickupTime: req.body?.pickupTime ?? null,
