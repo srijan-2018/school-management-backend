@@ -34,6 +34,28 @@ async function main() {
   await sequelize.authenticate();
 
   for (const { name, model } of models) {
+    if (name === "TransportAssignments") {
+      // Remove legacy rows that reference routes deleted before foreign keys
+      // were enforced. There is no valid route to restore on these rows.
+      const queryInterface = sequelize.getQueryInterface();
+      const table = await queryInterface
+        .describeTable("TransportAssignments")
+        .catch(() => null);
+      if (table) {
+        const [, metadata] = await sequelize.query(
+          `DELETE assignments
+           FROM TransportAssignments AS assignments
+           LEFT JOIN TransportRoutes AS routes ON routes.id = assignments.routeId
+           WHERE routes.id IS NULL`,
+        );
+        const deletedCount =
+          (metadata as { affectedRows?: number }).affectedRows ?? 0;
+        if (deletedCount > 0) {
+          console.log(`Removed ${deletedCount} orphan transport assignment(s)`);
+        }
+      }
+    }
+
     await model.sync({ alter: true });
     console.log(`Synced ${name}`);
   }
