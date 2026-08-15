@@ -6,6 +6,7 @@ import LeaveRule from "../models/leave-rule.model";
 import LeaveBalance from "../models/leave-balance.model";
 import SalaryStructure from "../models/salary-structure.model";
 import PayrollRun from "../models/payroll-run.model";
+import StaffAttendance from "../models/staff-attendance.model";
 import SchoolCalendar from "../models/school-calendar.model";
 import User from "../models/user.model";
 import { requireSchoolId } from "../helpers/school-scope";
@@ -52,6 +53,33 @@ const addDays = (dateOnly: string, days: number) => {
 const todayDateOnly = () => new Date().toISOString().slice(0, 10);
 
 const currentLeaveYear = () => new Date().getUTCFullYear();
+
+const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const dateOnly = (year: number, month: number, day: number) =>
+  `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+const countWeekdays = (startDate: string, endDate: string) => {
+  const start = new Date(`${startDate}T00:00:00.000Z`);
+  const end = new Date(`${endDate}T00:00:00.000Z`);
+  let count = 0;
+  for (const current = new Date(start); current <= end; current.setUTCDate(current.getUTCDate() + 1)) {
+    const day = current.getUTCDay();
+    if (day !== 0 && day !== 6) count += 1;
+  }
+  return count;
+};
+
+const countWeekdayOverlap = (
+  startDate: string,
+  endDate: string,
+  rangeStart: string,
+  rangeEnd: string,
+) => {
+  const start = startDate > rangeStart ? startDate : rangeStart;
+  const end = endDate < rangeEnd ? endDate : rangeEnd;
+  return start <= end ? countWeekdays(start, end) : 0;
+};
 
 const countInclusiveDays = (startDate: string, endDate: string) => {
   const start = new Date(`${startDate}T00:00:00.000Z`).getTime();
@@ -992,9 +1020,29 @@ export const createSalaryStructure = async (
   try {
     const schoolId = requireSchoolId(req, res);
     if (!schoolId) return;
+    const basic = Number(req.body?.basic);
+    const hra = Number(req.body?.hra ?? 0);
+    const allowances = Number(req.body?.allowances ?? 0);
+    const deductions = Number(req.body?.deductions ?? 0);
+    const effectiveFrom = req.body?.effectiveFrom || null;
+    if (!Number.isFinite(basic) || basic <= 0) {
+      throw new AppError("basic salary must be greater than zero", 400);
+    }
+    if (![hra, allowances, deductions].every((value) => Number.isFinite(value) && value >= 0)) {
+      throw new AppError("salary components must be non-negative numbers", 400);
+    }
+    if (effectiveFrom &&
+      (typeof effectiveFrom !== "string" || Number.isNaN(Date.parse(effectiveFrom)))) {
+      throw new AppError("effectiveFrom must be a valid date", 400);
+    }
     const salaryStructure = await SalaryStructure.create({
       ...(req.body ?? {}),
       schoolId,
+      basic,
+      hra,
+      allowances,
+      deductions,
+      effectiveFrom,
     });
     res
       .status(201)
@@ -1036,47 +1084,142 @@ export const createPayrollRun = async (
   try {
     const schoolId = requireSchoolId(req, res);
     if (!schoolId) return;
-    const { month, year } = req.body ?? {};
-    if (!month || !year) {
-      return res.status(400).json({ message: "month and year are required" });
+    const month = Number(req.body?.month);
+    const year = Number(req.body?.year);
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      return res.status(400).json({ message: "month must be between 1 and 12" });
+    }
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      return res.status(400).json({ message: "year must be between 2000 and 2100" });
+    }
+
+    const existing = await PayrollRun.findOne({
+      where: { schoolId, month, year },
+    });
+    if (existing) {
+      throw new AppError(`Payroll already exists for ${month}/${year}`, 409);
+    }
+
+    const payrollStart = dateOnly(year, month, 1);
+    const payrollEnd = dateOnly(year, month, new Date(Date.UTC(year, month, 0)).getUTCDate());
+    const scheduledDays = countWeekdays(payrollStart, payrollEnd);
+    if (!scheduledDays) {
+      return res.status(400).json({ message: "No scheduled weekdays found for this month" });
     }
 
     const staff = await StaffProfile.findAll({
       where: { schoolId, status: "active" },
     });
-    const structures = await SalaryStructure.findAll({ where: { schoolId } });
-    const structureMap = new Map(
-      structures.map((row: any) => [Number(row.staffProfileId), row]),
-    );
+    if (!staff.length) {
+      throw new AppError("No active staff profiles found for payroll", 400);
+    }
+    const structures = await SalaryStructure.findAll({
+      where: { schoolId },
+      order: [["effectiveFrom", "DESC"], ["id", "DESC"]],
+    });
+    const structureMap = new Map<number, any>();
+    for (const structure of structures as any[]) {
+      const effectiveFrom = structure.effectiveFrom;
+      if (effectiveFrom && effectiveFrom > payrollEnd) continue;
+      if (!structureMap.has(Number(structure.staffProfileId))) {
+        structureMap.set(Number(structure.staffProfileId), structure);
+      }
+    }
+
+    const userIds = staff.map((profile: any) => Number(profile.userId));
+    const attendanceRows = await StaffAttendance.findAll({
+      where: {
+        schoolId,
+        userId: { [Op.in]: userIds.length ? userIds : [-1] },
+        date: { [Op.between]: [payrollStart, payrollEnd] },
+      },
+      attributes: ["userId", "date"],
+    });
+    const attendanceByUser = new Map<number, Set<string>>();
+    for (const row of attendanceRows as any[]) {
+      const userId = Number(row.userId);
+      if (!attendanceByUser.has(userId)) attendanceByUser.set(userId, new Set());
+      attendanceByUser.get(userId)!.add(String(row.date));
+    }
+
+    const approvedLeaves = await LeaveRequest.findAll({
+      where: {
+        schoolId,
+        userId: { [Op.in]: userIds.length ? userIds : [-1] },
+        status: "approved",
+        startDate: { [Op.lte]: payrollEnd },
+        endDate: { [Op.gte]: payrollStart },
+      },
+      attributes: ["userId", "startDate", "endDate"],
+    });
+    const leaveDaysByUser = new Map<number, number>();
+    for (const leave of approvedLeaves as any[]) {
+      const userId = Number(leave.userId);
+      const days = countWeekdayOverlap(
+        String(leave.startDate),
+        String(leave.endDate),
+        payrollStart,
+        payrollEnd,
+      );
+      leaveDaysByUser.set(userId, (leaveDaysByUser.get(userId) ?? 0) + days);
+    }
 
     const payslips = staff.map((profile: any) => {
       const structure: any = structureMap.get(Number(profile.id));
       const basic = Number(structure?.basic ?? profile.salary ?? 0);
       const hra = Number(structure?.hra ?? 0);
       const allowances = Number(structure?.allowances ?? 0);
-      const deductions = Number(structure?.deductions ?? 0);
-      const net = basic + hra + allowances - deductions;
+      const fixedDeductions = Number(structure?.deductions ?? 0);
+      if (![basic, hra, allowances, fixedDeductions].every(Number.isFinite)) {
+        throw new AppError(
+          `Invalid salary values for staff profile ${profile.id}`,
+          400,
+        );
+      }
+      if (basic + hra + allowances <= 0) {
+        throw new AppError(
+          `No positive salary configured for staff profile ${profile.id}`,
+          400,
+        );
+      }
+      const presentDays = attendanceByUser.get(Number(profile.userId))?.size ?? 0;
+      const approvedLeaveDays = Math.min(
+        scheduledDays,
+        leaveDaysByUser.get(Number(profile.userId)) ?? 0,
+      );
+      const payableDays = Math.min(scheduledDays, presentDays + approvedLeaveDays);
+      const absentDays = Math.max(0, scheduledDays - payableDays);
+      const gross = basic + hra + allowances;
+      const absenceDeduction = (gross / scheduledDays) * absentDays;
+      const deductions = fixedDeductions + absenceDeduction;
+      const net = Math.max(0, gross - deductions);
       return {
         staffProfileId: profile.id,
         userId: profile.userId,
-        basic,
-        hra,
-        allowances,
-        deductions,
-        net,
+        basic: roundMoney(basic),
+        hra: roundMoney(hra),
+        allowances: roundMoney(allowances),
+        gross: roundMoney(gross),
+        fixedDeductions: roundMoney(fixedDeductions),
+        presentDays,
+        approvedLeaveDays,
+        payableDays,
+        absentDays,
+        absenceDeduction: roundMoney(absenceDeduction),
+        deductions: roundMoney(deductions),
+        net: roundMoney(net),
       };
     });
 
-    const totalAmount = payslips.reduce(
-      (sum: number, slip: { net: number }) => sum + slip.net,
-      0,
+    const totalAmount = roundMoney(
+      payslips.reduce((sum: number, slip: { net: number }) => sum + slip.net, 0),
     );
 
     const payrollRun = await PayrollRun.create({
       schoolId,
-      month: Number(month),
-      year: Number(year),
-      status: req.body?.status ?? "processed",
+      month,
+      year,
+      status: "draft",
       totalAmount,
       notes: req.body?.notes ?? null,
       payslips,
