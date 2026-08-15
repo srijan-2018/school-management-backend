@@ -349,6 +349,28 @@ export const deleteVehicle = async (
     if (!vehicle) {
       return res.status(404).json({ message: "vehicle not found" });
     }
+    const activeTripCount = await TransportTrip.count({
+      where: { schoolId, vehicleId: vehicle.id, status: "in_progress" },
+    });
+    if (activeTripCount > 0) {
+      throw new AppError(
+        "This bus cannot be deleted while a trip is in progress. Complete the trip first.",
+        409,
+      );
+    }
+    const tripCount = await TransportTrip.count({
+      where: { schoolId, vehicleId: vehicle.id },
+    });
+    await TransportRoute.update(
+      { vehicleId: null },
+      { where: { schoolId, vehicleId: vehicle.id } },
+    );
+    if (tripCount > 0) {
+      await vehicle.update({ status: "inactive", driverUserId: null });
+      return res.json({
+        message: "Bus unmapped and marked inactive because it has trip history",
+      });
+    }
     await vehicle.destroy();
     res.json({ message: "vehicle deleted" });
   } catch (err) {
