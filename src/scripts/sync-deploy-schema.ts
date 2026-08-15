@@ -6,6 +6,8 @@ import UserSession from "../models/user-session.model";
 import Notification from "../models/notification.model";
 import NotificationRead from "../models/notification-read.model";
 import TransportVehicle from "../models/transport-vehicle.model";
+import TransportRoute from "../models/transport-route.model";
+import TransportAssignment from "../models/transport-assignment.model";
 import TransportTrip from "../models/transport-trip.model";
 import TransportTripStudent from "../models/transport-trip-student.model";
 import TransportTripLocation from "../models/transport-trip-location.model";
@@ -21,6 +23,8 @@ const models = [
   { name: "Notifications", model: Notification },
   { name: "NotificationReads", model: NotificationRead },
   { name: "TransportVehicles", model: TransportVehicle },
+  { name: "TransportRoutes", model: TransportRoute },
+  { name: "TransportAssignments", model: TransportAssignment },
   { name: "TransportTrips", model: TransportTrip },
   { name: "TransportTripStudents", model: TransportTripStudent },
   { name: "TransportTripLocations", model: TransportTripLocation },
