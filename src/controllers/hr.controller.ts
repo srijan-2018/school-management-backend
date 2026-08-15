@@ -396,6 +396,20 @@ export const createLeave = async (
 
     if (!userId) throw new AppError("Unable to resolve leave requester", 400);
 
+    const requester = await User.findOne({
+      where: {
+        id: userId,
+        schoolId,
+        role: { [Op.in]: EMPLOYEE_LEAVE_ROLES },
+      },
+    });
+    if (!requester) {
+      throw new AppError(
+        "This user is not an eligible staff member for leave in this school.",
+        400,
+      );
+    }
+
     await assertLeaveEligibility({
       schoolId,
       userId,
