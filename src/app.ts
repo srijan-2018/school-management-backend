@@ -10,6 +10,7 @@ import swaggerUi from "swagger-ui-express";
 import { connectDB, sequelize } from "./config/db";
 import swaggerSpec from "./config/swagger";
 import { bootstrapAdmin } from "./scripts/bootstrap-admin";
+import { ensureNegativeMarkingSchema } from "./services/ensure-negative-marking-schema";
 
 import "./models";
 
@@ -124,6 +125,9 @@ const startServer = async () => {
       await sequelize.sync();
       console.log("Database schema created");
     }
+
+    await ensureNegativeMarkingSchema();
+    console.log("Negative marking schema ready");
 
     await bootstrapAdmin();
 

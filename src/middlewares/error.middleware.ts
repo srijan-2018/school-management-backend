@@ -57,6 +57,8 @@ export const errorHandler = (
     message = sequelizeError.parent.sqlMessage;
   }
 
+  const sqlMessage = sequelizeError?.parent?.sqlMessage;
+
   if (statusCode === 500 && process.env.NODE_ENV === "production") {
     message = "Internal Server Error";
   }
@@ -66,6 +68,7 @@ export const errorHandler = (
     path: req.originalUrl,
     statusCode,
     message,
+    sqlMessage,
     stack: err instanceof Error ? err.stack : undefined,
   });
 

@@ -11,6 +11,7 @@ import TransportAssignment from "../models/transport-assignment.model";
 import TransportTrip from "../models/transport-trip.model";
 import TransportTripStudent from "../models/transport-trip-student.model";
 import TransportTripLocation from "../models/transport-trip-location.model";
+import { ensureNegativeMarkingSchema } from "../services/ensure-negative-marking-schema";
 
 /**
  * Production has no migration tool and never runs sequelize.sync() at boot, so
@@ -59,6 +60,9 @@ async function main() {
     await model.sync({ alter: true });
     console.log(`Synced ${name}`);
   }
+
+  await ensureNegativeMarkingSchema();
+  console.log("Negative marking columns ready");
 
   console.log("Deploy schema sync completed.");
   await sequelize.close();
