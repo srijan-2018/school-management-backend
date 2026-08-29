@@ -7,6 +7,8 @@ import Student from "./student.model";
 class MockTest extends Model {
   public id!: number;
   public schoolId?: number | null;
+  public negativeMarkingEnabled!: boolean;
+  public negativeMarkingPenalty!: number;
 }
 
 MockTest.init(
@@ -33,6 +35,16 @@ MockTest.init(
     status: {
       type: DataTypes.ENUM("generated", "submitted", "evaluated"),
       defaultValue: "generated",
+    },
+    negativeMarkingEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    negativeMarkingPenalty: {
+      type: DataTypes.DECIMAL(4, 2),
+      allowNull: false,
+      defaultValue: 0.25,
     },
   },
   { sequelize, modelName: "MockTest", timestamps: true },

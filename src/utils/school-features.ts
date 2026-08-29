@@ -22,13 +22,16 @@ export type SchoolFeatureKey =
   | "hostel"
   | "hr"
   | "analytics"
-  | "notifications";
+  | "notifications"
+  | "mock-test-negative-marking";
 
 export type SchoolFeatureDefinition = {
   key: SchoolFeatureKey;
   label: string;
   description: string;
   group: "Academic" | "Operations" | "Extended";
+  /** Missing rows for this key use this default. Modules default ON. */
+  defaultEnabled?: boolean;
 };
 
 /** Canonical school-module feature catalog (default ON for new schools). */
@@ -92,6 +95,14 @@ export const SCHOOL_FEATURE_CATALOG: SchoolFeatureDefinition[] = [
     label: "Mock Tests",
     description: "AI mock tests",
     group: "Operations",
+  },
+  {
+    key: "mock-test-negative-marking",
+    label: "Mock test negative marking",
+    description:
+      "Lets the school owner turn negative marking on or off for mock tests. Does not hide the Mock Tests module.",
+    group: "Operations",
+    defaultEnabled: false,
   },
   {
     key: "assignments",
@@ -186,6 +197,13 @@ export const SCHOOL_FEATURE_KEYS = SCHOOL_FEATURE_CATALOG.map(
 export const isSchoolFeatureKey = (value: unknown): value is SchoolFeatureKey =>
   typeof value === "string" &&
   (SCHOOL_FEATURE_KEYS as string[]).includes(value);
+
+export const getSchoolFeatureDefaultEnabled = (
+  key: SchoolFeatureKey,
+): boolean => {
+  const definition = SCHOOL_FEATURE_CATALOG.find((feature) => feature.key === key);
+  return definition?.defaultEnabled !== false;
+};
 
 /** Map first URL path segment under /api to a feature key. */
 export const SCHOOL_FEATURE_BY_ROUTE_PREFIX: Record<string, SchoolFeatureKey> = {

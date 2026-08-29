@@ -17,10 +17,19 @@ import {
 } from "../services/mock-test-ai.service";
 import {
   MOCK_TEST_MANAGER_ROLES,
+  MOCK_TEST_NEGATIVE_MARKING_MANAGER_ROLES,
   normalizeRole,
   type UserRole,
 } from "../utils/roles";
 import { buildPagination, getPagination } from "../utils/pagination";
+import {
+  NEGATIVE_MARKING_PENALTY_OPTIONS,
+  computeMockTestScore,
+  getSchoolNegativeMarkingRule,
+  resolveNegativeMarkingSnapshot,
+  serializeNegativeMarkingSnapshot,
+  updateSchoolNegativeMarkingRule,
+} from "../services/mock-test-negative-marking.service";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
 const mockTestManagers = new Set<UserRole>(MOCK_TEST_MANAGER_ROLES);
@@ -50,6 +59,21 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const isManagerRole = (role: UserRole) => mockTestManagers.has(role);
+
+const negativeMarkingManagerRoles = new Set<UserRole>(
+  MOCK_TEST_NEGATIVE_MARKING_MANAGER_ROLES,
+);
+
+const canManageNegativeMarking = (role: UserRole) =>
+  negativeMarkingManagerRoles.has(role);
+
+const getRequestSchoolId = (req: Request) => {
+  const schoolId = Number(req.schoolId);
+  if (!Number.isInteger(schoolId) || schoolId <= 0) {
+    throw new AppError("School context is required", 400);
+  }
+  return schoolId;
+};
 
 const mockTestUserInclude = [
   {
@@ -762,6 +786,7 @@ const serializeMockTestSummary = (
     endTime: timing.endTime,
     timeTakenSeconds: timing.timeTakenSeconds,
     timeTakenMinutes: timing.timeTakenMinutes,
+    ...serializeNegativeMarkingSnapshot(mockTest),
     ...serializeOwnership(mockTest, currentUser),
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
@@ -804,6 +829,7 @@ const serializeMockTestDetail = (
     endTime: timing.endTime,
     timeTakenSeconds: timing.timeTakenSeconds,
     timeTakenMinutes: timing.timeTakenMinutes,
+    ...serializeNegativeMarkingSnapshot(mockTest),
     ...serializeOwnership(mockTest, currentUser),
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
@@ -862,10 +888,16 @@ const buildMockTestResult = (
   ).length;
   const wrongCount = questionResults.length - correctCount - unansweredCount;
   const totalQuestions = questionResults.length;
-  const score = correctCount;
-  const percentage = totalQuestions
-    ? roundToTwo((score / totalQuestions) * 100)
-    : 0;
+  const marking = serializeNegativeMarkingSnapshot(mockTest);
+  const scored = computeMockTestScore({
+    correctCount,
+    wrongCount,
+    totalQuestions,
+    negativeMarkingEnabled: marking.negativeMarkingEnabled,
+    negativeMarkingPenalty: marking.negativeMarkingPenalty,
+  });
+  const score = scored.score;
+  const percentage = scored.percentage;
   const resolvedStartTime =
     toIsoDateString(timingInput.startTime, "startTime") ??
     (mockTest.createdAt instanceof Date
@@ -885,10 +917,14 @@ const buildMockTestResult = (
   const result = {
     score,
     totalQuestions,
+    maxScore: scored.maxScore,
     correctCount,
     wrongCount,
     unansweredCount,
     percentage,
+    negativeMarkingEnabled: marking.negativeMarkingEnabled,
+    negativeMarkingPenalty: marking.negativeMarkingPenalty,
+    marksPerCorrect: scored.marksPerCorrect,
     questions: questionResults,
     submittedAt: resolvedEndTime,
     startTime: resolvedStartTime,
@@ -1217,6 +1253,12 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
         .text(
           `Score: ${metrics.score}/${metrics.totalQuestions} (${metrics.percentage ?? 0}%)`,
         );
+      if (Boolean(mockTest.negativeMarkingEnabled)) {
+        const marking = serializeNegativeMarkingSnapshot(mockTest);
+        doc.text(
+          `Negative marking: -${marking.negativeMarkingPenalty} per wrong answer`,
+        );
+      }
       doc.text(
         `Correct: ${metrics.correctCount} | Wrong: ${metrics.wrongCount} | Unanswered: ${metrics.unansweredCount}`,
       );
@@ -1420,10 +1462,16 @@ export const createMockTest = async (
       toOptionalString(title) ||
       `${resolvedContext.className} ${resolvedContext.subjectName} Mock Test`;
 
+    const schoolId = Number(req.schoolId);
+    const resolvedSchoolId =
+      Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
+    const marking = await resolveNegativeMarkingSnapshot(resolvedSchoolId);
+
     const mockTest = await MockTest.create({
       studentId: targetStudent?.id ?? null,
       generatedByUserId: currentUser.id,
       assignedByUserId: targetStudent ? currentUser.id : null,
+      schoolId: resolvedSchoolId,
       classId: resolvedContext.classId,
       className: String(resolvedContext.className),
       subjectId: resolvedContext.subjectId,
@@ -1439,6 +1487,7 @@ export const createMockTest = async (
         resolvedContext.chapterName,
       ),
       status: "generated",
+      ...marking,
     });
 
     res.status(201).json({
@@ -1518,11 +1567,17 @@ export const generateMockTest = async (
       questionCount: count,
     });
 
+    const schoolId = Number(req.schoolId);
+    const resolvedSchoolId =
+      Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
+    const marking = await resolveNegativeMarkingSnapshot(resolvedSchoolId);
+
     const mockTest = await MockTest.create({
       studentId: targetStudent?.id ?? null,
       generatedByUserId: currentUser.id,
       assignedByUserId:
         targetStudent && isManagerRole(currentUser.role) ? currentUser.id : null,
+      schoolId: resolvedSchoolId,
       classId: resolvedContext.classId,
       className: String(resolvedContext.className),
       subjectId: resolvedContext.subjectId,
@@ -1538,6 +1593,7 @@ export const generateMockTest = async (
         resolvedContext.chapterName,
       ),
       status: "generated",
+      ...marking,
     });
 
     const includeAnswers = true;
@@ -1700,6 +1756,7 @@ export const assignMockTest = async (
       );
     }
 
+    const marking = serializeNegativeMarkingSnapshot(mockTest);
     const basePayload = {
       classId: mockTest.classId,
       className: mockTest.className,
@@ -1715,6 +1772,7 @@ export const assignMockTest = async (
       generatedByUserId: mockTest.generatedByUserId ?? currentUser.id,
       assignedByUserId: currentUser.id,
       status: "generated",
+      ...marking,
     };
 
     const assignedMockTests: any[] = [];
@@ -1853,6 +1911,73 @@ export const getMockTestAiSuggestion = async (
     await ensureMockTestAccess(req, mockTest);
 
     res.json({ aiSuggestion: mockTest.aiSuggestion, result: mockTest.result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMockTestNegativeMarkingSettings = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const currentUser = getCurrentUser(req);
+    const schoolId = getRequestSchoolId(req);
+    const rule = await getSchoolNegativeMarkingRule(schoolId);
+    const canManage =
+      canManageNegativeMarking(currentUser.role) && rule.featureEnabled;
+
+    res.json({
+      schoolId,
+      featureEnabled: rule.featureEnabled,
+      enabled: rule.enabled,
+      penalty: rule.penalty,
+      marksPerCorrect: rule.marksPerCorrect,
+      penaltyOptions: [...NEGATIVE_MARKING_PENALTY_OPTIONS],
+      canManage,
+      scoringRule:
+        "+1 for each correct answer. Wrong answers deduct the penalty. Unanswered is 0. Score cannot go below 0.",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateMockTestNegativeMarkingSettings = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const currentUser = getCurrentUser(req);
+    if (!canManageNegativeMarking(currentUser.role)) {
+      throw new AppError(
+        "Only Super Admin or School Owner can change negative marking",
+        403,
+      );
+    }
+
+    const schoolId = getRequestSchoolId(req);
+    const rule = await updateSchoolNegativeMarkingRule(schoolId, {
+      enabled: req.body?.enabled,
+      penalty: req.body?.penalty,
+    });
+
+    res.json({
+      message: rule.enabled
+        ? "Negative marking is on for mock tests"
+        : "Negative marking is off for mock tests",
+      schoolId,
+      featureEnabled: rule.featureEnabled,
+      enabled: rule.enabled,
+      penalty: rule.penalty,
+      marksPerCorrect: rule.marksPerCorrect,
+      penaltyOptions: [...NEGATIVE_MARKING_PENALTY_OPTIONS],
+      canManage: true,
+      scoringRule:
+        "+1 for each correct answer. Wrong answers deduct the penalty. Unanswered is 0. Score cannot go below 0.",
+    });
   } catch (err) {
     next(err);
   }

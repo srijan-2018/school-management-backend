@@ -118,6 +118,12 @@ export const ATTENDANCE_RULE_MANAGER_ROLES: UserRole[] = [
   "school_owner",
 ];
 
+/** Super Admin or School Owner can toggle mock-test negative marking for a school. */
+export const MOCK_TEST_NEGATIVE_MARKING_MANAGER_ROLES: UserRole[] = [
+  "admin",
+  "school_owner",
+];
+
 export const INVENTORY_ROLES: UserRole[] = [
   "admin",
   "school_owner",

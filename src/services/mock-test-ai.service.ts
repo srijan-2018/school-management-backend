@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import { AppError } from "../middlewares/error.middleware";
 
 type MockTestLevel = "easy" | "medium" | "hard";
@@ -282,6 +283,8 @@ const normalizeGeneratedMockTest = (
 };
 
 export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
+  dotenv.config({ override: true });
+
   const provider =
     process.env.AI_PROVIDER?.trim()
       .replace(/^["']|["']$/g, "")
@@ -293,13 +296,15 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
     throw new Error(`Invalid AI_PROVIDER "${provider}". Expected "groq".`);
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY?.trim().replace(/^["']|["']$/g, "");
 
   if (!apiKey) {
     throw new Error("GROQ_API_KEY is missing");
   }
 
-  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const model =
+    process.env.GROQ_MODEL?.trim().replace(/^["']|["']$/g, "") ||
+    "openai/gpt-oss-120b";
 
   console.log("Using GROQ Model =>", model);
 
@@ -363,6 +368,13 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
         }
 
         throw lastError;
+      }
+
+      if (response.status === 401) {
+        throw new AppError(
+          "Groq rejected the API key. Update GROQ_API_KEY in the backend .env file.",
+          502,
+        );
       }
 
       throw new AppError(`Groq API failed with status ${response.status}`, 502);

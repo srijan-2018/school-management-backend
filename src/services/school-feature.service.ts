@@ -3,6 +3,7 @@ import {
   SCHOOL_FEATURE_CATALOG,
   SCHOOL_FEATURE_KEYS,
   type SchoolFeatureKey,
+  getSchoolFeatureDefaultEnabled,
   isSchoolFeatureKey,
 } from "../utils/school-features";
 import SchoolFeature from "../models/school-feature.model";
@@ -21,7 +22,7 @@ export async function ensureSchoolFeatures(schoolId: number) {
     missing.map((featureKey) => ({
       schoolId,
       featureKey,
-      enabled: true,
+      enabled: getSchoolFeatureDefaultEnabled(featureKey),
     })),
     { ignoreDuplicates: true },
   );
@@ -43,7 +44,10 @@ export async function getSchoolFeatureMap(schoolId: number) {
     label: feature.label,
     description: feature.description,
     group: feature.group,
-    enabled: byKey.has(feature.key) ? Boolean(byKey.get(feature.key)) : true,
+    defaultEnabled: getSchoolFeatureDefaultEnabled(feature.key),
+    enabled: byKey.has(feature.key)
+      ? Boolean(byKey.get(feature.key))
+      : getSchoolFeatureDefaultEnabled(feature.key),
   }));
 }
 
@@ -55,8 +59,9 @@ export async function isSchoolFeatureEnabled(
   const row = await SchoolFeature.findOne({
     where: { schoolId, featureKey },
   });
-  // Missing row = allowed (default ON)
-  return row ? Boolean(row.enabled) : true;
+  return row
+    ? Boolean(row.enabled)
+    : getSchoolFeatureDefaultEnabled(featureKey);
 }
 
 export async function setSchoolFeatures(

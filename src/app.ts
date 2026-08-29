@@ -69,7 +69,7 @@ app.use(auditRequestLogger);
 
 console.log("NODE_ENV:", runtimeEnv);
 console.log("AI provider:", process.env.AI_PROVIDER ?? "groq");
-console.log("AI model:", process.env.GROQ_MODEL ?? "llama-3.1-8b-instant");
+console.log("AI model:", process.env.GROQ_MODEL ?? "openai/gpt-oss-120b");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

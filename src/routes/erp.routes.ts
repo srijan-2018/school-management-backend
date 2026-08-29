@@ -51,6 +51,7 @@ import {
   MOCK_TEST_GENERATOR_ROLES,
   INVENTORY_ROLES,
   MOCK_TEST_MANAGER_ROLES,
+  MOCK_TEST_NEGATIVE_MARKING_MANAGER_ROLES,
   ASSIGNMENT_MANAGER_ROLES,
   NOTICE_PUBLISH_ROLES,
   NOTIFICATION_VIEW_ROLES,
@@ -376,6 +377,15 @@ router.post(
   "/mock-tests",
   allowRoles(...MOCK_TEST_MANAGER_ROLES),
   mockTest.createMockTest,
+);
+router.get(
+  "/mock-tests/settings",
+  mockTest.getMockTestNegativeMarkingSettings,
+);
+router.put(
+  "/mock-tests/settings",
+  allowRoles(...MOCK_TEST_NEGATIVE_MARKING_MANAGER_ROLES),
+  mockTest.updateMockTestNegativeMarkingSettings,
 );
 router.get("/mock-tests", mockTest.getMockTests);
 router.get("/mock-tests/progress", mockTest.getMockTestProgress);

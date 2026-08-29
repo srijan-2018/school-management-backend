@@ -1201,6 +1201,24 @@ const options: swaggerJsdoc.Options = {
           responses: { 200: messageResponse("Mock test progress") },
         },
       },
+      "/mock-tests/settings": {
+        get: {
+          tags: ["Mock Tests"],
+          summary: "Get mock test negative marking settings for the school",
+          security: [{ bearerAuth: [] }],
+          responses: { 200: messageResponse("Negative marking settings") },
+        },
+        put: {
+          tags: ["Mock Tests"],
+          summary:
+            "Enable or disable negative marking for mock tests (School Owner or Super Admin)",
+          security: [{ bearerAuth: [] }],
+          requestBody: objectBody(
+            "Negative marking payload: { enabled, penalty }",
+          ),
+          responses: { 200: messageResponse("Negative marking updated") },
+        },
+      },
       "/mock-tests/generate": {
         post: {
           tags: ["Mock Tests"],

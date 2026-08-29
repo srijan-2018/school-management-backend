@@ -9,6 +9,8 @@ class School extends Model {
   public phone?: string | null;
   public address?: string | null;
   public isActive!: boolean;
+  public mockTestNegativeMarkingEnabled!: boolean;
+  public mockTestNegativeMarkingPenalty!: number;
 }
 
 School.init(
@@ -22,6 +24,16 @@ School.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    mockTestNegativeMarkingEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    mockTestNegativeMarkingPenalty: {
+      type: DataTypes.DECIMAL(4, 2),
+      allowNull: false,
+      defaultValue: 0.25,
     },
   },
   { sequelize, modelName: "School", timestamps: true },

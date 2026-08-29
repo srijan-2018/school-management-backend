@@ -3,7 +3,10 @@ import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/db";
 import School from "../models/school.model";
 import SchoolFeature from "../models/school-feature.model";
-import { SCHOOL_FEATURE_KEYS } from "../utils/school-features";
+import {
+  SCHOOL_FEATURE_KEYS,
+  getSchoolFeatureDefaultEnabled,
+} from "../utils/school-features";
 import "../models";
 
 const syncSchoolFeatures = async () => {
@@ -24,7 +27,7 @@ const syncSchoolFeatures = async () => {
         defaults: {
           schoolId,
           featureKey,
-          enabled: true,
+          enabled: getSchoolFeatureDefaultEnabled(featureKey),
         },
       });
       if (wasCreated) created += 1;
