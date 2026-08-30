@@ -963,6 +963,7 @@ const resolveClassSubjectAndChapter = async (
     body.chapterId,
     "chapterId",
   );
+  const requestedChapterName = toOptionalString(body.chapterName);
 
   const selectedSubject: any = requestedSubjectId
     ? await Subject.findByPk(String(requestedSubjectId))
@@ -972,12 +973,33 @@ const resolveClassSubjectAndChapter = async (
     throw new AppError("Subject not found", 400);
   }
 
-  const selectedChapter: any = requestedChapterId
+  let selectedChapter: any = requestedChapterId
     ? await Chapter.findByPk(String(requestedChapterId))
     : null;
 
   if (requestedChapterId && !selectedChapter) {
     throw new AppError("Chapter not found", 400);
+  }
+
+  // Allow chapterName-only payloads (web/mobile manual chapter text).
+  if (!selectedChapter && requestedChapterName && selectedSubject) {
+    selectedChapter = await Chapter.findOne({
+      where: {
+        subjectId: selectedSubject.id,
+        name: requestedChapterName,
+      },
+    });
+
+    if (!selectedChapter) {
+      selectedChapter = await Chapter.findOne({
+        where: {
+          subjectId: selectedSubject.id,
+          name: {
+            [Op.like]: requestedChapterName,
+          },
+        },
+      });
+    }
   }
 
   if (
@@ -1027,7 +1049,7 @@ const resolveClassSubjectAndChapter = async (
   const resolvedSubjectName =
     resolvedSubject?.name ?? toOptionalString(body.subjectName);
   const resolvedChapterName =
-    selectedChapter?.name ?? toOptionalString(body.chapterName);
+    selectedChapter?.name ?? requestedChapterName;
 
   if (!resolvedClassName || !resolvedSubjectName) {
     throw new AppError(
@@ -1042,7 +1064,7 @@ const resolveClassSubjectAndChapter = async (
     subjectId: resolvedSubject?.id ?? requestedSubjectId ?? null,
     subjectName: resolvedSubjectName,
     chapterId: selectedChapter?.id ?? requestedChapterId ?? null,
-    chapterName: resolvedChapterName,
+    chapterName: resolvedChapterName ?? null,
   };
 };
 
@@ -1514,7 +1536,7 @@ export const generateMockTest = async (
       throw new AppError("Access denied", 403);
     }
 
-    const { studentId, level, questionCount } = req.body ?? {};
+    const { studentId, level, questionCount, title } = req.body ?? {};
 
     let targetStudent: any = null;
     const requestedStudentId = toOptionalPositiveInteger(
@@ -1567,6 +1589,16 @@ export const generateMockTest = async (
       questionCount: count,
     });
 
+    const resolvedTitle =
+      toOptionalString(title) ||
+      (typeof generated.title === "string" && generated.title.trim()
+        ? generated.title.trim()
+        : `${resolvedContext.className} ${resolvedContext.subjectName}${
+            resolvedContext.chapterName
+              ? ` ${resolvedContext.chapterName}`
+              : ""
+          } Mock Test`);
+
     const schoolId = Number(req.schoolId);
     const resolvedSchoolId =
       Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
@@ -1584,7 +1616,7 @@ export const generateMockTest = async (
       subjectName: String(resolvedContext.subjectName),
       chapterId: resolvedContext.chapterId,
       chapterName: resolvedContext.chapterName,
-      title: generated.title,
+      title: resolvedTitle,
       level: normalizedLevel,
       questions: generated.questions,
       aiSuggestion: buildGenerationSuggestion(

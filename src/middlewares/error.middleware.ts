@@ -65,7 +65,12 @@ export const errorHandler = (
   const sqlMessage = sequelizeError?.parent?.sqlMessage;
 
   if (statusCode === 500 && process.env.NODE_ENV === "production") {
-    message = "Internal Server Error";
+    if (sqlMessage && /unknown column/i.test(sqlMessage)) {
+      message =
+        "Database schema is missing required columns. Redeploy or run the schema sync script.";
+    } else {
+      message = "Internal Server Error";
+    }
   }
 
   console.error("Request failed", {

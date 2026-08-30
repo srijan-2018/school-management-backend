@@ -72,6 +72,14 @@ export async function ensureNegativeMarkingSchema() {
         name: "negativeMarkingPenalty",
         definition: "DECIMAL(4,2) NOT NULL DEFAULT 0.25",
       },
+      {
+        name: "chapterId",
+        definition: "INT NULL AFTER `subjectName`",
+      },
+      {
+        name: "chapterName",
+        definition: "VARCHAR(255) NULL AFTER `chapterId`",
+      },
     ]);
   }
 }

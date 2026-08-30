@@ -293,13 +293,19 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
   console.log("AI Provider =>", provider);
 
   if (provider !== "groq") {
-    throw new Error(`Invalid AI_PROVIDER "${provider}". Expected "groq".`);
+    throw new AppError(
+      `Invalid AI_PROVIDER "${provider}". Expected "groq".`,
+      502,
+    );
   }
 
   const apiKey = process.env.GROQ_API_KEY?.trim().replace(/^["']|["']$/g, "");
 
   if (!apiKey) {
-    throw new Error("GROQ_API_KEY is missing");
+    throw new AppError(
+      "GROQ_API_KEY is missing. Set it in the backend .env file.",
+      502,
+    );
   }
 
   const model =
@@ -310,7 +316,7 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
 
   let lastError: Error | null = null;
 
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     let response;
 
     try {
@@ -346,7 +352,7 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
     } catch (error) {
       console.error("GROQ CONNECTION ERROR =>", error);
 
-      throw new Error("Could not connect to Groq API");
+      throw new AppError("Could not connect to Groq API", 502);
     }
 
     if (!response.ok) {
@@ -360,7 +366,7 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
           429,
         );
 
-        if (attempt < 4) {
+        if (attempt < 3) {
           await wait(
             getRetryDelayMs(response.headers.get("retry-after"), attempt),
           );
@@ -388,7 +394,8 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
     const outputText = data.choices?.[0]?.message?.content;
 
     if (!outputText) {
-      throw new Error("Groq returned empty content");
+      lastError = new AppError("Groq returned empty content", 502);
+      continue;
     }
 
     console.log("RAW OUTPUT =>", outputText);
@@ -407,7 +414,7 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
       console.error("JSON PARSE ERROR =>");
       console.error(jsonOutput);
 
-      lastError = new Error("Invalid JSON returned from Groq");
+      lastError = new AppError("Invalid JSON returned from Groq", 502);
       continue;
     }
 
@@ -415,10 +422,15 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
       return normalizeGeneratedMockTest(parsed, input, "groq", model);
     } catch (error) {
       lastError =
-        error instanceof Error ? error : new Error("Invalid AI response");
+        error instanceof Error
+          ? new AppError(error.message, 502)
+          : new AppError("Invalid AI response", 502);
       console.error("AI RESPONSE VALIDATION ERROR =>", lastError.message);
     }
   }
 
-  throw lastError ?? new AppError("Unable to generate a valid mock test", 502);
+  throw (
+    lastError ??
+    new AppError("Unable to generate a valid mock test. Please try again.", 502)
+  );
 };
