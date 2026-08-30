@@ -32,16 +32,36 @@ const corsOrigins = (process.env.CORS_ORIGINS ?? "*")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const localDevOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+function isAllowedCorsOrigin(origin: string | undefined) {
+  if (!origin) {
+    return true;
+  }
+
+  if (corsOrigins.includes("*") || corsOrigins.includes(origin)) {
+    return true;
+  }
+
+  return localDevOrigins.includes(origin);
+}
+
 app.use(
   helmet({
     contentSecurityPolicy: runtimeEnv === "production" ? undefined : false,
     crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
 
 app.use(
   cors({
-    origin: corsOrigins.includes("*") ? true : corsOrigins,
+    origin: (origin, callback) => {
+      callback(null, isAllowedCorsOrigin(origin));
+    },
     credentials: true,
     allowedHeaders: [
       "Content-Type",

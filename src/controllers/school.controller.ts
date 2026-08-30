@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
+import { permanentlyDeleteSchool } from "../services/delete-school.service";
 import { ensureSchoolFeatures } from "../services/school-feature.service";
 
 export const getSchools = async (
@@ -30,6 +31,8 @@ export const getSchools = async (
 		if (actorRole === "school_owner") {
 			where.id = actorSchoolId;
 		}
+
+		where.isActive = true;
 
 		if (search) {
 			const searchLike = `%${search}%`;
@@ -173,15 +176,20 @@ export const deleteSchool = async (
 			return res.status(403).json({ message: "Access denied" });
 		}
 
-		const school: any = await School.findByPk(String(req.params.id));
+		const schoolId = Number(req.params.id);
+		if (!Number.isInteger(schoolId) || schoolId <= 0) {
+			return res.status(400).json({ message: "Invalid school id" });
+		}
+
+		const school = await School.findByPk(schoolId);
 		if (!school) {
 			return res.status(404).json({ message: "school not found" });
 		}
 
-		await school.update({ isActive: false });
+		await permanentlyDeleteSchool(schoolId);
 		res.json({
-			message: "school archived successfully",
-			school,
+			message: "school deleted successfully",
+			id: schoolId,
 		});
 	} catch (err) {
 		next(err);
