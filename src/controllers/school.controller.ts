@@ -5,6 +5,7 @@ import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
 import { AppError } from "../middlewares/error.middleware";
 import { permanentlyDeleteSchool } from "../services/delete-school.service";
+import { ensureSchoolOwnerAccount } from "../services/ensure-school-owner.service";
 import { ensureSchoolFeatures } from "../services/school-feature.service";
 
 const SCHOOL_WRITE_FIELDS = ["name", "code", "email", "phone", "address"] as const;
@@ -37,7 +38,17 @@ async function createOrReclaimSchool(body: unknown) {
 		const existing = await School.findOne({ where: { code } });
 		if (existing) {
 			if (existing.get("isActive") !== false) {
-				throw new AppError(`School code "${code}" is already in use`, 409);
+				const sameEmail =
+					String(existing.get("email") ?? "")
+						.trim()
+						.toLowerCase() === String(payload.email ?? "").trim().toLowerCase();
+				if (!sameEmail) {
+					throw new AppError(`School code "${code}" is already in use`, 409);
+				}
+
+				await existing.update({ ...payload, code, isActive: true });
+				await ensureSchoolFeatures(Number(existing.id));
+				return existing;
 			}
 
 			try {
@@ -53,6 +64,18 @@ async function createOrReclaimSchool(body: unknown) {
 	const school = await School.create({ ...payload, isActive: true });
 	await ensureSchoolFeatures(Number(school.id));
 	return school;
+}
+
+function serializeOwner(owner: Awaited<ReturnType<typeof ensureSchoolOwnerAccount>>) {
+	return {
+		id: Number(owner.user.get("id")),
+		email: owner.user.get("email"),
+		role: owner.user.get("role"),
+		schoolId: owner.user.get("schoolId") ?? null,
+		...(owner.temporaryPassword
+			? { temporaryPassword: owner.temporaryPassword }
+			: {}),
+	};
 }
 
 export const getSchools = async (
@@ -121,7 +144,12 @@ export const createSchool = async (
 
 			const schools = [];
 			for (const item of payload) {
-				schools.push(await createOrReclaimSchool(item));
+				const school = await createOrReclaimSchool(item);
+				const owner = await ensureSchoolOwnerAccount(school, item);
+				schools.push({
+					school,
+					owner: serializeOwner(owner),
+				});
 			}
 
 			return res.status(201).json({
@@ -131,10 +159,12 @@ export const createSchool = async (
 		}
 
 		const school = await createOrReclaimSchool(payload);
+		const owner = await ensureSchoolOwnerAccount(school, payload);
 
 		return res.status(201).json({
 			message: "school created successfully",
 			school,
+			owner: serializeOwner(owner),
 		});
 	} catch (err) {
 		next(err);
