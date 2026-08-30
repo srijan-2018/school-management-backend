@@ -23,9 +23,7 @@ import UserSession from "../models/user-session.model";
 const quoteIdentifier = (value: string) => `\`${value.replace(/`/g, "``")}\``;
 
 async function collectIds(
-  model: {
-    findAll: (options: object) => Promise<Array<{ id: number }>>;
-  },
+  model: { findAll: (options: object) => Promise<any[]> },
   where: Record<string, unknown>,
   transaction: Transaction,
 ) {
@@ -35,12 +33,12 @@ async function collectIds(
     transaction,
   });
   return rows
-    .map((row) => Number(row.id))
+    .map((row) => Number(row.get ? row.get("id") : row.id))
     .filter((id) => Number.isInteger(id) && id > 0);
 }
 
 async function destroyByIds(
-  model: { destroy: (options: object) => Promise<number> },
+  model: { destroy: (options: object) => Promise<unknown> },
   field: string,
   ids: number[],
   transaction: Transaction,
