@@ -44,9 +44,14 @@ export const errorHandler = (
       "One or more classId values are invalid. Use class IDs from the selected school.";
   } else if (sequelizeError?.name === "SequelizeUniqueConstraintError") {
     statusCode = 409;
-    message =
-      sequelizeError.errors?.[0]?.message ||
-      "A subject with the same details already exists.";
+    const field = sequelizeError.errors?.[0]?.path;
+    if (field === "code") {
+      message = "School code is already in use";
+    } else {
+      message =
+        sequelizeError.errors?.[0]?.message ||
+        "A record with the same details already exists.";
+    }
   } else if (sequelizeError?.name === "SequelizeValidationError") {
     statusCode = 400;
     message =

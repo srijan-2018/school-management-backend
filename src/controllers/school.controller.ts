@@ -3,8 +3,57 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
+import { AppError } from "../middlewares/error.middleware";
 import { permanentlyDeleteSchool } from "../services/delete-school.service";
 import { ensureSchoolFeatures } from "../services/school-feature.service";
+
+const SCHOOL_WRITE_FIELDS = ["name", "code", "email", "phone", "address"] as const;
+
+function schoolWritePayload(body: unknown) {
+	const source =
+		body && typeof body === "object" && !Array.isArray(body)
+			? (body as Record<string, unknown>)
+			: {};
+	const payload: Record<string, unknown> = {};
+
+	for (const field of SCHOOL_WRITE_FIELDS) {
+		if (source[field] === undefined || source[field] === null) {
+			continue;
+		}
+		payload[field] =
+			typeof source[field] === "string"
+				? String(source[field]).trim()
+				: source[field];
+	}
+
+	return payload;
+}
+
+async function createOrReclaimSchool(body: unknown) {
+	const payload = schoolWritePayload(body);
+	const code = String(payload.code ?? "").trim();
+
+	if (code) {
+		const existing = await School.findOne({ where: { code } });
+		if (existing) {
+			if (existing.get("isActive") !== false) {
+				throw new AppError(`School code "${code}" is already in use`, 409);
+			}
+
+			try {
+				await permanentlyDeleteSchool(Number(existing.id));
+			} catch {
+				await existing.update({ ...payload, code, isActive: true });
+				await ensureSchoolFeatures(Number(existing.id));
+				return existing;
+			}
+		}
+	}
+
+	const school = await School.create({ ...payload, isActive: true });
+	await ensureSchoolFeatures(Number(school.id));
+	return school;
+}
 
 export const getSchools = async (
 	req: Request,
@@ -70,10 +119,10 @@ export const createSchool = async (
 				return res.status(400).json({ message: "schools payload cannot be empty" });
 			}
 
-			const schools = await School.bulkCreate(payload, { validate: true });
-			await Promise.all(
-				schools.map((school) => ensureSchoolFeatures(Number(school.id))),
-			);
+			const schools = [];
+			for (const item of payload) {
+				schools.push(await createOrReclaimSchool(item));
+			}
 
 			return res.status(201).json({
 				message: "schools created successfully",
@@ -81,8 +130,7 @@ export const createSchool = async (
 			});
 		}
 
-		const school = await School.create(payload);
-		await ensureSchoolFeatures(Number(school.id));
+		const school = await createOrReclaimSchool(payload);
 
 		return res.status(201).json({
 			message: "school created successfully",
