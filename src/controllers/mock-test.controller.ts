@@ -186,6 +186,46 @@ const normalizeStudentIds = (value: unknown) => {
   return uniqueStudentIds;
 };
 
+const resolveAssignmentStudentIds = async (
+  body: Record<string, unknown>,
+  mockTest: any,
+) => {
+  const assignAllInClass =
+    body.assignAllInClass === true ||
+    body.assignAll === true ||
+    String(body.assignAllInClass ?? "").toLowerCase() === "true";
+
+  if (assignAllInClass) {
+    const classId =
+      toOptionalPositiveInteger(body.classId, "classId") ??
+      toOptionalPositiveInteger(mockTest.classId, "classId");
+
+    if (classId === undefined) {
+      throw new AppError(
+        "classId is required when assignAllInClass is true",
+        400,
+      );
+    }
+
+    const students = await Student.findAll({
+      where: { classId },
+      attributes: ["id"],
+    });
+
+    const studentIds = students
+      .map((student: any) => Number(student.id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    if (studentIds.length === 0) {
+      throw new AppError("No students found in this class", 404);
+    }
+
+    return studentIds;
+  }
+
+  return normalizeStudentIds(body.studentIds ?? body.studentId);
+};
+
 const getStudentProfileByUserId = async (userId: number) =>
   Student.findOne({ where: { userId } });
 
@@ -1768,8 +1808,9 @@ export const assignMockTest = async (
       throw new AppError("Only generated mock tests can be assigned", 400);
     }
 
-    const studentIds = normalizeStudentIds(
-      req.body?.studentIds ?? req.body?.studentId,
+    const studentIds = await resolveAssignmentStudentIds(
+      (req.body ?? {}) as Record<string, unknown>,
+      mockTest,
     );
     const students = await Student.findAll({
       where: { id: { [Op.in]: studentIds } },
