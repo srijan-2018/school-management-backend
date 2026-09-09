@@ -390,6 +390,8 @@ router.put(
 router.get("/mock-tests", mockTest.getMockTests);
 router.get("/mock-tests/progress", mockTest.getMockTestProgress);
 router.post("/mock-tests/submit", mockTest.submitMockTest);
+router.post("/mock-tests/:id/start", mockTest.startMockTestAttempt);
+router.put("/mock-tests/:id/answers", mockTest.saveMockTestAnswers);
 router.get("/mock-tests/result/:id", mockTest.getMockTestResult);
 router.get("/mock-tests/ai-suggestion/:id", mockTest.getMockTestAiSuggestion);
 router.post(

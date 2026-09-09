@@ -80,6 +80,31 @@ export async function ensureNegativeMarkingSchema() {
         name: "chapterName",
         definition: "VARCHAR(255) NULL AFTER `chapterId`",
       },
+      {
+        name: "durationSeconds",
+        definition: "INT NULL",
+      },
+      {
+        name: "attemptStartedAt",
+        definition: "DATETIME NULL",
+      },
+      {
+        name: "attemptEndsAt",
+        definition: "DATETIME NULL",
+      },
+      {
+        name: "draftAnswers",
+        definition: "JSON NULL",
+      },
+      {
+        name: "questionStatuses",
+        definition: "JSON NULL",
+      },
+      {
+        name: "submissionReason",
+        definition:
+          "ENUM('MANUAL_SUBMIT','TIME_EXPIRED','EXAM_EXIT') NULL",
+      },
     ]);
   }
 }

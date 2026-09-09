@@ -9,6 +9,12 @@ class MockTest extends Model {
   public schoolId?: number | null;
   public negativeMarkingEnabled!: boolean;
   public negativeMarkingPenalty!: number;
+  public durationSeconds?: number | null;
+  public attemptStartedAt?: Date | string | null;
+  public attemptEndsAt?: Date | string | null;
+  public draftAnswers?: unknown;
+  public questionStatuses?: unknown;
+  public submissionReason?: string | null;
 }
 
 MockTest.init(
@@ -45,6 +51,40 @@ MockTest.init(
       type: DataTypes.DECIMAL(4, 2),
       allowNull: false,
       defaultValue: 0.25,
+    },
+    durationSeconds: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+    },
+    attemptStartedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+    attemptEndsAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
+    draftAnswers: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
+    },
+    questionStatuses: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
+    },
+    submissionReason: {
+      type: DataTypes.ENUM(
+        "MANUAL_SUBMIT",
+        "TIME_EXPIRED",
+        "EXAM_EXIT",
+      ),
+      allowNull: true,
+      defaultValue: null,
     },
   },
   { sequelize, modelName: "MockTest", timestamps: true },

@@ -30,6 +30,16 @@ import {
   serializeNegativeMarkingSnapshot,
   updateSchoolNegativeMarkingRule,
 } from "../services/mock-test-negative-marking.service";
+import {
+  DEFAULT_MOCK_TEST_DURATION_SECONDS,
+  computeAttemptEndsAt,
+  deriveQuestionStatuses,
+  hasAttemptExpired,
+  parseDurationSecondsFromBody,
+  parseSubmissionReason,
+  serializeAttemptTiming,
+  toIsoOrNull,
+} from "../services/mock-test-attempt.service";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
 const mockTestManagers = new Set<UserRole>(MOCK_TEST_MANAGER_ROLES);
@@ -826,6 +836,7 @@ const serializeMockTestSummary = (
     endTime: timing.endTime,
     timeTakenSeconds: timing.timeTakenSeconds,
     timeTakenMinutes: timing.timeTakenMinutes,
+    ...serializeAttemptTiming(mockTest),
     ...serializeNegativeMarkingSnapshot(mockTest),
     ...serializeOwnership(mockTest, currentUser),
     createdAt: mockTest.createdAt,
@@ -841,6 +852,11 @@ const serializeMockTestDetail = (
   const metrics = extractMetrics(mockTest);
   const submittedAt = getSubmittedAt(mockTest);
   const timing = extractTiming(mockTest);
+  const attempt = serializeAttemptTiming(mockTest);
+  const canExposeDraftAnswers =
+    Boolean(currentUser) &&
+    (isManagerRole(currentUser!.role) ||
+      mockTest.status === "generated");
 
   return {
     id: mockTest.id,
@@ -865,14 +881,131 @@ const serializeMockTestDetail = (
     unansweredCount: metrics.unansweredCount,
     percentage: metrics.percentage,
     submittedAt,
-    startTime: timing.startTime,
-    endTime: timing.endTime,
+    startTime: timing.startTime ?? attempt.attemptStartedAt,
+    endTime: timing.endTime ?? attempt.attemptEndsAt,
     timeTakenSeconds: timing.timeTakenSeconds,
     timeTakenMinutes: timing.timeTakenMinutes,
+    ...attempt,
+    draftAnswers: canExposeDraftAnswers ? attempt.draftAnswers : null,
+    questionStatuses: canExposeDraftAnswers ? attempt.questionStatuses : null,
     ...serializeNegativeMarkingSnapshot(mockTest),
     ...serializeOwnership(mockTest, currentUser),
     createdAt: mockTest.createdAt,
     updatedAt: mockTest.updatedAt,
+  };
+};
+
+const resolveDurationSecondsForCreate = (body: Record<string, unknown>) => {
+  try {
+    return (
+      parseDurationSecondsFromBody(body, {
+        required: false,
+        fallback: DEFAULT_MOCK_TEST_DURATION_SECONDS,
+      }) ?? DEFAULT_MOCK_TEST_DURATION_SECONDS
+    );
+  } catch (error) {
+    throw new AppError(
+      error instanceof Error ? error.message : "Invalid duration",
+      400,
+    );
+  }
+};
+
+const finalizeMockTestSubmission = async (
+  mockTest: any,
+  options: {
+    submittedAnswers?: unknown;
+    startTime?: unknown;
+    endTime?: unknown;
+    submissionReason?: unknown;
+    currentUser: CurrentUser;
+  },
+) => {
+  if (mockTest.status === "submitted" || mockTest.status === "evaluated") {
+    return {
+      alreadySubmitted: true as const,
+      mockTest,
+    };
+  }
+
+  const now = new Date();
+  const reason = parseSubmissionReason(options.submissionReason);
+  const answersSource =
+    options.submittedAnswers !== undefined && options.submittedAnswers !== null
+      ? options.submittedAnswers
+      : (mockTest.draftAnswers ?? mockTest.submittedAnswers ?? []);
+
+  const resolvedStartTime =
+    toIsoOrNull(options.startTime) ??
+    toIsoOrNull(mockTest.attemptStartedAt) ??
+    (mockTest.createdAt instanceof Date
+      ? mockTest.createdAt.toISOString()
+      : new Date(mockTest.createdAt).toISOString());
+
+  let resolvedEndTime = toIsoOrNull(options.endTime) ?? now.toISOString();
+  const attemptEndsAt = toIsoOrNull(mockTest.attemptEndsAt);
+
+  if (
+    reason === "TIME_EXPIRED" &&
+    attemptEndsAt &&
+    new Date(resolvedEndTime).getTime() > new Date(attemptEndsAt).getTime()
+  ) {
+    resolvedEndTime = attemptEndsAt;
+  }
+
+  if (
+    attemptEndsAt &&
+    reason !== "TIME_EXPIRED" &&
+    reason !== "EXAM_EXIT" &&
+    hasAttemptExpired(attemptEndsAt, now)
+  ) {
+    // Server clock is authoritative: late manual submits become time-expired.
+    resolvedEndTime = attemptEndsAt;
+  }
+
+  const evaluatedSubmission = buildMockTestResult(mockTest, answersSource, {
+    startTime: resolvedStartTime,
+    endTime: resolvedEndTime,
+  });
+
+  const questionCount = Array.isArray(mockTest.questions)
+    ? mockTest.questions.length
+    : 0;
+  const answerMap = new Map<number, string | null>();
+  evaluatedSubmission.submittedAnswers.forEach(
+    (answer: string | null, index: number) => {
+      answerMap.set(index, answer);
+    },
+  );
+
+  await mockTest.update({
+    submittedAnswers: evaluatedSubmission.submittedAnswers,
+    result: {
+      ...evaluatedSubmission.result,
+      submissionReason:
+        attemptEndsAt && hasAttemptExpired(attemptEndsAt, now) && reason === "MANUAL_SUBMIT"
+          ? "TIME_EXPIRED"
+          : reason,
+    },
+    aiSuggestion: evaluatedSubmission.aiSuggestion,
+    status: "submitted",
+    submissionReason:
+      attemptEndsAt && hasAttemptExpired(attemptEndsAt, now) && reason === "MANUAL_SUBMIT"
+        ? "TIME_EXPIRED"
+        : reason,
+    questionStatuses: deriveQuestionStatuses({
+      questionCount,
+      answers: answerMap,
+      statuses: mockTest.questionStatuses,
+    }),
+    draftAnswers: evaluatedSubmission.submittedAnswers,
+  });
+
+  await mockTest.reload({ include: mockTestUserInclude });
+
+  return {
+    alreadySubmitted: false as const,
+    mockTest,
   };
 };
 
@@ -1528,6 +1661,9 @@ export const createMockTest = async (
     const resolvedSchoolId =
       Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
     const marking = await resolveNegativeMarkingSnapshot(resolvedSchoolId);
+    const durationSeconds = resolveDurationSecondsForCreate(
+      (req.body ?? {}) as Record<string, unknown>,
+    );
 
     const mockTest = await MockTest.create({
       studentId: targetStudent?.id ?? null,
@@ -1543,6 +1679,7 @@ export const createMockTest = async (
       title: resolvedTitle,
       level: normalizedLevel,
       questions: validatedQuestions,
+      durationSeconds,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,
@@ -1643,6 +1780,9 @@ export const generateMockTest = async (
     const resolvedSchoolId =
       Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
     const marking = await resolveNegativeMarkingSnapshot(resolvedSchoolId);
+    const durationSeconds = resolveDurationSecondsForCreate(
+      (req.body ?? {}) as Record<string, unknown>,
+    );
 
     const mockTest = await MockTest.create({
       studentId: targetStudent?.id ?? null,
@@ -1659,6 +1799,7 @@ export const generateMockTest = async (
       title: resolvedTitle,
       level: normalizedLevel,
       questions: generated.questions,
+      durationSeconds,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,
@@ -1725,6 +1866,19 @@ export const getMockTestById = async (
     }
 
     const { currentUser } = await ensureMockTestAccess(req, mockTest);
+
+    if (
+      mockTest.status === "generated" &&
+      mockTest.attemptStartedAt &&
+      hasAttemptExpired(mockTest.attemptEndsAt)
+    ) {
+      await finalizeMockTestSubmission(mockTest, {
+        submissionReason: "TIME_EXPIRED",
+        endTime: mockTest.attemptEndsAt,
+        currentUser,
+      });
+    }
+
     const includeAnswers =
       isManagerRole(currentUser.role) || mockTest.status !== "generated";
 
@@ -1742,15 +1896,147 @@ export const submitMockTest = async (
   next: NextFunction,
 ) => {
   try {
-    const { mockTestId, submittedAnswers, startTime, endTime } = req.body ?? {};
+    const {
+      mockTestId,
+      submittedAnswers,
+      startTime,
+      endTime,
+      submissionReason,
+    } = req.body ?? {};
 
     if (!mockTestId) {
       throw new AppError("mockTestId is required", 400);
     }
 
-    const mockTest: any = await MockTest.findByPk(mockTestId);
+    const mockTest: any = await MockTest.findByPk(mockTestId, {
+      include: mockTestUserInclude,
+    });
     if (!mockTest)
       return res.status(404).json({ message: "mockTest not found" });
+
+    const { currentUser } = await ensureMockTestAccess(req, mockTest);
+
+    const finalized = await finalizeMockTestSubmission(mockTest, {
+      submittedAnswers,
+      startTime,
+      endTime,
+      submissionReason,
+      currentUser,
+    });
+
+    res.json({
+      message: finalized.alreadySubmitted
+        ? "mock test already submitted"
+        : "mock test submitted successfully",
+      mockTest: serializeMockTestDetail(finalized.mockTest, true, currentUser),
+      submittedBy: currentUser.role,
+      alreadySubmitted: finalized.alreadySubmitted,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const startMockTestAttempt = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
+
+    const { currentUser } = await ensureMockTestAccess(req, mockTest);
+
+    if (mockTest.status === "submitted" || mockTest.status === "evaluated") {
+      return res.json({
+        message: "mock test already submitted",
+        mockTest: serializeMockTestDetail(mockTest, true, currentUser),
+        alreadySubmitted: true,
+      });
+    }
+
+    const now = new Date();
+
+    if (mockTest.attemptStartedAt) {
+      if (hasAttemptExpired(mockTest.attemptEndsAt, now)) {
+        const finalized = await finalizeMockTestSubmission(mockTest, {
+          submissionReason: "TIME_EXPIRED",
+          endTime: mockTest.attemptEndsAt,
+          currentUser,
+        });
+
+        return res.json({
+          message: "mock test time expired and was submitted automatically",
+          mockTest: serializeMockTestDetail(
+            finalized.mockTest,
+            true,
+            currentUser,
+          ),
+          alreadySubmitted: true,
+          autoSubmitted: true,
+        });
+      }
+
+      return res.json({
+        message: "mock test attempt already started",
+        mockTest: serializeMockTestDetail(mockTest, false, currentUser),
+        alreadyStarted: true,
+      });
+    }
+
+    const durationSeconds =
+      typeof mockTest.durationSeconds === "number" &&
+      mockTest.durationSeconds > 0
+        ? mockTest.durationSeconds
+        : DEFAULT_MOCK_TEST_DURATION_SECONDS;
+    const attemptEndsAt = computeAttemptEndsAt(now, durationSeconds);
+
+    await mockTest.update({
+      durationSeconds,
+      attemptStartedAt: now,
+      attemptEndsAt,
+      draftAnswers: mockTest.draftAnswers ?? [],
+      questionStatuses:
+        mockTest.questionStatuses ??
+        deriveQuestionStatuses({
+          questionCount: Array.isArray(mockTest.questions)
+            ? mockTest.questions.length
+            : 0,
+          answers: {},
+        }),
+    });
+
+    await mockTest.reload({ include: mockTestUserInclude });
+
+    res.json({
+      message: "mock test attempt started",
+      mockTest: serializeMockTestDetail(mockTest, false, currentUser),
+      alreadyStarted: false,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const saveMockTestAnswers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
 
     const { currentUser } = await ensureMockTestAccess(req, mockTest);
 
@@ -1758,26 +2044,71 @@ export const submitMockTest = async (
       throw new AppError("Mock test already submitted", 400);
     }
 
-    const evaluatedSubmission = buildMockTestResult(
-      mockTest,
-      submittedAnswers,
-      {
-        startTime,
-        endTime,
-      },
-    );
+    if (!mockTest.attemptStartedAt) {
+      throw new AppError("Mock test attempt has not been started", 400);
+    }
 
-    await mockTest.update({
-      submittedAnswers: evaluatedSubmission.submittedAnswers,
-      result: evaluatedSubmission.result,
-      aiSuggestion: evaluatedSubmission.aiSuggestion,
-      status: "submitted",
+    const now = new Date();
+    if (hasAttemptExpired(mockTest.attemptEndsAt, now)) {
+      const finalized = await finalizeMockTestSubmission(mockTest, {
+        submittedAnswers: req.body?.submittedAnswers ?? mockTest.draftAnswers,
+        submissionReason: "TIME_EXPIRED",
+        endTime: mockTest.attemptEndsAt,
+        currentUser,
+      });
+
+      return res.json({
+        message: "mock test time expired and was submitted automatically",
+        mockTest: serializeMockTestDetail(finalized.mockTest, true, currentUser),
+        autoSubmitted: true,
+      });
+    }
+
+    const questionCount = Array.isArray(mockTest.questions)
+      ? mockTest.questions.length
+      : 0;
+    const answers = normalizeSubmittedAnswers(
+      req.body?.submittedAnswers ?? [],
+      questionCount,
+    );
+    const answerList = Array.from({ length: questionCount }, (_, index) =>
+      answers.get(index) ?? null,
+    );
+    const questionStatuses = deriveQuestionStatuses({
+      questionCount,
+      answers,
+      statuses: req.body?.questionStatuses ?? mockTest.questionStatuses,
     });
 
+    // Allow explicit skipped markers from client.
+    if (isObject(req.body?.questionStatuses)) {
+      for (const [key, value] of Object.entries(req.body.questionStatuses)) {
+        const normalized = String(value).toUpperCase();
+        if (
+          normalized === "SKIPPED" &&
+          !answerList[Number(key)]
+        ) {
+          questionStatuses[key] = "SKIPPED";
+        }
+        if (
+          normalized === "NOT_VISITED" &&
+          !answerList[Number(key)] &&
+          questionStatuses[key] !== "SKIPPED"
+        ) {
+          questionStatuses[key] = "NOT_VISITED";
+        }
+      }
+    }
+
+    await mockTest.update({
+      draftAnswers: answerList,
+      questionStatuses,
+    });
+    await mockTest.reload({ include: mockTestUserInclude });
+
     res.json({
-      message: "mock test submitted successfully",
-      mockTest: serializeMockTestDetail(mockTest, true, currentUser),
-      submittedBy: currentUser.role,
+      message: "answers saved",
+      mockTest: serializeMockTestDetail(mockTest, false, currentUser),
     });
   } catch (err) {
     next(err);
@@ -1841,6 +2172,8 @@ export const assignMockTest = async (
       title: mockTest.title,
       level: mockTest.level,
       questions: mockTest.questions,
+      durationSeconds:
+        mockTest.durationSeconds ?? DEFAULT_MOCK_TEST_DURATION_SECONDS,
       aiSuggestion: mockTest.aiSuggestion,
       generatedByUserId: mockTest.generatedByUserId ?? currentUser.id,
       assignedByUserId: currentUser.id,
@@ -1855,6 +2188,8 @@ export const assignMockTest = async (
       await mockTest.update({
         studentId: firstStudentId,
         assignedByUserId: currentUser.id,
+        durationSeconds:
+          mockTest.durationSeconds ?? DEFAULT_MOCK_TEST_DURATION_SECONDS,
       });
       assignedMockTests.push(mockTest);
     }
@@ -1951,10 +2286,30 @@ export const downloadMockTestPdf = async (
     }
 
     const { currentUser } = await ensureMockTestAccess(req, mockTest);
+
+    // Students cannot download any paper before submission.
+    if (
+      !isManagerRole(currentUser.role) &&
+      mockTest.status === "generated"
+    ) {
+      throw new AppError(
+        "Exam paper download is available only after submission",
+        403,
+      );
+    }
+
     const includeAnswersRequested = getIncludeAnswersParam(req.query);
     const includeAnswers =
       includeAnswersRequested &&
       (isManagerRole(currentUser.role) || mockTest.status !== "generated");
+
+    if (includeAnswersRequested && !includeAnswers) {
+      throw new AppError(
+        "Answer key download is not available for this attempt",
+        403,
+      );
+    }
+
     const pdf = await buildMockTestPdf(mockTest, includeAnswers);
 
     res.setHeader("Content-Type", "application/pdf");
