@@ -399,6 +399,7 @@ router.post(
   allowRoles(...MOCK_TEST_MANAGER_ROLES),
   mockTest.assignMockTest,
 );
+router.get("/mock-tests/:id/leaderboard", mockTest.getMockTestLeaderboard);
 router.get("/mock-tests/:id/pdf", mockTest.downloadMockTestPdf);
 router.get("/mock-tests/:id", mockTest.getMockTestById);
 

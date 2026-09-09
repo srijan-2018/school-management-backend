@@ -15,6 +15,7 @@ class MockTest extends Model {
   public draftAnswers?: unknown;
   public questionStatuses?: unknown;
   public submissionReason?: string | null;
+  public assignmentBatchId?: string | null;
 }
 
 MockTest.init(
@@ -83,6 +84,11 @@ MockTest.init(
         "TIME_EXPIRED",
         "EXAM_EXIT",
       ),
+      allowNull: true,
+      defaultValue: null,
+    },
+    assignmentBatchId: {
+      type: DataTypes.STRING(64),
       allowNull: true,
       defaultValue: null,
     },

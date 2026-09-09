@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import PDFDocument from "pdfkit";
+import { randomUUID } from "crypto";
 import { Op } from "sequelize";
 import Chapter from "../models/chapter.model";
 import Class from "../models/class.model";
@@ -40,6 +41,11 @@ import {
   serializeAttemptTiming,
   toIsoOrNull,
 } from "../services/mock-test-attempt.service";
+import {
+  applyPdfUnicodeFont,
+  detectPdfScriptFromValues,
+  writePdfText,
+} from "../utils/pdf-fonts";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
 const mockTestManagers = new Set<UserRole>(MOCK_TEST_MANAGER_ROLES);
@@ -822,6 +828,7 @@ const serializeMockTestSummary = (
     title: mockTest.title,
     level: mockTest.level,
     status: mockTest.status,
+    assignmentBatchId: mockTest.assignmentBatchId ?? null,
     questionCount: Array.isArray(mockTest.questions)
       ? mockTest.questions.length
       : 0,
@@ -870,6 +877,7 @@ const serializeMockTestDetail = (
     title: mockTest.title,
     level: mockTest.level,
     status: mockTest.status,
+    assignmentBatchId: mockTest.assignmentBatchId ?? null,
     questions: serializeQuestions(mockTest.questions, includeAnswers),
     submittedAnswers: mockTest.submittedAnswers ?? null,
     result: mockTest.result ?? null,
@@ -1402,6 +1410,181 @@ const buildProgressSummary = (
   };
 };
 
+const createAssignmentBatchId = () => randomUUID().replace(/-/g, "");
+
+const compareLeaderboardEntries = (left: any, right: any) => {
+  const leftSubmitted = left.status === "submitted" || left.status === "evaluated";
+  const rightSubmitted =
+    right.status === "submitted" || right.status === "evaluated";
+
+  if (leftSubmitted !== rightSubmitted) {
+    return leftSubmitted ? -1 : 1;
+  }
+
+  if (!leftSubmitted && !rightSubmitted) {
+    return String(left.studentName ?? "").localeCompare(
+      String(right.studentName ?? ""),
+    );
+  }
+
+  const percentageDiff = Number(right.percentage ?? 0) - Number(left.percentage ?? 0);
+  if (percentageDiff !== 0) {
+    return percentageDiff;
+  }
+
+  const scoreDiff = Number(right.score ?? 0) - Number(left.score ?? 0);
+  if (scoreDiff !== 0) {
+    return scoreDiff;
+  }
+
+  const leftTime =
+    left.timeTakenSeconds == null ? Number.POSITIVE_INFINITY : Number(left.timeTakenSeconds);
+  const rightTime =
+    right.timeTakenSeconds == null
+      ? Number.POSITIVE_INFINITY
+      : Number(right.timeTakenSeconds);
+  if (leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+
+  const leftSubmittedAt = left.submittedAt
+    ? new Date(left.submittedAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const rightSubmittedAt = right.submittedAt
+    ? new Date(right.submittedAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  return leftSubmittedAt - rightSubmittedAt;
+};
+
+const resolveAssignmentPeerWhere = (mockTest: any) => {
+  if (mockTest.assignmentBatchId) {
+    return {
+      assignmentBatchId: mockTest.assignmentBatchId,
+      studentId: { [Op.not]: null },
+    };
+  }
+
+  const where: Record<string, unknown> = {
+    studentId: { [Op.not]: null },
+    title: mockTest.title,
+  };
+
+  if (mockTest.schoolId != null) {
+    where.schoolId = mockTest.schoolId;
+  }
+  if (mockTest.classId != null) {
+    where.classId = mockTest.classId;
+  }
+  if (mockTest.subjectId != null) {
+    where.subjectId = mockTest.subjectId;
+  }
+  if (mockTest.level != null) {
+    where.level = mockTest.level;
+  }
+  if (mockTest.generatedByUserId != null) {
+    where.generatedByUserId = mockTest.generatedByUserId;
+  }
+
+  return where;
+};
+
+const buildLeaderboardReport = (mockTests: any[], currentMockTestId?: number) => {
+  const entries = mockTests.map((item) => {
+    const metrics = extractMetrics(item);
+    const timing = extractTiming(item);
+    const student = serializeAssignedStudent(item);
+    const isSubmitted =
+      item.status === "submitted" || item.status === "evaluated";
+
+    return {
+      mockTestId: item.id,
+      studentId: item.studentId,
+      studentName: student?.name || "Student",
+      rollNumber: student?.rollNumber || "",
+      email: student?.email || "",
+      status: item.status,
+      isSubmitted,
+      score: metrics.score,
+      percentage: metrics.percentage,
+      correctCount: metrics.correctCount,
+      wrongCount: metrics.wrongCount,
+      unansweredCount: metrics.unansweredCount,
+      totalQuestions: metrics.totalQuestions,
+      timeTakenSeconds: timing.timeTakenSeconds,
+      timeTakenMinutes: timing.timeTakenMinutes,
+      submittedAt: getSubmittedAt(item),
+      submissionReason: item.submissionReason ?? item.result?.submissionReason ?? null,
+      isCurrentStudent:
+        currentMockTestId != null && Number(item.id) === Number(currentMockTestId),
+    };
+  });
+
+  entries.sort(compareLeaderboardEntries);
+
+  let nextRank = 1;
+  const ranked = entries.map((entry, index) => {
+    if (!entry.isSubmitted) {
+      return { ...entry, rank: null as number | null };
+    }
+
+    if (index > 0) {
+      const previous = entries[index - 1];
+      const sameStanding =
+        previous.isSubmitted &&
+        Number(previous.percentage ?? 0) === Number(entry.percentage ?? 0) &&
+        Number(previous.score ?? 0) === Number(entry.score ?? 0) &&
+        Number(previous.timeTakenSeconds ?? -1) ===
+          Number(entry.timeTakenSeconds ?? -1);
+
+      if (!sameStanding) {
+        nextRank = index + 1;
+      }
+    } else {
+      nextRank = 1;
+    }
+
+    return { ...entry, rank: nextRank };
+  });
+
+  const submitted = ranked.filter((entry) => entry.isSubmitted);
+  const pending = ranked.filter((entry) => !entry.isSubmitted);
+  const currentEntry =
+    ranked.find((entry) => entry.isCurrentStudent) ?? null;
+
+  const averagePercentage =
+    submitted.length > 0
+      ? Math.round(
+          (submitted.reduce(
+            (sum, entry) => sum + Number(entry.percentage ?? 0),
+            0,
+          ) /
+            submitted.length) *
+            100,
+        ) / 100
+      : null;
+
+  const highestPercentage =
+    submitted.length > 0
+      ? Math.max(...submitted.map((entry) => Number(entry.percentage ?? 0)))
+      : null;
+
+  return {
+    entries: ranked,
+    currentStudent: currentEntry,
+    summary: {
+      totalAssigned: ranked.length,
+      totalSubmitted: submitted.length,
+      totalPending: pending.length,
+      averagePercentage,
+      highestPercentage,
+      completionRate:
+        ranked.length > 0
+          ? Math.round((submitted.length / ranked.length) * 10000) / 100
+          : 0,
+    },
+  };
+};
+
 const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
   new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
@@ -1409,6 +1592,28 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
     const resultQuestions = Array.isArray(mockTest.result?.questions)
       ? mockTest.result.questions
       : [];
+    const questions = Array.isArray(mockTest.questions)
+      ? mockTest.questions
+      : [];
+
+    const scriptSamples: unknown[] = [
+      mockTest.title,
+      mockTest.className,
+      mockTest.subjectName,
+      mockTest.chapterName,
+      mockTest.aiSuggestion,
+      ...questions.flatMap((question: any) => [
+        question?.question,
+        question?.explanation,
+        question?.correctAnswer,
+        ...(Array.isArray(question?.options)
+          ? question.options.map((option: any) =>
+              typeof option === "string" ? option : option?.text,
+            )
+          : []),
+      ]),
+    ];
+    const documentScript = detectPdfScriptFromValues(scriptSamples);
 
     const writeSpacing = (lines = 1) => {
       for (let index = 0; index < lines; index += 1) {
@@ -1419,64 +1624,88 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
     const ensureSpace = (space = 80) => {
       if (doc.y > doc.page.height - space) {
         doc.addPage();
+        applyPdfUnicodeFont(doc, { script: documentScript, size: 11 });
       }
+    };
+
+    const writeLine = (
+      text: string,
+      options?: {
+        style?: "regular" | "bold";
+        size?: number;
+        align?: "left" | "center" | "right" | "justify";
+        underline?: boolean;
+      },
+    ) => {
+      writePdfText(doc, text, {
+        script: documentScript,
+        style: options?.style,
+        size: options?.size ?? 11,
+        align: options?.align,
+        underline: options?.underline,
+      });
     };
 
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    doc.fontSize(18).text(String(mockTest.title ?? "Mock Test"), {
+    applyPdfUnicodeFont(doc, { script: documentScript, size: 11 });
+
+    writeLine(String(mockTest.title ?? "Mock Test"), {
+      style: "bold",
+      size: 18,
       align: "center",
     });
     writeSpacing();
 
-    doc.fontSize(11).text(`Class: ${mockTest.className ?? "N/A"}`);
-    doc.text(`Subject: ${mockTest.subjectName ?? "N/A"}`);
+    writeLine(`Class: ${mockTest.className ?? "N/A"}`);
+    writeLine(`Subject: ${mockTest.subjectName ?? "N/A"}`);
     if (mockTest.chapterName) {
-      doc.text(`Chapter: ${mockTest.chapterName}`);
+      writeLine(`Chapter: ${mockTest.chapterName}`);
     }
-    doc.text(`Level: ${mockTest.level ?? "N/A"}`);
-    doc.text(`Status: ${mockTest.status ?? "N/A"}`);
+    writeLine(`Level: ${mockTest.level ?? "N/A"}`);
+    writeLine(`Status: ${mockTest.status ?? "N/A"}`);
 
     const metrics = extractMetrics(mockTest);
     if (includeAnswers && metrics.score !== null) {
       writeSpacing();
-      doc.fontSize(12).text("Performance Summary", { underline: true });
-      doc
-        .fontSize(11)
-        .text(
-          `Score: ${metrics.score}/${metrics.totalQuestions} (${metrics.percentage ?? 0}%)`,
-        );
+      writeLine("Performance Summary", {
+        style: "bold",
+        size: 12,
+        underline: true,
+      });
+      writeLine(
+        `Score: ${metrics.score}/${metrics.totalQuestions} (${metrics.percentage ?? 0}%)`,
+      );
       if (Boolean(mockTest.negativeMarkingEnabled)) {
         const marking = serializeNegativeMarkingSnapshot(mockTest);
-        doc.text(
+        writeLine(
           `Negative marking: -${marking.negativeMarkingPenalty} per wrong answer`,
         );
       }
-      doc.text(
+      writeLine(
         `Correct: ${metrics.correctCount} | Wrong: ${metrics.wrongCount} | Unanswered: ${metrics.unansweredCount}`,
       );
       if (mockTest.aiSuggestion) {
         writeSpacing();
-        doc.text(`Suggestion: ${mockTest.aiSuggestion}`);
+        writeLine(`Suggestion: ${mockTest.aiSuggestion}`);
       }
     }
 
     writeSpacing();
-    doc.fontSize(12).text("Questions", { underline: true });
+    writeLine("Questions", { style: "bold", size: 12, underline: true });
     writeSpacing();
 
-    const questions = Array.isArray(mockTest.questions)
-      ? mockTest.questions
-      : [];
     questions.forEach((question: any, index: number) => {
       ensureSpace(140);
 
-      doc.fontSize(11).text(`${index + 1}. ${String(question.question ?? "")}`);
+      writeLine(`${index + 1}. ${String(question.question ?? "")}`, {
+        style: "bold",
+      });
       const options = getQuestionOptions(question.options);
       options.forEach((option) => {
-        doc.text(`${option.key}. ${option.text}`);
+        writeLine(`${option.key}. ${option.text}`);
       });
 
       if (includeAnswers) {
@@ -1486,7 +1715,7 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
           question.correctAnswer,
         );
 
-        doc.text(
+        writeLine(
           `Correct Answer: ${String(question.correctAnswer ?? "N/A")}${correctAnswerText ? `. ${correctAnswerText}` : ""}`,
         );
 
@@ -1496,16 +1725,16 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
             resultQuestion.selectedAnswer,
           );
 
-          doc.text(
+          writeLine(
             `Selected Answer: ${String(resultQuestion.selectedAnswer)}${selectedAnswerText ? `. ${selectedAnswerText}` : ""}`,
           );
-          doc.text(
+          writeLine(
             `Result: ${resultQuestion.isCorrect ? "Correct" : "Incorrect"}`,
           );
         }
 
         if (question.explanation) {
-          doc.text(`Explanation: ${String(question.explanation)}`);
+          writeLine(`Explanation: ${String(question.explanation)}`);
         }
       }
 
@@ -1680,6 +1909,7 @@ export const createMockTest = async (
       level: normalizedLevel,
       questions: validatedQuestions,
       durationSeconds,
+      assignmentBatchId: targetStudent ? createAssignmentBatchId() : null,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,
@@ -1800,6 +2030,7 @@ export const generateMockTest = async (
       level: normalizedLevel,
       questions: generated.questions,
       durationSeconds,
+      assignmentBatchId: targetStudent ? createAssignmentBatchId() : null,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,
@@ -2161,6 +2392,8 @@ export const assignMockTest = async (
     }
 
     const marking = serializeNegativeMarkingSnapshot(mockTest);
+    const assignmentBatchId =
+      mockTest.assignmentBatchId || createAssignmentBatchId();
     const basePayload = {
       classId: mockTest.classId,
       className: mockTest.className,
@@ -2174,6 +2407,7 @@ export const assignMockTest = async (
       questions: mockTest.questions,
       durationSeconds:
         mockTest.durationSeconds ?? DEFAULT_MOCK_TEST_DURATION_SECONDS,
+      assignmentBatchId,
       aiSuggestion: mockTest.aiSuggestion,
       generatedByUserId: mockTest.generatedByUserId ?? currentUser.id,
       assignedByUserId: currentUser.id,
@@ -2190,8 +2424,11 @@ export const assignMockTest = async (
         assignedByUserId: currentUser.id,
         durationSeconds:
           mockTest.durationSeconds ?? DEFAULT_MOCK_TEST_DURATION_SECONDS,
+        assignmentBatchId,
       });
       assignedMockTests.push(mockTest);
+    } else if (!mockTest.assignmentBatchId) {
+      await mockTest.update({ assignmentBatchId });
     }
 
     const remainingStudentIds =
@@ -2267,6 +2504,82 @@ export const getMockTestProgress = async (
       progress: buildProgressSummary(mockTests, currentUser.role),
       studentId:
         typeof where.studentId === "number" ? where.studentId : queryStudentId ?? null,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMockTestLeaderboard = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
+
+    const { currentUser } = await ensureMockTestAccess(req, mockTest);
+
+    if (!mockTest.studentId && !isManagerRole(currentUser.role)) {
+      throw new AppError("Leaderboard is available after assignment", 400);
+    }
+
+    const peers = await MockTest.findAll({
+      where: resolveAssignmentPeerWhere(mockTest),
+      include: mockTestUserInclude,
+    });
+
+    // Students only see standings after they have submitted (or if manager).
+    if (
+      !isManagerRole(currentUser.role) &&
+      mockTest.status === "generated"
+    ) {
+      return res.json({
+        mockTestId: mockTest.id,
+        assignmentBatchId: mockTest.assignmentBatchId ?? null,
+        title: mockTest.title,
+        classId: mockTest.classId,
+        className: mockTest.className,
+        subjectName: mockTest.subjectName,
+        locked: true,
+        message: "Class standings unlock after you submit this mock test.",
+        summary: {
+          totalAssigned: peers.length,
+          totalSubmitted: peers.filter(
+            (item: any) =>
+              item.status === "submitted" || item.status === "evaluated",
+          ).length,
+          totalPending: peers.filter(
+            (item: any) =>
+              item.status !== "submitted" && item.status !== "evaluated",
+          ).length,
+          averagePercentage: null,
+          highestPercentage: null,
+          completionRate: 0,
+        },
+        entries: [],
+        currentStudent: null,
+      });
+    }
+
+    const report = buildLeaderboardReport(peers, mockTest.id);
+
+    res.json({
+      mockTestId: mockTest.id,
+      assignmentBatchId: mockTest.assignmentBatchId ?? null,
+      title: mockTest.title,
+      classId: mockTest.classId,
+      className: mockTest.className,
+      subjectName: mockTest.subjectName,
+      locked: false,
+      message: null,
+      ...report,
     });
   } catch (err) {
     next(err);

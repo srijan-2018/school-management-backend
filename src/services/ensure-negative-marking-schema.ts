@@ -105,6 +105,10 @@ export async function ensureNegativeMarkingSchema() {
         definition:
           "ENUM('MANUAL_SUBMIT','TIME_EXPIRED','EXAM_EXIT') NULL",
       },
+      {
+        name: "assignmentBatchId",
+        definition: "VARCHAR(64) NULL",
+      },
     ]);
   }
 }
