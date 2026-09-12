@@ -27,7 +27,7 @@ import {
   NEGATIVE_MARKING_PENALTY_OPTIONS,
   computeMockTestScore,
   getSchoolNegativeMarkingRule,
-  resolveNegativeMarkingSnapshot,
+  resolveNegativeMarkingSnapshotForCreate,
   serializeNegativeMarkingSnapshot,
   updateSchoolNegativeMarkingRule,
 } from "../services/mock-test-negative-marking.service";
@@ -787,11 +787,6 @@ const serializeOwnership = (mockTest: any, currentUser?: CurrentUser) => {
   const assignedByUser = getIncludedUser(mockTest, "assignedByUser");
   const generatedByUserId = mockTest.generatedByUserId ?? null;
   const assignedByUserId = mockTest.assignedByUserId ?? null;
-  const assignedByRole =
-    normalizeRole(assignedByUser?.role) ??
-    (currentUser && Number(assignedByUserId) === Number(currentUser.id)
-      ? currentUser.role
-      : null);
 
   return {
     generatedByUserId,
@@ -803,8 +798,7 @@ const serializeOwnership = (mockTest: any, currentUser?: CurrentUser) => {
       !!currentUser && Number(generatedByUserId) === Number(currentUser.id),
     assignedByMe:
       !!currentUser && Number(assignedByUserId) === Number(currentUser.id),
-    assignedByTeacher:
-      assignedByRole === "teacher" || assignedByRole === "head_teacher",
+    assignedByTeacher: assignedByUserId != null,
   };
 };
 
@@ -1754,6 +1748,7 @@ export const getMockTests = async (
       await getAccessibleStudent(req);
     const { page, limit, offset } = getPagination(req);
     const where: Record<PropertyKey, unknown> = {};
+    const andConditions: Record<PropertyKey, unknown>[] = [];
     const queryStudentId = toOptionalPositiveInteger(
       req.query.studentId,
       "studentId",
@@ -1768,12 +1763,18 @@ export const getMockTests = async (
     );
     const status = toOptionalString(req.query.status);
     const onlyAssigned = toBoolean(req.query.onlyAssigned);
+    const search = String(req.query.search ?? req.query.keyword ?? "").trim();
+    const source = String(req.query.source ?? "")
+      .trim()
+      .toLowerCase();
 
     if (isManagerRole(currentUser.role)) {
-      where[Op.or] = [
-        { generatedByUserId: currentUser.id },
-        { assignedByUserId: currentUser.id },
-      ];
+      andConditions.push({
+        [Op.or]: [
+          { generatedByUserId: currentUser.id },
+          { assignedByUserId: currentUser.id },
+        ],
+      });
 
       if (queryStudentId !== undefined) {
         where.studentId = queryStudentId;
@@ -1794,6 +1795,39 @@ export const getMockTests = async (
       where.studentId = student.id;
     }
 
+    // Students/parents: split teacher-assigned tests vs self practice.
+    if (!isManagerRole(currentUser.role)) {
+      if (source === "assigned") {
+        andConditions.push({
+          assignedByUserId: { [Op.ne]: null },
+        });
+      } else if (source === "self") {
+        let selfPracticeGeneratorUserIds: number[] = [];
+        if (currentUser.role === "parent") {
+          const linkedStudents = linkedStudentIds.length
+            ? await Student.findAll({
+                where: { id: { [Op.in]: linkedStudentIds } },
+                attributes: ["userId"],
+              })
+            : [];
+          selfPracticeGeneratorUserIds = linkedStudents
+            .map((row: any) => Number(row.userId ?? row.get?.("userId")))
+            .filter((id) => Number.isInteger(id) && id > 0);
+        } else {
+          selfPracticeGeneratorUserIds = [Number(currentUser.id)];
+        }
+
+        andConditions.push({
+          assignedByUserId: { [Op.is]: null },
+          generatedByUserId: {
+            [Op.in]: selfPracticeGeneratorUserIds.length
+              ? selfPracticeGeneratorUserIds
+              : [-1],
+          },
+        });
+      }
+    }
+
     if (queryClassId !== undefined) {
       where.classId = queryClassId;
     }
@@ -1806,12 +1840,34 @@ export const getMockTests = async (
       where.status = status;
     }
 
+    if (search) {
+      const searchLike = `%${search}%`;
+      andConditions.push({
+        [Op.or]: [
+          { title: { [Op.like]: searchLike } },
+          { subjectName: { [Op.like]: searchLike } },
+          { chapterName: { [Op.like]: searchLike } },
+          { className: { [Op.like]: searchLike } },
+          { level: { [Op.like]: searchLike } },
+          { "$student.User.name$": { [Op.like]: searchLike } },
+          { "$student.User.email$": { [Op.like]: searchLike } },
+          { "$student.rollNumber$": { [Op.like]: searchLike } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where[Op.and] = andConditions;
+    }
+
     const { rows: mockTests, count } = await MockTest.findAndCountAll({
       where,
       include: mockTestUserInclude,
       order: [["createdAt", "DESC"]],
       limit,
       offset,
+      distinct: true,
+      subQuery: false,
     });
 
     res.json({
@@ -1889,7 +1945,10 @@ export const createMockTest = async (
     const schoolId = Number(req.schoolId);
     const resolvedSchoolId =
       Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
-    const marking = await resolveNegativeMarkingSnapshot(resolvedSchoolId);
+    const marking = await resolveNegativeMarkingSnapshotForCreate(
+      resolvedSchoolId,
+      (req.body ?? {}) as Record<string, unknown>,
+    );
     const durationSeconds = resolveDurationSecondsForCreate(
       (req.body ?? {}) as Record<string, unknown>,
     );
@@ -1897,7 +1956,10 @@ export const createMockTest = async (
     const mockTest = await MockTest.create({
       studentId: targetStudent?.id ?? null,
       generatedByUserId: currentUser.id,
-      assignedByUserId: targetStudent ? currentUser.id : null,
+      assignedByUserId:
+        targetStudent && isManagerRole(currentUser.role)
+          ? currentUser.id
+          : null,
       schoolId: resolvedSchoolId,
       classId: resolvedContext.classId,
       className: String(resolvedContext.className),
@@ -1909,7 +1971,10 @@ export const createMockTest = async (
       level: normalizedLevel,
       questions: validatedQuestions,
       durationSeconds,
-      assignmentBatchId: targetStudent ? createAssignmentBatchId() : null,
+      assignmentBatchId:
+        targetStudent && isManagerRole(currentUser.role)
+          ? createAssignmentBatchId()
+          : null,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,
@@ -1920,9 +1985,10 @@ export const createMockTest = async (
     });
 
     res.status(201).json({
-      message: targetStudent
-        ? "mock test created and assigned successfully"
-        : "mock test created successfully",
+      message:
+        targetStudent && isManagerRole(currentUser.role)
+          ? "mock test created and assigned successfully"
+          : "mock test created successfully",
       provider: "manual",
       mockTest: serializeMockTestDetail(mockTest, true, currentUser),
     });
@@ -2009,7 +2075,10 @@ export const generateMockTest = async (
     const schoolId = Number(req.schoolId);
     const resolvedSchoolId =
       Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null;
-    const marking = await resolveNegativeMarkingSnapshot(resolvedSchoolId);
+    const marking = await resolveNegativeMarkingSnapshotForCreate(
+      resolvedSchoolId,
+      (req.body ?? {}) as Record<string, unknown>,
+    );
     const durationSeconds = resolveDurationSecondsForCreate(
       (req.body ?? {}) as Record<string, unknown>,
     );
@@ -2030,7 +2099,10 @@ export const generateMockTest = async (
       level: normalizedLevel,
       questions: generated.questions,
       durationSeconds,
-      assignmentBatchId: targetStudent ? createAssignmentBatchId() : null,
+      assignmentBatchId:
+        targetStudent && isManagerRole(currentUser.role)
+          ? createAssignmentBatchId()
+          : null,
       aiSuggestion: buildGenerationSuggestion(
         String(resolvedContext.subjectName),
         normalizedLevel,

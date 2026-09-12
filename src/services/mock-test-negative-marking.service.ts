@@ -118,6 +118,43 @@ export async function resolveNegativeMarkingSnapshot(
   };
 }
 
+/**
+ * Resolve marking for a newly created/generated mock test.
+ * School feature must be on. Creators (teachers/head teachers/etc.) may override
+ * enabled + penalty per test; otherwise the school default is used.
+ */
+export async function resolveNegativeMarkingSnapshotForCreate(
+  schoolId: number | null | undefined,
+  input: { negativeMarkingEnabled?: unknown; negativeMarkingPenalty?: unknown } = {},
+): Promise<NegativeMarkingSnapshot> {
+  if (!Number.isInteger(schoolId) || !schoolId || schoolId <= 0) {
+    return {
+      negativeMarkingEnabled: false,
+      negativeMarkingPenalty: DEFAULT_NEGATIVE_MARKING_PENALTY,
+    };
+  }
+
+  const rule = await getSchoolNegativeMarkingRule(schoolId);
+  if (!rule.featureEnabled) {
+    return {
+      negativeMarkingEnabled: false,
+      negativeMarkingPenalty: rule.penalty,
+    };
+  }
+
+  const hasEnabledOverride = input.negativeMarkingEnabled !== undefined;
+  const hasPenaltyOverride = input.negativeMarkingPenalty !== undefined;
+
+  return {
+    negativeMarkingEnabled: hasEnabledOverride
+      ? Boolean(input.negativeMarkingEnabled)
+      : rule.enabled,
+    negativeMarkingPenalty: hasPenaltyOverride
+      ? normalizeNegativeMarkingPenalty(input.negativeMarkingPenalty)
+      : rule.penalty,
+  };
+}
+
 export function computeMockTestScore(input: {
   correctCount: number;
   wrongCount: number;

@@ -100,7 +100,7 @@ export const SCHOOL_FEATURE_CATALOG: SchoolFeatureDefinition[] = [
     key: "mock-test-negative-marking",
     label: "Mock test negative marking",
     description:
-      "Lets the school owner turn negative marking on or off for mock tests. Does not hide the Mock Tests module.",
+      "Lets the school use negative marking on mock tests. Teachers and head teachers can turn it on or off for each test.",
     group: "Operations",
     defaultEnabled: false,
   },

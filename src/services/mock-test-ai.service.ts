@@ -88,6 +88,56 @@ const hasPlaceholderOptions = (options: MockOption[]) =>
   options.length === 4 &&
   options.every((option, index) => isLabelOnlyOption(option.text, index));
 
+const shuffleArray = <T,>(items: T[]): T[] => {
+  const next = [...items];
+
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const current = next[index];
+    next[index] = next[swapIndex];
+    next[swapIndex] = current;
+  }
+
+  return next;
+};
+
+/**
+ * Keep option texts, shuffle their order, and remap correctAnswer to the new key.
+ * Prevents AI-generated papers from always marking A as correct.
+ */
+export const shuffleQuestionOptions = (question: MockQuestion): MockQuestion => {
+  const correctOption = question.options.find(
+    (option) => option.key === question.correctAnswer,
+  );
+
+  if (!correctOption) {
+    return question;
+  }
+
+  const shuffledTexts = shuffleArray(
+    question.options.map((option) => option.text),
+  );
+  const options = optionLabels.map((key, index) => ({
+    key,
+    text: shuffledTexts[index] ?? "",
+  }));
+  const remappedCorrectAnswer =
+    options.find(
+      (option) =>
+        normalizeForComparison(option.text) ===
+        normalizeForComparison(correctOption.text),
+    )?.key ?? question.correctAnswer;
+
+  return {
+    ...question,
+    options,
+    correctAnswer: remappedCorrectAnswer,
+  };
+};
+
+export const shuffleMockTestQuestions = (questions: MockQuestion[]) =>
+  questions.map((question) => shuffleQuestionOptions(question));
+
 const isWeakOptionText = (value: string, index: number) => {
   const normalizedText = normalizeOptionText(value);
   const normalizedComparison = normalizeForComparison(normalizedText);
@@ -135,7 +185,7 @@ Return ONLY valid JSON in this exact structure:
         { "key": "C", "text": "option text 3" },
         { "key": "D", "text": "option text 4" }
       ],
-      "correctAnswer": "A",
+      "correctAnswer": "B",
       "explanation": "short explanation"
     }
   ]
@@ -148,8 +198,9 @@ ${chapterName ? `- Focus questions specifically on the chapter "${chapterName}".
 - Every option must be an object with key and text.
 - Keys must be exactly A, B, C, and D.
 - Option texts must be full answer texts, not just labels like A, B, C, or D.
-- Example: if the question is "What is 2 * 2?", options should look like [{"key":"A","text":"1"}, {"key":"B","text":"4"}, {"key":"C","text":"9"}, {"key":"D","text":"None of the above"}].
-- correctAnswer must be only the correct key, such as "A".
+- Example: if the question is "What is 2 * 2?", options should look like [{"key":"A","text":"1"}, {"key":"B","text":"4"}, {"key":"C","text":"9"}, {"key":"D","text":"None of the above"}] with "correctAnswer":"B".
+- correctAnswer must be only the correct key (A, B, C, or D).
+- Across the full set of questions, vary correctAnswer. Do not make every correctAnswer "A". Mix A, B, C, and D.
 - Do not return markdown.
 - Do not return explanation outside JSON.
 - Return only pure JSON.
@@ -276,7 +327,7 @@ const normalizeGeneratedMockTest = (
 
   return {
     title,
-    questions: validateQuestions(generated.questions),
+    questions: shuffleMockTestQuestions(validateQuestions(generated.questions)),
     provider,
     model,
   };
@@ -334,7 +385,7 @@ export const generateMockTestWithAi = async (input: GenerateMockTestInput) => {
               {
                 role: "system",
                 content:
-                  "You generate school mock tests. Return ONLY pure valid JSON without markdown. Every option must be an object with key and text. Use keys A, B, C, and D exactly once, and return correctAnswer as only the correct key. Internally verify that all option texts are distinct, meaningful, and not placeholders before answering.",
+                  "You generate school mock tests. Return ONLY pure valid JSON without markdown. Every option must be an object with key and text. Use keys A, B, C, and D exactly once, and return correctAnswer as only the correct key. Vary correctAnswer across questions so it is not always A. Internally verify that all option texts are distinct, meaningful, and not placeholders before answering.",
               },
               {
                 role: "user",
