@@ -43,8 +43,11 @@ import {
 } from "../services/mock-test-attempt.service";
 import {
   applyPdfUnicodeFont,
+  detectPdfScript,
   detectPdfScriptFromValues,
   writePdfText,
+  assertPdfFontAvailable,
+  ensurePdfFontsInstalled,
 } from "../utils/pdf-fonts";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
@@ -1579,24 +1582,17 @@ const buildLeaderboardReport = (mockTests: any[], currentMockTestId?: number) =>
   };
 };
 
-const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
-  new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
-    const chunks: Buffer[] = [];
-    const resultQuestions = Array.isArray(mockTest.result?.questions)
-      ? mockTest.result.questions
-      : [];
-    const questions = Array.isArray(mockTest.questions)
-      ? mockTest.questions
-      : [];
+const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
+  await ensurePdfFontsInstalled();
 
-    const scriptSamples: unknown[] = [
-      mockTest.title,
-      mockTest.className,
-      mockTest.subjectName,
-      mockTest.chapterName,
-      mockTest.aiSuggestion,
-      ...questions.flatMap((question: any) => [
+  const scriptSamples: unknown[] = [
+    mockTest.title,
+    mockTest.className,
+    mockTest.subjectName,
+    mockTest.chapterName,
+    mockTest.aiSuggestion,
+    ...(Array.isArray(mockTest.questions) ? mockTest.questions : []).flatMap(
+      (question: any) => [
         question?.question,
         question?.explanation,
         question?.correctAnswer,
@@ -1605,9 +1601,21 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
               typeof option === "string" ? option : option?.text,
             )
           : []),
-      ]),
-    ];
-    const documentScript = detectPdfScriptFromValues(scriptSamples);
+      ],
+    ),
+  ];
+  const documentScript = detectPdfScriptFromValues(scriptSamples);
+  assertPdfFontAvailable(documentScript);
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    const chunks: Buffer[] = [];
+    const resultQuestions = Array.isArray(mockTest.result?.questions)
+      ? mockTest.result.questions
+      : [];
+    const questions = Array.isArray(mockTest.questions)
+      ? mockTest.questions
+      : [];
 
     const writeSpacing = (lines = 1) => {
       for (let index = 0; index < lines; index += 1) {
@@ -1632,7 +1640,7 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
       },
     ) => {
       writePdfText(doc, text, {
-        script: documentScript,
+        script: detectPdfScript(text),
         style: options?.style,
         size: options?.size ?? 11,
         align: options?.align,
@@ -1737,6 +1745,7 @@ const buildMockTestPdf = (mockTest: any, includeAnswers: boolean) =>
 
     doc.end();
   });
+};
 
 export const getMockTests = async (
   req: Request,
@@ -2695,7 +2704,19 @@ export const downloadMockTestPdf = async (
       );
     }
 
-    const pdf = await buildMockTestPdf(mockTest, includeAnswers);
+    let pdf: Buffer;
+    try {
+      pdf = await buildMockTestPdf(mockTest, includeAnswers);
+    } catch (pdfError) {
+      const message =
+        pdfError instanceof Error ? pdfError.message : "PDF generation failed";
+      throw new AppError(
+        message.includes("font")
+          ? message
+          : `Unable to generate mock test PDF. ${message}`,
+        500,
+      );
+    }
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

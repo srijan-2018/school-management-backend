@@ -11,6 +11,7 @@ import { connectDB, sequelize } from "./config/db";
 import swaggerSpec from "./config/swagger";
 import { bootstrapAdmin } from "./scripts/bootstrap-admin";
 import { ensureNegativeMarkingSchema } from "./services/ensure-negative-marking-schema";
+import { ensurePdfFontsInstalled } from "./utils/pdf-fonts";
 
 import "./models";
 
@@ -148,6 +149,9 @@ const startServer = async () => {
 
     await ensureNegativeMarkingSchema();
     console.log("Negative marking schema ready");
+
+    await ensurePdfFontsInstalled();
+    console.log("PDF fonts ready");
 
     await bootstrapAdmin();
 

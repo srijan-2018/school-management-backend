@@ -1,4 +1,5 @@
 import fs from "fs";
+import https from "https";
 import path from "path";
 import type PDFDocument from "pdfkit";
 
@@ -9,7 +10,8 @@ type PdfFontSet = {
   bold: string;
 };
 
-const fontsRoot = path.resolve(__dirname, "../../assets/fonts");
+const FONT_CDN_BASE =
+  "https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf";
 
 const FONT_FILES = {
   latin: {
@@ -22,15 +24,47 @@ const FONT_FILES = {
   },
   devanagari: {
     regular: "NotoSansDevanagari-Regular.ttf",
-    // Devanagari bold may be unavailable; fall back to regular.
     bold: "NotoSansDevanagari-Regular.ttf",
   },
 } as const;
 
+const FONT_DOWNLOAD_URLS: Record<string, string> = {
+  [FONT_FILES.latin.regular]: `${FONT_CDN_BASE}/NotoSans/NotoSans-Regular.ttf`,
+  [FONT_FILES.latin.bold]: `${FONT_CDN_BASE}/NotoSans/NotoSans-Bold.ttf`,
+  [FONT_FILES.bengali.regular]: `${FONT_CDN_BASE}/NotoSansBengali/NotoSansBengali-Regular.ttf`,
+  [FONT_FILES.bengali.bold]: `${FONT_CDN_BASE}/NotoSansBengali/NotoSansBengali-Bold.ttf`,
+  [FONT_FILES.devanagari.regular]: `${FONT_CDN_BASE}/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf`,
+};
+
 const registeredDocs = new WeakMap<object, Set<string>>();
+let resolvedFontsRoot: string | null = null;
+let fontsInstallPromise: Promise<void> | null = null;
+
+function resolveFontsRoot() {
+  if (resolvedFontsRoot) {
+    return resolvedFontsRoot;
+  }
+
+  const candidates = [
+    path.resolve(__dirname, "../../assets/fonts"),
+    path.resolve(process.cwd(), "assets/fonts"),
+    path.resolve(process.cwd(), "school-management-backend/assets/fonts"),
+  ];
+
+  for (const candidate of candidates) {
+    const latinRegular = path.join(candidate, FONT_FILES.latin.regular);
+    if (fs.existsSync(latinRegular)) {
+      resolvedFontsRoot = candidate;
+      return candidate;
+    }
+  }
+
+  resolvedFontsRoot = candidates[0];
+  return resolvedFontsRoot;
+}
 
 function resolveFontPath(fileName: string) {
-  return path.join(fontsRoot, fileName);
+  return path.join(resolveFontsRoot(), fileName);
 }
 
 function fontExists(fileName: string) {
@@ -41,9 +75,86 @@ function fontExists(fileName: string) {
   }
 }
 
-export function detectPdfScript(
-  value: string,
-): keyof typeof FONT_FILES {
+function downloadFile(url: string, destination: string) {
+  return new Promise<void>((resolve, reject) => {
+    const file = fs.createWriteStream(destination);
+    https
+      .get(url, (response) => {
+        if (
+          response.statusCode &&
+          response.statusCode >= 300 &&
+          response.statusCode < 400 &&
+          response.headers.location
+        ) {
+          file.close();
+          fs.unlink(destination, () => undefined);
+          downloadFile(response.headers.location, destination)
+            .then(resolve)
+            .catch(reject);
+          return;
+        }
+
+        if (!response.statusCode || response.statusCode >= 400) {
+          file.close();
+          fs.unlink(destination, () => undefined);
+          reject(
+            new Error(
+              `Failed to download font (${response.statusCode ?? "unknown"}): ${url}`,
+            ),
+          );
+          return;
+        }
+
+        response.pipe(file);
+        file.on("finish", () => {
+          file.close();
+          resolve();
+        });
+      })
+      .on("error", (error) => {
+        file.close();
+        fs.unlink(destination, () => undefined);
+        reject(error);
+      });
+  });
+}
+
+export async function ensurePdfFontsInstalled() {
+  if (fontsInstallPromise) {
+    return fontsInstallPromise;
+  }
+
+  fontsInstallPromise = (async () => {
+    const root = resolveFontsRoot();
+    fs.mkdirSync(root, { recursive: true });
+
+    for (const [fileName, url] of Object.entries(FONT_DOWNLOAD_URLS)) {
+      const destination = path.join(root, fileName);
+      if (fs.existsSync(destination)) {
+        continue;
+      }
+      await downloadFile(url, destination);
+    }
+  })();
+
+  try {
+    await fontsInstallPromise;
+  } catch (error) {
+    fontsInstallPromise = null;
+    throw error;
+  }
+}
+
+export function assertPdfFontAvailable(script: keyof typeof FONT_FILES) {
+  const files = FONT_FILES[script];
+  if (!fontExists(files.regular)) {
+    throw new Error(
+      `PDF font missing for ${script} script (${files.regular}). Run: npm run fonts:pdf`,
+    );
+  }
+}
+
+export function detectPdfScript(value: string): keyof typeof FONT_FILES {
   if (/[\u0980-\u09FF]/.test(value)) {
     return "bengali";
   }
@@ -63,6 +174,16 @@ export function detectPdfScriptFromValues(values: Array<unknown>) {
       hasBengali = true;
     }
     if (/[\u0900-\u097F]/.test(text)) {
+      hasDevanagari = true;
+    }
+    const lowered = text.toLowerCase();
+    if (
+      /\bbengali\b|\bbangla\b|\bbangali\b|বাংলা/.test(lowered) ||
+      lowered.includes("beng")
+    ) {
+      hasBengali = true;
+    }
+    if (/\bhindi\b|\bdevanagari\b/.test(lowered)) {
       hasDevanagari = true;
     }
   }
@@ -90,9 +211,7 @@ function getFontSet(script: keyof typeof FONT_FILES): PdfFontSet {
     : regular;
   const bold =
     boldCandidate ||
-    (fontExists(latin.bold)
-      ? resolveFontPath(latin.bold)
-      : regular);
+    (fontExists(latin.bold) ? resolveFontPath(latin.bold) : regular);
 
   return { regular, bold };
 }
@@ -134,8 +253,14 @@ export function applyPdfUnicodeFont(
   const fontPath = style === "bold" ? fonts.bold : fonts.regular;
   const fontName = `MockTest-${script}-${style}`;
 
-  if (!ensureFontRegistered(doc, fontName, fontPath)) {
-    // Last resort: built-in Helvetica (Latin only).
+  if (!fontPath) {
+    if (script !== "latin") {
+      throw new Error(
+        `PDF font files for ${script} are not installed on the server.`,
+      );
+    }
+    doc.font(style === "bold" ? "Helvetica-Bold" : "Helvetica");
+  } else if (!ensureFontRegistered(doc, fontName, fontPath)) {
     doc.font(style === "bold" ? "Helvetica-Bold" : "Helvetica");
   } else {
     doc.font(fontName);
@@ -156,8 +281,9 @@ export function writePdfText(
   },
 ) {
   const { script, style, size, ...textOptions } = options ?? {};
+  const resolvedScript = script ?? detectPdfScript(text);
   applyPdfUnicodeFont(doc, {
-    script: script ?? detectPdfScript(text),
+    script: resolvedScript,
     style,
     size,
   });
