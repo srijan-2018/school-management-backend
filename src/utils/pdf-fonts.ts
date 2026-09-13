@@ -343,6 +343,20 @@ export function applyPdfUnicodeFont(
   }
 }
 
+export function resolvePdfScriptForLine(
+  text: string,
+  documentScript: keyof typeof FONT_FILES = "latin",
+): keyof typeof FONT_FILES {
+  const detected = detectPdfScript(text);
+  if (documentScript === "bengali" || documentScript === "devanagari") {
+    return documentScript;
+  }
+  return detected;
+}
+
+const PDF_TEXT_RUN_PATTERN =
+  /[\u0980-\u09FF]+|[\u0900-\u097F]+|[^\u0980-\u09FF\u0900-\u097F]+/g;
+
 export function writePdfText(
   doc: InstanceType<typeof PDFDocument>,
   text: string,
@@ -360,4 +374,74 @@ export function writePdfText(
     size,
   });
   doc.text(text, textOptions);
+}
+
+/** Renders mixed Latin + Indic on one line with per-run fonts (avoids tofu boxes). */
+export function writePdfTextMixed(
+  doc: InstanceType<typeof PDFDocument>,
+  text: string,
+  options?: PDFKit.Mixins.TextOptions & {
+    documentScript?: keyof typeof FONT_FILES;
+    style?: PdfFontStyle;
+    size?: number;
+  },
+) {
+  const { documentScript = "latin", style, size, align, underline, ...rest } =
+    options ?? {};
+  const runs = text.match(PDF_TEXT_RUN_PATTERN)?.filter((run) => run.length > 0);
+
+  if (!runs || runs.length <= 1) {
+    writePdfText(doc, text, {
+      ...rest,
+      align,
+      underline,
+      style,
+      size,
+      script: resolvePdfScriptForLine(text, documentScript),
+    });
+    return;
+  }
+
+  runs.forEach((run, index) => {
+    const isLast = index === runs.length - 1;
+    writePdfText(doc, run, {
+      ...rest,
+      align: isLast ? align : undefined,
+      underline: isLast ? underline : false,
+      style,
+      size,
+      script: resolvePdfScriptForLine(run, documentScript),
+      continued: !isLast,
+    });
+  });
+}
+
+export function writePdfLabelValueLine(
+  doc: InstanceType<typeof PDFDocument>,
+  label: string,
+  value: string,
+  options?: {
+    documentScript?: keyof typeof FONT_FILES;
+    style?: PdfFontStyle;
+    size?: number;
+  },
+) {
+  const documentScript = options?.documentScript ?? "latin";
+  const style = options?.style ?? "regular";
+  const size = options?.size ?? 11;
+  const labelScript = resolvePdfScriptForLine(label, documentScript);
+  const valueScript = resolvePdfScriptForLine(value, documentScript);
+
+  writePdfText(doc, `${label}: `, {
+    script: labelScript,
+    style,
+    size,
+    continued: true,
+  });
+  writePdfText(doc, value, {
+    script: valueScript,
+    style,
+    size,
+    continued: false,
+  });
 }

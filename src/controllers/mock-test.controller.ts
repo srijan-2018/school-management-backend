@@ -43,9 +43,9 @@ import {
 } from "../services/mock-test-attempt.service";
 import {
   applyPdfUnicodeFont,
-  detectPdfScript,
   detectPdfScriptFromValues,
-  writePdfText,
+  writePdfLabelValueLine,
+  writePdfTextMixed,
   assertPdfFontAvailable,
   ensurePdfFontsInstalled,
 } from "../utils/pdf-fonts";
@@ -1674,8 +1674,8 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
         underline?: boolean;
       },
     ) => {
-      writePdfText(doc, text, {
-        script: detectPdfScript(text),
+      writePdfTextMixed(doc, text, {
+        documentScript,
         style: options?.style,
         size: options?.size ?? 11,
         align: options?.align,
@@ -1756,26 +1756,39 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
           question.correctAnswer,
         );
 
-        writeLine(
-          `Correct Answer: ${String(question.correctAnswer ?? "N/A")}${correctAnswerText ? `. ${correctAnswerText}` : ""}`,
-        );
+        const correctAnswerValue = `${String(question.correctAnswer ?? "N/A")}${
+          correctAnswerText ? `. ${correctAnswerText}` : ""
+        }`;
+        writePdfLabelValueLine(doc, "Correct Answer", correctAnswerValue, {
+          documentScript,
+          size: 11,
+        });
 
         if (resultQuestion?.selectedAnswer) {
           const selectedAnswerText = findOptionText(
             question.options,
             resultQuestion.selectedAnswer,
           );
+          const selectedAnswerValue = `${String(resultQuestion.selectedAnswer)}${
+            selectedAnswerText ? `. ${selectedAnswerText}` : ""
+          }`;
 
-          writeLine(
-            `Selected Answer: ${String(resultQuestion.selectedAnswer)}${selectedAnswerText ? `. ${selectedAnswerText}` : ""}`,
-          );
+          writePdfLabelValueLine(doc, "Selected Answer", selectedAnswerValue, {
+            documentScript,
+            size: 11,
+          });
           writeLine(
             `Result: ${resultQuestion.isCorrect ? "Correct" : "Incorrect"}`,
           );
         }
 
         if (question.explanation) {
-          writeLine(`Explanation: ${String(question.explanation)}`);
+          writePdfLabelValueLine(
+            doc,
+            "Explanation",
+            String(question.explanation),
+            { documentScript, size: 11 },
+          );
         }
       }
 
