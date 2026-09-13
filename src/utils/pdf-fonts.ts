@@ -46,20 +46,24 @@ function resolveFontsRoot() {
   }
 
   const candidates = [
+    // Compiled output: dist/utils -> dist/assets/fonts (copied at build time).
+    path.resolve(__dirname, "../assets/fonts"),
     path.resolve(__dirname, "../../assets/fonts"),
+    path.resolve(process.cwd(), "dist/assets/fonts"),
     path.resolve(process.cwd(), "assets/fonts"),
     path.resolve(process.cwd(), "school-management-backend/assets/fonts"),
   ];
 
   for (const candidate of candidates) {
+    const bengaliRegular = path.join(candidate, FONT_FILES.bengali.regular);
     const latinRegular = path.join(candidate, FONT_FILES.latin.regular);
-    if (fs.existsSync(latinRegular)) {
+    if (fs.existsSync(bengaliRegular) || fs.existsSync(latinRegular)) {
       resolvedFontsRoot = candidate;
       return candidate;
     }
   }
 
-  resolvedFontsRoot = candidates[0];
+  resolvedFontsRoot = path.resolve(__dirname, "../assets/fonts");
   return resolvedFontsRoot;
 }
 
@@ -239,6 +243,21 @@ function ensureFontRegistered(
   return true;
 }
 
+function pickFontPath(
+  script: keyof typeof FONT_FILES,
+  style: PdfFontStyle,
+) {
+  const fonts = getFontSet(script);
+  const primary = style === "bold" ? fonts.bold : fonts.regular;
+  if (primary) {
+    return primary;
+  }
+  if (style === "bold" && fonts.regular) {
+    return fonts.regular;
+  }
+  return "";
+}
+
 export function applyPdfUnicodeFont(
   doc: InstanceType<typeof PDFDocument>,
   options?: {
@@ -249,18 +268,20 @@ export function applyPdfUnicodeFont(
 ) {
   const script = options?.script ?? "latin";
   const style = options?.style ?? "regular";
-  const fonts = getFontSet(script);
-  const fontPath = style === "bold" ? fonts.bold : fonts.regular;
+  const fontPath = pickFontPath(script, style);
   const fontName = `MockTest-${script}-${style}`;
 
   if (!fontPath) {
     if (script !== "latin") {
       throw new Error(
-        `PDF font files for ${script} are not installed on the server.`,
+        `PDF font files for ${script} are not installed on the server. Run npm run build on the backend.`,
       );
     }
     doc.font(style === "bold" ? "Helvetica-Bold" : "Helvetica");
   } else if (!ensureFontRegistered(doc, fontName, fontPath)) {
+    if (script !== "latin") {
+      throw new Error(`Failed to register PDF font for ${script}.`);
+    }
     doc.font(style === "bold" ? "Helvetica-Bold" : "Helvetica");
   } else {
     doc.font(fontName);

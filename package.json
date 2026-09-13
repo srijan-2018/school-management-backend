@@ -9,9 +9,9 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "dev:nodemon": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
-    "build": "tsc && npm run fonts:pdf",
+    "build": "tsc && npm run fonts:pdf && node scripts/copy-pdf-fonts-to-dist.js",
     "start": "node dist/app.js",
-    "prestart": "npm run fonts:pdf",
+    "prestart": "npm run fonts:pdf && node scripts/copy-pdf-fonts-to-dist.js",
     "postman:generate": "ts-node src/scripts/generate-postman-collection.ts",
     "db:sync-classes": "node dist/scripts/sync-class-columns.js",
     "db:dedupe-indexes": "node dist/scripts/drop-duplicate-unique-indexes.js",

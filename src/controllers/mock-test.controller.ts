@@ -1582,8 +1582,27 @@ const buildLeaderboardReport = (mockTests: any[], currentMockTestId?: number) =>
   };
 };
 
+const normalizeMockTestQuestionsForPdf = (raw: unknown): any[] => {
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
 const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
   await ensurePdfFontsInstalled();
+
+  const pdfQuestions = normalizeMockTestQuestionsForPdf(mockTest.questions);
 
   const scriptSamples: unknown[] = [
     mockTest.title,
@@ -1591,7 +1610,7 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
     mockTest.subjectName,
     mockTest.chapterName,
     mockTest.aiSuggestion,
-    ...(Array.isArray(mockTest.questions) ? mockTest.questions : []).flatMap(
+    ...pdfQuestions.flatMap(
       (question: any) => [
         question?.question,
         question?.explanation,
@@ -1613,9 +1632,7 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
     const resultQuestions = Array.isArray(mockTest.result?.questions)
       ? mockTest.result.questions
       : [];
-    const questions = Array.isArray(mockTest.questions)
-      ? mockTest.questions
-      : [];
+    const questions = pdfQuestions;
 
     const writeSpacing = (lines = 1) => {
       for (let index = 0; index < lines; index += 1) {
