@@ -1,5 +1,6 @@
 import fs from "fs";
 import https from "https";
+import os from "os";
 import path from "path";
 import type PDFDocument from "pdfkit";
 
@@ -37,24 +38,51 @@ const FONT_DOWNLOAD_URLS: Record<string, string> = {
 };
 
 const registeredDocs = new WeakMap<object, Set<string>>();
+const FONT_CACHE_DIR = path.join(os.tmpdir(), "school-management-pdf-fonts");
 let resolvedFontsRoot: string | null = null;
 let fontsInstallPromise: Promise<void> | null = null;
+
+function listFontRootCandidates() {
+  return [
+    path.resolve(__dirname, "../assets/fonts"),
+    path.resolve(__dirname, "../../assets/fonts"),
+    path.resolve(process.cwd(), "dist/assets/fonts"),
+    path.resolve(process.cwd(), "assets/fonts"),
+    path.resolve(process.cwd(), "school-management-backend/assets/fonts"),
+    FONT_CACHE_DIR,
+  ];
+}
+
+function directoryHasFont(fileName: string, directory: string) {
+  return fs.existsSync(path.join(directory, fileName));
+}
+
+function findBundledFontsRoot() {
+  for (const candidate of listFontRootCandidates()) {
+    if (directoryHasFont(FONT_FILES.bengali.regular, candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function copyMissingFonts(sourceDir: string, targetDir: string) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const fileName of Object.keys(FONT_DOWNLOAD_URLS)) {
+    const sourcePath = path.join(sourceDir, fileName);
+    const targetPath = path.join(targetDir, fileName);
+    if (fs.existsSync(sourcePath) && !fs.existsSync(targetPath)) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+  }
+}
 
 function resolveFontsRoot() {
   if (resolvedFontsRoot) {
     return resolvedFontsRoot;
   }
 
-  const candidates = [
-    // Compiled output: dist/utils -> dist/assets/fonts (copied at build time).
-    path.resolve(__dirname, "../assets/fonts"),
-    path.resolve(__dirname, "../../assets/fonts"),
-    path.resolve(process.cwd(), "dist/assets/fonts"),
-    path.resolve(process.cwd(), "assets/fonts"),
-    path.resolve(process.cwd(), "school-management-backend/assets/fonts"),
-  ];
-
-  for (const candidate of candidates) {
+  for (const candidate of listFontRootCandidates()) {
     const bengaliRegular = path.join(candidate, FONT_FILES.bengali.regular);
     const latinRegular = path.join(candidate, FONT_FILES.latin.regular);
     if (fs.existsSync(bengaliRegular) || fs.existsSync(latinRegular)) {
@@ -63,7 +91,7 @@ function resolveFontsRoot() {
     }
   }
 
-  resolvedFontsRoot = path.resolve(__dirname, "../assets/fonts");
+  resolvedFontsRoot = FONT_CACHE_DIR;
   return resolvedFontsRoot;
 }
 
@@ -129,16 +157,39 @@ export async function ensurePdfFontsInstalled() {
   }
 
   fontsInstallPromise = (async () => {
-    const root = resolveFontsRoot();
-    fs.mkdirSync(root, { recursive: true });
+    resolvedFontsRoot = null;
+
+    const bundledRoot = findBundledFontsRoot();
+    const installRoot = bundledRoot ?? FONT_CACHE_DIR;
+    fs.mkdirSync(installRoot, { recursive: true });
+
+    if (!bundledRoot) {
+      for (const candidate of listFontRootCandidates()) {
+        if (candidate === FONT_CACHE_DIR) {
+          continue;
+        }
+        copyMissingFonts(candidate, FONT_CACHE_DIR);
+      }
+    }
 
     for (const [fileName, url] of Object.entries(FONT_DOWNLOAD_URLS)) {
-      const destination = path.join(root, fileName);
+      const destination = path.join(installRoot, fileName);
       if (fs.existsSync(destination)) {
         continue;
       }
-      await downloadFile(url, destination);
+      try {
+        await downloadFile(url, destination);
+      } catch (error) {
+        console.error(`[pdf-fonts] Failed to download ${fileName}:`, error);
+      }
     }
+
+    resolvedFontsRoot = directoryHasFont(
+      FONT_FILES.bengali.regular,
+      installRoot,
+    )
+      ? installRoot
+      : findBundledFontsRoot() ?? FONT_CACHE_DIR;
   })();
 
   try {

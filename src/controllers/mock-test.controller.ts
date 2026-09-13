@@ -1582,6 +1582,23 @@ const buildLeaderboardReport = (mockTests: any[], currentMockTestId?: number) =>
   };
 };
 
+const parseMockTestJsonField = (raw: unknown): Record<string, unknown> => {
+  if (isObject(raw)) {
+    return raw as Record<string, unknown>;
+  }
+
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      return isObject(parsed) ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+};
+
 const normalizeMockTestQuestionsForPdf = (raw: unknown): any[] => {
   if (Array.isArray(raw)) {
     return raw;
@@ -1629,8 +1646,9 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     const chunks: Buffer[] = [];
-    const resultQuestions = Array.isArray(mockTest.result?.questions)
-      ? mockTest.result.questions
+    const resultPayload = parseMockTestJsonField(mockTest.result);
+    const resultQuestions = Array.isArray(resultPayload.questions)
+      ? resultPayload.questions
       : [];
     const questions = pdfQuestions;
 
@@ -1686,7 +1704,11 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
     writeLine(`Level: ${mockTest.level ?? "N/A"}`);
     writeLine(`Status: ${mockTest.status ?? "N/A"}`);
 
-    const metrics = extractMetrics(mockTest);
+    const metrics = extractMetrics({
+      ...mockTest,
+      questions: pdfQuestions,
+      result: resultPayload,
+    });
     if (includeAnswers && metrics.score !== null) {
       writeSpacing();
       writeLine("Performance Summary", {
@@ -2745,6 +2767,7 @@ export const downloadMockTestPdf = async (
 
     res.send(pdf);
   } catch (err) {
+    console.error("[mock-test-pdf] generation failed:", err);
     next(err);
   }
 };

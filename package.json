@@ -21,6 +21,7 @@
     "db:sync-mock-test-negative-marking:src": "ts-node src/scripts/sync-mock-test-negative-marking.ts",
     "test:mock-test-attempt": "ts-node src/scripts/test-mock-test-attempt.ts",
     "fonts:pdf": "bash scripts/download-pdf-fonts.sh",
+    "postinstall": "bash scripts/download-pdf-fonts.sh || true",
     "db:sync-sections": "node dist/scripts/sync-section-columns.js",
     "db:sync-class-sections": "ts-node src/scripts/sync-class-sections.ts",
     "db:sync-students": "node dist/scripts/sync-student-columns.js",

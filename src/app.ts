@@ -150,8 +150,15 @@ const startServer = async () => {
     await ensureNegativeMarkingSchema();
     console.log("Negative marking schema ready");
 
-    await ensurePdfFontsInstalled();
-    console.log("PDF fonts ready");
+    try {
+      await ensurePdfFontsInstalled();
+      console.log("PDF fonts ready");
+    } catch (fontError) {
+      console.error(
+        "PDF fonts could not be installed at startup. Bengali/Hindi PDFs may fail until fonts are available.",
+        fontError,
+      );
+    }
 
     await bootstrapAdmin();
 
