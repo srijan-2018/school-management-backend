@@ -1106,13 +1106,17 @@ export const startTrip = async (
     });
 
     if (assignments.length) {
+      const initialStatus = direction === "dropoff" ? "boarded" : "expected";
       await TransportTripStudent.bulkCreate(
         assignments.map((assignment: any) => ({
           tripId: trip.id,
           studentId: assignment.studentId,
           assignmentId: assignment.id,
           stopName: assignment.stopName,
-          status: "expected",
+          status: initialStatus,
+          ...(initialStatus === "boarded"
+            ? { boardedAt: now, boardedLat: startLat, boardedLng: startLng }
+            : {}),
         })),
       );
     }
@@ -1268,8 +1272,21 @@ export const markStudentStatus = async (
         notes: req.body?.notes ?? tripStudent.notes,
       });
     } else if (action === "drop") {
-      if (tripStudent.status !== "boarded" && tripStudent.status !== "dropped") {
-        throw new AppError("Student must be boarded before drop-off", 400);
+      const tripDirection = String(trip.direction ?? "pickup");
+      const canDrop =
+        tripStudent.status === "boarded" ||
+        tripStudent.status === "dropped" ||
+        (tripDirection === "dropoff" && tripStudent.status === "expected");
+      if (!canDrop) {
+        throw new AppError("Student must be on the bus before drop-off", 400);
+      }
+      if (tripStudent.status === "expected" && tripDirection === "dropoff") {
+        await tripStudent.update({
+          status: "boarded",
+          boardedAt: now,
+          boardedLat: lat,
+          boardedLng: lng,
+        });
       }
       await tripStudent.update({
         status: "dropped",
