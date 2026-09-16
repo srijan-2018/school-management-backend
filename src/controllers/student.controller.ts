@@ -70,6 +70,7 @@ export const getStudents = async (
       include,
       order: [["id", "DESC"]],
       distinct: true,
+      subQuery: search ? false : undefined,
       limit,
       offset,
     });

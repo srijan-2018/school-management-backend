@@ -33,10 +33,32 @@ const corsOrigins = (process.env.CORS_ORIGINS ?? "*")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const localDevOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
+/** Next.js often uses 3001+ when 3000 is busy; allow local console dev against production API. */
+function isLocalDevOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return false;
+    }
+
+    const host = url.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return false;
+    }
+
+    const port =
+      url.port ||
+      (url.protocol === "https:" ? "443" : "80");
+    const portNumber = Number(port);
+    if (!Number.isFinite(portNumber)) {
+      return false;
+    }
+
+    return portNumber >= 3000 && portNumber <= 3099;
+  } catch {
+    return false;
+  }
+}
 
 function isAllowedCorsOrigin(origin: string | undefined) {
   if (!origin) {
@@ -47,7 +69,7 @@ function isAllowedCorsOrigin(origin: string | undefined) {
     return true;
   }
 
-  return localDevOrigins.includes(origin);
+  return isLocalDevOrigin(origin);
 }
 
 app.use(

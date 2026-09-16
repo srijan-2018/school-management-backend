@@ -97,7 +97,10 @@ export const bulkCreateSubjects = async (
   }
 };
 
-export const getSubjects = list(Subject, "subjects", { schoolScoped: true });
+export const getSubjects = list(Subject, "subjects", {
+  schoolScoped: true,
+  searchFields: ["name"],
+});
 export const createSubject = create(Subject, "subject", { schoolScoped: true });
 export const updateSubject = update(Subject, "subject", { schoolScoped: true });
 export const deleteSubject = remove(Subject, "subject", { schoolScoped: true });

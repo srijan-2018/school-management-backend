@@ -2,6 +2,11 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 
 import { buildPagination, getPagination } from "../utils/pagination";
+import {
+  buildSearchWhereClause,
+  combineWhereClauses,
+  parseListSearchQuery,
+} from "../utils/list-search";
 
 const pluralize = (key: string) => {
   if (key.endsWith("s")) return `${key}es`;
@@ -12,6 +17,7 @@ const pluralize = (key: string) => {
 type CrudOptions = {
   schoolScoped?: boolean;
   allowlist?: string[];
+  searchFields?: string[];
 };
 
 const getTrustedSchoolId = (req: Request, schoolScoped?: boolean) => {
@@ -61,10 +67,13 @@ export const list =
         });
       }
 
-      const where =
-        options.schoolScoped && schoolId
-          ? { schoolId }
-          : undefined;
+      const search = parseListSearchQuery(req.query as Record<string, unknown>);
+      const baseWhere =
+        options.schoolScoped && schoolId ? { schoolId } : undefined;
+      const where = combineWhereClauses(
+        baseWhere,
+        buildSearchWhereClause(search, options.searchFields ?? []),
+      );
 
       const { rows, count } = await model.findAndCountAll({
         where,

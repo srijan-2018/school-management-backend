@@ -9,6 +9,7 @@ export const createAssignment = create(Assignment, "assignment", {
 });
 export const getAssignments = list(Assignment, "assignments", {
   schoolScoped: true,
+  searchFields: ["title", "description", "status"],
 });
 export const submitAssignment = create(AssignmentSubmission, "submission");
 

@@ -487,6 +487,13 @@ export const createRoute = async (
       }
     }
 
+    if (payload.fare !== undefined && payload.fare !== null && payload.fare !== "") {
+      const fare = Number(payload.fare);
+      payload.fare = Number.isFinite(fare) ? fare : null;
+    } else if (payload.fare === "") {
+      payload.fare = null;
+    }
+
     const route = await TransportRoute.create(payload);
     res.status(201).json({ message: "route created", route });
   } catch (err) {
@@ -539,6 +546,15 @@ export const updateRoute = async (
           .split(",")
           .map((item: string) => item.trim())
           .filter(Boolean);
+      }
+    }
+
+    if (payload.fare !== undefined) {
+      if (payload.fare === null || payload.fare === "") {
+        payload.fare = null;
+      } else {
+        const fare = Number(payload.fare);
+        payload.fare = Number.isFinite(fare) ? fare : null;
       }
     }
 
@@ -647,11 +663,17 @@ export const listAssignments = async (
     const assignments = rows.map((row: any) => {
       const plain = row.toJSON();
       const userRow = plain.student?.User ?? plain.student?.user;
+      const routeFare = plain.route?.fare;
       return {
         ...plain,
         studentName: userRow?.name ?? null,
         studentEmail: userRow?.email ?? null,
+        rollNumber: plain.student?.rollNumber ?? null,
         routeName: plain.route?.name ?? null,
+        routeFare:
+          routeFare === null || routeFare === undefined
+            ? null
+            : Number(routeFare),
         vehicleId: plain.route?.vehicleId ?? null,
         plateNumber: plain.route?.vehicle?.plateNumber ?? null,
       };

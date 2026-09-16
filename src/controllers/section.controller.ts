@@ -6,7 +6,10 @@ import ClassSection from "../models/class-section.model";
 import { getById, list, remove, bulkRemove } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 
-export const getSections = list(Section, "sections", { schoolScoped: true });
+export const getSections = list(Section, "sections", {
+  schoolScoped: true,
+  searchFields: ["name"],
+});
 export const getSectionById = getById(Section, "section", { schoolScoped: true });
 export const deleteSection = remove(Section, "section", { schoolScoped: true });
 export const bulkDeleteSections = bulkRemove(Section, "section", {

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import Parent from "../models/parent.model";
 import ParentStudent from "../models/parent-student.model";
 import User from "../models/user.model";
@@ -8,6 +9,7 @@ import Section from "../models/section.model";
 import { update } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
+import { parseListSearchQuery } from "../utils/list-search";
 
 const userSafeAttributes = {
   exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
@@ -41,10 +43,20 @@ export const getParents = async (
 
     const { page, limit, offset } = getPagination(req);
     const requestedUserId = toOptionalPositiveInteger(req.query.userId, "userId");
+    const search = parseListSearchQuery(req.query as Record<string, unknown>);
     const where: Record<string, unknown> = {};
 
     if (requestedUserId) {
       where.userId = requestedUserId;
+    }
+
+    const userWhere: Record<string, unknown> = { schoolId };
+    if (search) {
+      const searchLike = `%${search}%`;
+      userWhere[Op.or as unknown as string] = [
+        { name: { [Op.like]: searchLike } },
+        { email: { [Op.like]: searchLike } },
+      ];
     }
 
     const { rows: parents, count } = await Parent.findAndCountAll({
@@ -54,7 +66,7 @@ export const getParents = async (
           model: User,
           required: true,
           attributes: userSafeAttributes,
-          where: { schoolId },
+          where: userWhere,
         },
         {
           model: Student,

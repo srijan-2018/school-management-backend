@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import Permission from "../models/permission.model";
+import {
+  buildSearchWhereClause,
+  combineWhereClauses,
+  parseListSearchQuery,
+} from "../utils/list-search";
 import Role from "../models/role.model";
 import RolePermission from "../models/role-permission.model";
 import { buildPagination, getPagination } from "../utils/pagination";
@@ -11,7 +16,13 @@ export const getPermissions = async (
 ) => {
   try {
     const { page, limit, offset } = getPagination(req);
+    const search = parseListSearchQuery(req.query as Record<string, unknown>);
+    const where = combineWhereClauses(
+      undefined,
+      buildSearchWhereClause(search, ["name", "description"]),
+    );
     const { rows: permissions, count } = await Permission.findAndCountAll({
+      where,
       order: [["id", "DESC"]],
       limit,
       offset,

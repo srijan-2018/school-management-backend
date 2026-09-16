@@ -55,6 +55,15 @@ export const getChapters = async (
     const subjectWhere: Record<string, unknown> = {};
     if (classId) subjectWhere.classId = classId;
 
+    const search = String(req.query.search ?? req.query.keyword ?? "").trim();
+    if (search) {
+      const searchLike = `%${search}%`;
+      where[Op.or as unknown as string] = [
+        { name: { [Op.like]: searchLike } },
+        { description: { [Op.like]: searchLike } },
+      ];
+    }
+
     const { rows: chapters, count } = await Chapter.findAndCountAll({
       where,
       include: [

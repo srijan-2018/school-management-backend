@@ -1,10 +1,12 @@
 import { NextFunction, Request, Response } from "express";
+import { Op } from "sequelize";
 import Teacher from "../models/teacher.model";
 import TeacherClass from "../models/teacher-class.model";
 import Timetable from "../models/timetable.model";
 import User from "../models/user.model";
 import { remove, update } from "../helpers/crud.helpers";
 import { buildPagination, getPagination } from "../utils/pagination";
+import { parseListSearchQuery } from "../utils/list-search";
 
 const userSafeAttributes = {
   exclude: ["password", "resetPasswordToken", "resetPasswordExpires"],
@@ -23,13 +25,28 @@ export const getTeachers = async (
     }
 
     const { page, limit, offset } = getPagination(req);
+    const search = parseListSearchQuery(req.query as Record<string, unknown>);
+    const teacherWhere: Record<string, unknown> = {};
+    const userWhere: Record<string, unknown> = { schoolId };
+
+    if (search) {
+      const searchLike = `%${search}%`;
+      teacherWhere[Op.or as unknown as string] = [
+        { employeeId: { [Op.like]: searchLike } },
+        { qualification: { [Op.like]: searchLike } },
+        { "$User.name$": { [Op.like]: searchLike } },
+        { "$User.email$": { [Op.like]: searchLike } },
+      ];
+    }
+
     const { rows: teachers, count } = await Teacher.findAndCountAll({
+      where: teacherWhere,
       include: [
         {
           model: User,
           required: true,
           attributes: userSafeAttributes,
-          where: { schoolId },
+          where: userWhere,
         },
       ],
       order: [["id", "DESC"]],
