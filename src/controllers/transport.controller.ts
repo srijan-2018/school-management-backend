@@ -953,7 +953,13 @@ export const getTrip = async (
 
     res.json({
       trip: serializeTrip(trip),
-      locations,
+      locations: locations.map((row) => {
+        const plain = typeof row.toJSON === "function" ? row.toJSON() : row;
+        return {
+          lat: Number(plain.lat),
+          lng: Number(plain.lng),
+        };
+      }),
     });
   } catch (err) {
     next(err);
