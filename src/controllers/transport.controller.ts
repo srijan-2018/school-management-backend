@@ -1272,15 +1272,14 @@ export const markStudentStatus = async (
         notes: req.body?.notes ?? tripStudent.notes,
       });
     } else if (action === "drop") {
-      const tripDirection = String(trip.direction ?? "pickup");
       const canDrop =
         tripStudent.status === "boarded" ||
         tripStudent.status === "dropped" ||
-        (tripDirection === "dropoff" && tripStudent.status === "expected");
+        tripStudent.status === "expected";
       if (!canDrop) {
         throw new AppError("Student must be on the bus before drop-off", 400);
       }
-      if (tripStudent.status === "expected" && tripDirection === "dropoff") {
+      if (tripStudent.status === "expected") {
         await tripStudent.update({
           status: "boarded",
           boardedAt: now,
