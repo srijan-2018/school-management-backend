@@ -24,3 +24,18 @@ for (const fileName of fs.readdirSync(sourceDir)) {
 }
 
 console.log(`[copy-pdf-fonts] Copied ${copied} font file(s) to ${targetDir}`);
+
+const required = [
+  "NotoSans-Regular.ttf",
+  "NotoSansBengali-Regular.ttf",
+  "NotoSansBengali-Bold.ttf",
+];
+const missing = required.filter(
+  (fileName) => !fs.existsSync(path.join(targetDir, fileName)),
+);
+if (missing.length > 0) {
+  console.error(
+    `[copy-pdf-fonts] Missing required font(s) in dist: ${missing.join(", ")}`,
+  );
+  process.exit(1);
+}

@@ -151,7 +151,22 @@ function downloadFile(url: string, destination: string) {
   });
 }
 
-export async function ensurePdfFontsInstalled() {
+function syncFontsFromBundledSources(targetDir: string) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const candidate of listFontRootCandidates()) {
+    if (candidate === targetDir || candidate === FONT_CACHE_DIR) {
+      continue;
+    }
+    copyMissingFonts(candidate, targetDir);
+  }
+}
+
+export async function ensurePdfFontsInstalled(options?: { force?: boolean }) {
+  if (options?.force) {
+    fontsInstallPromise = null;
+    resolvedFontsRoot = null;
+  }
+
   if (fontsInstallPromise) {
     return fontsInstallPromise;
   }
@@ -162,14 +177,10 @@ export async function ensurePdfFontsInstalled() {
     const bundledRoot = findBundledFontsRoot();
     const installRoot = bundledRoot ?? FONT_CACHE_DIR;
     fs.mkdirSync(installRoot, { recursive: true });
+    syncFontsFromBundledSources(installRoot);
 
     if (!bundledRoot) {
-      for (const candidate of listFontRootCandidates()) {
-        if (candidate === FONT_CACHE_DIR) {
-          continue;
-        }
-        copyMissingFonts(candidate, FONT_CACHE_DIR);
-      }
+      syncFontsFromBundledSources(FONT_CACHE_DIR);
     }
 
     for (const [fileName, url] of Object.entries(FONT_DOWNLOAD_URLS)) {
@@ -184,12 +195,30 @@ export async function ensurePdfFontsInstalled() {
       }
     }
 
-    resolvedFontsRoot = directoryHasFont(
-      FONT_FILES.bengali.regular,
-      installRoot,
-    )
-      ? installRoot
-      : findBundledFontsRoot() ?? FONT_CACHE_DIR;
+    if (!bundledRoot) {
+      for (const [fileName, url] of Object.entries(FONT_DOWNLOAD_URLS)) {
+        const destination = path.join(FONT_CACHE_DIR, fileName);
+        if (fs.existsSync(destination)) {
+          continue;
+        }
+        try {
+          await downloadFile(url, destination);
+        } catch (error) {
+          console.error(
+            `[pdf-fonts] Failed to download ${fileName} to cache:`,
+            error,
+          );
+        }
+      }
+    }
+
+    resolvedFontsRoot =
+      findBundledFontsRoot() ??
+      (directoryHasFont(FONT_FILES.bengali.regular, installRoot)
+        ? installRoot
+        : directoryHasFont(FONT_FILES.bengali.regular, FONT_CACHE_DIR)
+          ? FONT_CACHE_DIR
+          : FONT_CACHE_DIR);
   })();
 
   try {
@@ -201,12 +230,34 @@ export async function ensurePdfFontsInstalled() {
 }
 
 export function assertPdfFontAvailable(script: keyof typeof FONT_FILES) {
+  if (script === "latin") {
+    return;
+  }
+
   const files = FONT_FILES[script];
   if (!fontExists(files.regular)) {
     throw new Error(
       `PDF font missing for ${script} script (${files.regular}). Run: npm run fonts:pdf`,
     );
   }
+}
+
+/** Ensures Indic fonts exist (install, copy bundled assets, CDN retry). */
+export async function ensurePdfFontAvailable(script: keyof typeof FONT_FILES) {
+  if (script === "latin") {
+    return;
+  }
+
+  await ensurePdfFontsInstalled();
+  if (!fontExists(FONT_FILES[script].regular)) {
+    await ensurePdfFontsInstalled({ force: true });
+  }
+
+  syncFontsFromBundledSources(resolveFontsRoot());
+  syncFontsFromBundledSources(FONT_CACHE_DIR);
+  resolvedFontsRoot = null;
+
+  assertPdfFontAvailable(script);
 }
 
 export function detectPdfScript(value: string): keyof typeof FONT_FILES {
@@ -231,15 +282,8 @@ export function detectPdfScriptFromValues(values: Array<unknown>) {
     if (/[\u0900-\u097F]/.test(text)) {
       hasDevanagari = true;
     }
-    const lowered = text.toLowerCase();
-    if (
-      /\bbengali\b|\bbangla\b|\bbangali\b|বাংলা/.test(lowered) ||
-      lowered.includes("beng")
-    ) {
+    if (/বাংলা/.test(text)) {
       hasBengali = true;
-    }
-    if (/\bhindi\b|\bdevanagari\b/.test(lowered)) {
-      hasDevanagari = true;
     }
   }
 
@@ -250,6 +294,18 @@ export function detectPdfScriptFromValues(values: Array<unknown>) {
     return "devanagari";
   }
   return "latin";
+}
+
+export function pdfContentRequiresScript(
+  script: keyof typeof FONT_FILES,
+  values: Array<unknown>,
+) {
+  if (script === "latin") {
+    return false;
+  }
+  const pattern =
+    script === "bengali" ? /[\u0980-\u09FF]|বাংলা/ : /[\u0900-\u097F]/;
+  return values.some((value) => pattern.test(String(value ?? "")));
 }
 
 function getFontSet(script: keyof typeof FONT_FILES): PdfFontSet {
@@ -301,10 +357,10 @@ function pickFontPath(
   const fonts = getFontSet(script);
   const primary = style === "bold" ? fonts.bold : fonts.regular;
   if (primary) {
-    return primary;
+    return path.resolve(primary);
   }
   if (style === "bold" && fonts.regular) {
-    return fonts.regular;
+    return path.resolve(fonts.regular);
   }
   return "";
 }
@@ -348,10 +404,13 @@ export function resolvePdfScriptForLine(
   documentScript: keyof typeof FONT_FILES = "latin",
 ): keyof typeof FONT_FILES {
   const detected = detectPdfScript(text);
-  if (documentScript === "bengali" || documentScript === "devanagari") {
-    return documentScript;
+  if (detected !== "latin") {
+    return detected;
   }
-  return detected;
+  if (documentScript === "latin") {
+    return "latin";
+  }
+  return "latin";
 }
 
 const PDF_TEXT_RUN_PATTERN =
@@ -388,10 +447,13 @@ export function writePdfTextMixed(
 ) {
   const { documentScript = "latin", style, size, align, underline, ...rest } =
     options ?? {};
-  const runs = text.match(PDF_TEXT_RUN_PATTERN)?.filter((run) => run.length > 0);
+  const sanitized = text.replace(/\u0000/g, "");
+  const runs = sanitized
+    .match(PDF_TEXT_RUN_PATTERN)
+    ?.filter((run) => run.length > 0);
 
   if (!runs || runs.length <= 1) {
-    writePdfText(doc, text, {
+    writePdfText(doc, sanitized, {
       ...rest,
       align,
       underline,

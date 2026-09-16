@@ -44,10 +44,11 @@ import {
 import {
   applyPdfUnicodeFont,
   detectPdfScriptFromValues,
+  ensurePdfFontAvailable,
+  ensurePdfFontsInstalled,
+  pdfContentRequiresScript,
   writePdfLabelValueLine,
   writePdfTextMixed,
-  assertPdfFontAvailable,
-  ensurePdfFontsInstalled,
 } from "../utils/pdf-fonts";
 
 const allowedLevels = ["easy", "medium", "hard"] as const;
@@ -624,16 +625,40 @@ const getQuestionOptions = (options: unknown): MockOption[] => {
   }
 
   return options
-    .filter(
-      (option): option is MockOption =>
-        isObject(option) &&
-        typeof option.key === "string" &&
-        typeof option.text === "string",
-    )
-    .map((option) => ({
-      key: option.key,
-      text: option.text,
-    }));
+    .map((option, index) => {
+      if (typeof option === "string") {
+        const label =
+          optionLabels[index] || String.fromCharCode(65 + index);
+        return { key: label, text: option };
+      }
+
+      if (!isObject(option)) {
+        return null;
+      }
+
+      const keyCandidate =
+        typeof option.key === "string"
+          ? option.key
+          : typeof (option as { label?: unknown }).label === "string"
+            ? (option as { label: string }).label
+            : optionLabels[index] || String.fromCharCode(65 + index);
+      const textCandidate =
+        typeof option.text === "string"
+          ? option.text
+          : typeof (option as { value?: unknown }).value === "string"
+            ? (option as { value: string }).value
+            : "";
+
+      if (!textCandidate.trim()) {
+        return null;
+      }
+
+      return {
+        key: keyCandidate.trim(),
+        text: textCandidate,
+      };
+    })
+    .filter((option): option is MockOption => option !== null);
 };
 
 const buildOptionMap = (options: unknown) => {
@@ -1600,33 +1625,48 @@ const parseMockTestJsonField = (raw: unknown): Record<string, unknown> => {
 };
 
 const normalizeMockTestQuestionsForPdf = (raw: unknown): any[] => {
-  if (Array.isArray(raw)) {
-    return raw;
-  }
-
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
+  const unwrap = (value: unknown): any[] => {
+    if (Array.isArray(value)) {
+      return value;
     }
-  }
 
-  return [];
+    if (typeof value === "string" && value.trim()) {
+      try {
+        return unwrap(JSON.parse(value));
+      } catch {
+        return [];
+      }
+    }
+
+    if (isObject(value) && Array.isArray(value.questions)) {
+      return value.questions;
+    }
+
+    return [];
+  };
+
+  return unwrap(raw);
+};
+
+const toMockTestPdfRecord = (mockTest: any) => {
+  if (mockTest && typeof mockTest.toJSON === "function") {
+    return mockTest.toJSON();
+  }
+  return mockTest;
 };
 
 const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
   await ensurePdfFontsInstalled();
 
-  const pdfQuestions = normalizeMockTestQuestionsForPdf(mockTest.questions);
+  const record = toMockTestPdfRecord(mockTest);
+  const pdfQuestions = normalizeMockTestQuestionsForPdf(record.questions);
 
   const scriptSamples: unknown[] = [
-    mockTest.title,
-    mockTest.className,
-    mockTest.subjectName,
-    mockTest.chapterName,
-    mockTest.aiSuggestion,
+    record.title,
+    record.className,
+    record.subjectName,
+    record.chapterName,
+    record.aiSuggestion,
     ...pdfQuestions.flatMap(
       (question: any) => [
         question?.question,
@@ -1641,12 +1681,14 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
     ),
   ];
   const documentScript = detectPdfScriptFromValues(scriptSamples);
-  assertPdfFontAvailable(documentScript);
+  if (pdfContentRequiresScript(documentScript, scriptSamples)) {
+    await ensurePdfFontAvailable(documentScript);
+  }
 
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     const chunks: Buffer[] = [];
-    const resultPayload = parseMockTestJsonField(mockTest.result);
+    const resultPayload = parseMockTestJsonField(record.result);
     const resultQuestions = Array.isArray(resultPayload.questions)
       ? resultPayload.questions
       : [];
@@ -1689,23 +1731,23 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
 
     applyPdfUnicodeFont(doc, { script: documentScript, size: 11 });
 
-    writeLine(String(mockTest.title ?? "Mock Test"), {
+    writeLine(String(record.title ?? "Mock Test"), {
       style: "bold",
       size: 18,
       align: "center",
     });
     writeSpacing();
 
-    writeLine(`Class: ${mockTest.className ?? "N/A"}`);
-    writeLine(`Subject: ${mockTest.subjectName ?? "N/A"}`);
-    if (mockTest.chapterName) {
-      writeLine(`Chapter: ${mockTest.chapterName}`);
+    writeLine(`Class: ${record.className ?? "N/A"}`);
+    writeLine(`Subject: ${record.subjectName ?? "N/A"}`);
+    if (record.chapterName) {
+      writeLine(`Chapter: ${record.chapterName}`);
     }
-    writeLine(`Level: ${mockTest.level ?? "N/A"}`);
-    writeLine(`Status: ${mockTest.status ?? "N/A"}`);
+    writeLine(`Level: ${record.level ?? "N/A"}`);
+    writeLine(`Status: ${record.status ?? "N/A"}`);
 
     const metrics = extractMetrics({
-      ...mockTest,
+      ...record,
       questions: pdfQuestions,
       result: resultPayload,
     });
@@ -1719,8 +1761,8 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
       writeLine(
         `Score: ${metrics.score}/${metrics.totalQuestions} (${metrics.percentage ?? 0}%)`,
       );
-      if (Boolean(mockTest.negativeMarkingEnabled)) {
-        const marking = serializeNegativeMarkingSnapshot(mockTest);
+      if (Boolean(record.negativeMarkingEnabled)) {
+        const marking = serializeNegativeMarkingSnapshot(record);
         writeLine(
           `Negative marking: -${marking.negativeMarkingPenalty} per wrong answer`,
         );
@@ -1728,9 +1770,9 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
       writeLine(
         `Correct: ${metrics.correctCount} | Wrong: ${metrics.wrongCount} | Unanswered: ${metrics.unansweredCount}`,
       );
-      if (mockTest.aiSuggestion) {
+      if (record.aiSuggestion) {
         writeSpacing();
-        writeLine(`Suggestion: ${mockTest.aiSuggestion}`);
+        writeLine(`Suggestion: ${record.aiSuggestion}`);
       }
     }
 
@@ -1741,9 +1783,12 @@ const buildMockTestPdf = async (mockTest: any, includeAnswers: boolean) => {
     questions.forEach((question: any, index: number) => {
       ensureSpace(140);
 
-      writeLine(`${index + 1}. ${String(question.question ?? "")}`, {
-        style: "bold",
-      });
+      writeLine(
+        `${index + 1}. ${String(question.question ?? question.text ?? "")}`,
+        {
+          style: "bold",
+        },
+      );
       const options = getQuestionOptions(question.options);
       options.forEach((option) => {
         writeLine(`${option.key}. ${option.text}`);
