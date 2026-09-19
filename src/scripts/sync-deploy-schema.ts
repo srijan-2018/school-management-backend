@@ -11,6 +11,7 @@ import TransportAssignment from "../models/transport-assignment.model";
 import TransportTrip from "../models/transport-trip.model";
 import TransportTripStudent from "../models/transport-trip-student.model";
 import TransportTripLocation from "../models/transport-trip-location.model";
+import SubjectTeacher from "../models/subject-teacher.model";
 import { ensureNegativeMarkingSchema } from "../services/ensure-negative-marking-schema";
 
 /**
@@ -29,6 +30,7 @@ const models = [
   { name: "TransportTrips", model: TransportTrip },
   { name: "TransportTripStudents", model: TransportTripStudent },
   { name: "TransportTripLocations", model: TransportTripLocation },
+  { name: "SubjectTeachers", model: SubjectTeacher },
 ];
 
 async function main() {

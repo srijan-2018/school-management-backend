@@ -1,5 +1,6 @@
 import { QueryTypes } from "sequelize";
 import { sequelize } from "../config/db";
+import SubjectTeacher from "../models/subject-teacher.model";
 
 type ColumnRow = {
   Field: string;
@@ -111,4 +112,8 @@ export async function ensureNegativeMarkingSchema() {
       },
     ]);
   }
+
+  await SubjectTeacher.sync({ alter: true }).catch((err) => {
+    console.error("SubjectTeacher schema sync warning:", err?.message || err);
+  });
 }

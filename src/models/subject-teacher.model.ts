@@ -20,6 +20,7 @@ SubjectTeacher.init(
   {
     sequelize,
     modelName: "SubjectTeacher",
+    tableName: "SubjectTeachers",
     timestamps: true,
     indexes: [{ unique: true, fields: ["subjectId", "teacherId"] }],
   },

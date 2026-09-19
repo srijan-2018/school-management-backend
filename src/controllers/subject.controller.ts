@@ -160,7 +160,10 @@ export const assignSubjectTeacher = async (
     const subject = await Subject.findOne({ where: { id: subjectId, schoolId } });
     if (!subject) throw new AppError("Subject not found", 404);
 
-    const teacher = await Teacher.findOne({ where: { id: teacherId, schoolId } });
+    const teacher = await Teacher.findOne({
+      where: { id: teacherId },
+      include: [{ model: User, where: { schoolId } }],
+    });
     if (!teacher) throw new AppError("Teacher not found in this school", 404);
 
     await SubjectTeacher.destroy({ where: { subjectId, schoolId } });
