@@ -32,8 +32,13 @@ const FONT_FILES = {
 const FONT_DOWNLOAD_URLS: Record<string, string> = {
   [FONT_FILES.latin.regular]: `${FONT_CDN_BASE}/NotoSans/NotoSans-Regular.ttf`,
   [FONT_FILES.latin.bold]: `${FONT_CDN_BASE}/NotoSans/NotoSans-Bold.ttf`,
-  [FONT_FILES.bengali.regular]: `${FONT_CDN_BASE}/NotoSansBengali/NotoSansBengali-Regular.ttf`,
-  [FONT_FILES.bengali.bold]: `${FONT_CDN_BASE}/NotoSansBengali/NotoSansBengali-Bold.ttf`,
+  // The Noto Fonts repository's static Bengali files trigger a fontkit GPOS
+  // crash for valid conjuncts such as "নির্বাচন". These Google Fonts builds
+  // are compatible with the PDFKit/fontkit version used by the API.
+  [FONT_FILES.bengali.regular]:
+    "https://fonts.gstatic.com/s/notosansbengali/v33/Cn-SJsCGWQxOjaGwMQ6fIiMywrNJIky6nvd8BjzVMvJx2mcSPVFpVEqE-6KmsolLudA.ttf",
+  [FONT_FILES.bengali.bold]:
+    "https://fonts.gstatic.com/s/notosansbengali/v33/Cn-SJsCGWQxOjaGwMQ6fIiMywrNJIky6nvd8BjzVMvJx2mcSPVFpVEqE-6Kmsm5MudA.ttf",
   [FONT_FILES.devanagari.regular]: `${FONT_CDN_BASE}/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf`,
 };
 
@@ -96,6 +101,16 @@ function resolveFontsRoot() {
 }
 
 function resolveFontPath(fileName: string) {
+  // A production build can contain Latin fonts in one location and Indic
+  // fonts in another (for example, source assets versus dist assets). Do not
+  // lock every lookup to the first directory that contains any font.
+  for (const candidate of listFontRootCandidates()) {
+    const candidatePath = path.join(candidate, fileName);
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
   return path.join(resolveFontsRoot(), fileName);
 }
 

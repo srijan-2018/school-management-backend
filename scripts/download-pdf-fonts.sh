@@ -20,8 +20,10 @@ download() {
 
 download "NotoSans-Regular.ttf" "$BASE/NotoSans/NotoSans-Regular.ttf"
 download "NotoSans-Bold.ttf" "$BASE/NotoSans/NotoSans-Bold.ttf"
-download "NotoSansBengali-Regular.ttf" "$BASE/NotoSansBengali/NotoSansBengali-Regular.ttf"
-download "NotoSansBengali-Bold.ttf" "$BASE/NotoSansBengali/NotoSansBengali-Bold.ttf"
+# The Noto Fonts repository static files crash fontkit while laying out some
+# valid Bengali conjuncts. Keep the PDF assets aligned with Google Fonts.
+download "NotoSansBengali-Regular.ttf" "https://fonts.gstatic.com/s/notosansbengali/v33/Cn-SJsCGWQxOjaGwMQ6fIiMywrNJIky6nvd8BjzVMvJx2mcSPVFpVEqE-6KmsolLudA.ttf"
+download "NotoSansBengali-Bold.ttf" "https://fonts.gstatic.com/s/notosansbengali/v33/Cn-SJsCGWQxOjaGwMQ6fIiMywrNJIky6nvd8BjzVMvJx2mcSPVFpVEqE-6Kmsm5MudA.ttf"
 download "NotoSansDevanagari-Regular.ttf" "$BASE/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf"
 
 echo "PDF fonts ready in $FONT_DIR"
