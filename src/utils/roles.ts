@@ -269,3 +269,13 @@ export const ANALYTICS_VIEW_ROLES: UserRole[] = [
   "head_teacher",
   "accountant",
 ];
+
+/** Roles that can access the subject-specific chat system. */
+export const CHAT_ACCESS_ROLES: UserRole[] = [
+  "admin",
+  "school_owner",
+  "administrator",
+  "head_teacher",
+  "teacher",
+  "student",
+];

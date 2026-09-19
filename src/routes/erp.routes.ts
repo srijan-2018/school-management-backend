@@ -31,11 +31,13 @@ import * as hr from "../controllers/hr.controller";
 import * as analytics from "../controllers/analytics.controller";
 import * as dashboard from "../controllers/dashboard.controller";
 import * as notification from "../controllers/notification.controller";
+import * as chat from "../controllers/chat.controller";
 import {
   ACADEMIC_MANAGER_ROLES,
   ANALYTICS_VIEW_ROLES,
   ATTENDANCE_RULE_MANAGER_ROLES,
   CHAPTER_MANAGE_ROLES,
+  CHAT_ACCESS_ROLES,
   ELEARNING_MANAGER_ROLES,
   ELEARNING_VIEW_ROLES,
   PLAYGROUND_MANAGER_ROLES,
@@ -243,6 +245,23 @@ router.delete(
   "/subjects/:id",
   allowRoles(...OWNER_LEVEL_ROLES),
   subject.deleteSubject,
+);
+router.get(
+  "/subject-teachers",
+  requireSchoolContext,
+  subject.getSubjectTeachers,
+);
+router.post(
+  "/subjects/:id/assign-teacher",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  subject.assignSubjectTeacher,
+);
+router.delete(
+  "/subjects/:id/assign-teacher",
+  requireSchoolContext,
+  allowRoles(...ACADEMIC_MANAGER_ROLES),
+  subject.unassignSubjectTeacher,
 );
 
 router.get("/chapters", chapter.getChapters);
@@ -625,7 +644,7 @@ router.delete(
 router.get(
   "/transport/drivers",
   requireSchoolContext,
-  allowRoles(...OWNER_LEVEL_ROLES),
+  allowRoles(...TRANSPORT_VIEW_ROLES),
   transport.listDrivers,
 );
 router.get(
@@ -1049,6 +1068,55 @@ router.get(
   requireSchoolContext,
   allowRoles(...ANALYTICS_VIEW_ROLES, ...FINANCE_MANAGER_ROLES),
   analytics.getReports,
+);
+// Chat (subject-specific student ↔ teacher messaging)
+router.get(
+  "/chat/subjects",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.getChatSubjects,
+);
+router.get(
+  "/chat/unread-count",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.getUnreadCount,
+);
+router.get(
+  "/chat/subject/:subjectId/teacher",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.getSubjectTeacher,
+);
+router.get(
+  "/chat/subject/:subjectId/students",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.getChatStudents,
+);
+router.get(
+  "/chat/subject/:subjectId/messages",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.getChatMessages,
+);
+router.post(
+  "/chat/subject/:subjectId/messages",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.sendMessage,
+);
+router.patch(
+  "/chat/subject/:subjectId/read",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.markAsRead,
+);
+router.get(
+  "/chat/subject/:subjectId/unread-count",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.getSubjectUnread,
 );
 
 export default router;

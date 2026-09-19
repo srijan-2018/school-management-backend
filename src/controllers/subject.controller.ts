@@ -2,6 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import { Op } from "sequelize";
 import Subject from "../models/subject.model";
 import Class from "../models/class.model";
+import SubjectTeacher from "../models/subject-teacher.model";
+import Teacher from "../models/teacher.model";
+import User from "../models/user.model";
 import { create, list, remove, update, bulkRemove } from "../helpers/crud.helpers";
 import { AppError } from "../middlewares/error.middleware";
 import { buildPagination, getPagination } from "../utils/pagination";
@@ -137,6 +140,88 @@ export const getSubjectsByClassId = async (
       subjects,
       pagination: buildPagination(page, limit, count),
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const assignSubjectTeacher = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = req.schoolId;
+    if (!schoolId) throw new AppError("School context required", 400);
+
+    const subjectId = toPositiveInteger(req.params.id, "Subject ID");
+    const teacherId = toPositiveInteger(req.body.teacherId, "Teacher ID");
+
+    const subject = await Subject.findOne({ where: { id: subjectId, schoolId } });
+    if (!subject) throw new AppError("Subject not found", 404);
+
+    const teacher = await Teacher.findOne({ where: { id: teacherId, schoolId } });
+    if (!teacher) throw new AppError("Teacher not found in this school", 404);
+
+    await SubjectTeacher.destroy({ where: { subjectId, schoolId } });
+
+    const mapping = await SubjectTeacher.create({
+      subjectId,
+      teacherId,
+      schoolId,
+    });
+
+    res.status(200).json({
+      message: "Teacher assigned to subject successfully",
+      subjectTeacher: mapping,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSubjectTeachers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = req.schoolId;
+    if (!schoolId) throw new AppError("School context required", 400);
+
+    const mappings = await SubjectTeacher.findAll({
+      where: { schoolId },
+      include: [
+        {
+          model: Teacher,
+          include: [{ model: User, attributes: ["id", "name", "email"] }],
+        },
+        {
+          model: Subject,
+          attributes: ["id", "name", "classId"],
+        },
+      ],
+    });
+
+    res.json({ subjectTeachers: mappings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unassignSubjectTeacher = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = req.schoolId;
+    if (!schoolId) throw new AppError("School context required", 400);
+
+    const subjectId = toPositiveInteger(req.params.id, "Subject ID");
+    await SubjectTeacher.destroy({ where: { subjectId, schoolId } });
+
+    res.json({ message: "Teacher unassigned from subject" });
   } catch (err) {
     next(err);
   }

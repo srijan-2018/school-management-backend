@@ -53,3 +53,5 @@ import "./payroll-run.model";
 import "./school-calendar.model";
 import "./notification.model";
 import "./notification-read.model";
+import "./subject-teacher.model";
+import "./chat-message.model";
