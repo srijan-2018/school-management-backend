@@ -106,16 +106,18 @@ export async function getConversation(params: {
 // ---------------------------------------------------------------------------
 
 export async function markMessagesRead(params: {
+  schoolId: number;
   subjectId: number;
   senderUserId: number;
   receiverUserId: number;
 }) {
-  const { subjectId, senderUserId, receiverUserId } = params;
+  const { schoolId, subjectId, senderUserId, receiverUserId } = params;
 
   const [updated] = await ChatMessage.update(
     { isRead: true },
     {
       where: {
+        schoolId,
         subjectId,
         senderUserId,
         receiverUserId,

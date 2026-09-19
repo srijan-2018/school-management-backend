@@ -198,6 +198,16 @@ export const sendMessage = async (
       message,
     });
 
+    // A reply acknowledges every unread message in this conversation. This
+    // keeps the unread badge correct even if the client was opened offline or
+    // is closed before its separate mark-as-read request completes.
+    await markMessagesRead({
+      schoolId,
+      subjectId,
+      senderUserId: receiverUserId,
+      receiverUserId: actor.userId,
+    });
+
     res.status(201).json({
       message: "Message sent",
       chatMessage,
@@ -232,6 +242,7 @@ export const markAsRead = async (
     }
 
     const updated = await markMessagesRead({
+      schoolId,
       subjectId,
       senderUserId: fromUserId,
       receiverUserId: actor.userId,
