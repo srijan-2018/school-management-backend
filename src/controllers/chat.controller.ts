@@ -148,6 +148,16 @@ export const getChatMessages = async (
       limit,
     });
 
+    // Reading a conversation acknowledges messages received from the other
+    // participant. Keeping this on the read endpoint makes the unread badge
+    // reliable even if the app is closed before its follow-up request runs.
+    await markMessagesRead({
+      schoolId,
+      subjectId,
+      senderUserId: withUserId,
+      receiverUserId: actor.userId,
+    });
+
     res.json({
       messages,
       pagination: buildPagination(page, limit, total),
