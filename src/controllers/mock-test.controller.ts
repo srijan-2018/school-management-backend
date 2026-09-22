@@ -314,6 +314,50 @@ const getAccessibleStudent = async (req: Request) => {
   };
 };
 
+const ensureManagerCanModifyMockTest = (
+  req: Request,
+  mockTest: any,
+): CurrentUser => {
+  const currentUser = getCurrentUser(req);
+
+  if (!isManagerRole(currentUser.role)) {
+    throw new AppError("Access denied", 403);
+  }
+
+  const requestSchoolId = Number(req.schoolId);
+  if (
+    Number.isInteger(requestSchoolId) &&
+    requestSchoolId > 0 &&
+    mockTest.schoolId != null &&
+    Number(mockTest.schoolId) !== requestSchoolId
+  ) {
+    throw new AppError("Access denied", 403);
+  }
+
+  const generatedByUserId = Number(mockTest.generatedByUserId);
+  const assignedByUserId = Number(mockTest.assignedByUserId);
+
+  if (
+    generatedByUserId !== currentUser.id &&
+    assignedByUserId !== currentUser.id
+  ) {
+    throw new AppError("Access denied", 403);
+  }
+
+  if (mockTest.status !== "generated") {
+    throw new AppError("Only generated mock tests can be modified", 400);
+  }
+
+  if (mockTest.attemptStartedAt) {
+    throw new AppError(
+      "Mock tests that have already been started cannot be modified",
+      400,
+    );
+  }
+
+  return currentUser;
+};
+
 const ensureMockTestAccess = async (req: Request, mockTest: any) => {
   const { currentUser, linkedStudentIds } = await getAccessibleStudent(req);
 
@@ -2630,6 +2674,154 @@ export const assignMockTest = async (
         serializeMockTestDetail(assignedMockTest, true, currentUser),
       ),
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateMockTest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mockTest: any = await MockTest.findByPk(String(req.params.id), {
+      include: mockTestUserInclude,
+    });
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
+
+    const currentUser = ensureManagerCanModifyMockTest(req, mockTest);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const updates: Record<string, unknown> = {};
+
+    if (body.title !== undefined) {
+      const title = toOptionalString(body.title);
+      if (!title) {
+        throw new AppError("title cannot be empty", 400);
+      }
+      updates.title = title;
+    }
+
+    if (body.level !== undefined) {
+      const normalizedLevel = String(body.level).toLowerCase();
+      if (
+        !allowedLevels.includes(
+          normalizedLevel as (typeof allowedLevels)[number],
+        )
+      ) {
+        throw new AppError(
+          "level must be one of: easy, medium, hard",
+          400,
+        );
+      }
+      updates.level = normalizedLevel;
+    }
+
+    if (body.questions !== undefined) {
+      let validatedQuestions: MockQuestion[];
+      try {
+        validatedQuestions = validateMockTestQuestions(body.questions);
+      } catch (error) {
+        throw new AppError(
+          error instanceof Error ? error.message : "Invalid questions payload",
+          400,
+        );
+      }
+
+      if (validatedQuestions.length > 50) {
+        throw new AppError("A mock test can include at most 50 questions", 400);
+      }
+
+      if (validatedQuestions.length === 0) {
+        throw new AppError("At least one question is required", 400);
+      }
+
+      updates.questions = validatedQuestions;
+    }
+
+    const contextKeys = [
+      "classId",
+      "className",
+      "subjectId",
+      "subjectName",
+      "chapterId",
+      "chapterName",
+    ] as const;
+
+    if (contextKeys.some((key) => body[key] !== undefined)) {
+      let targetStudent: any = null;
+      if (mockTest.studentId != null) {
+        targetStudent = await Student.findByPk(String(mockTest.studentId));
+      }
+
+      const resolvedContext = await resolveClassSubjectAndChapter(
+        body,
+        targetStudent,
+      );
+
+      updates.classId = resolvedContext.classId;
+      updates.className = String(resolvedContext.className);
+      updates.subjectId = resolvedContext.subjectId;
+      updates.subjectName = String(resolvedContext.subjectName);
+      updates.chapterId = resolvedContext.chapterId;
+      updates.chapterName = resolvedContext.chapterName;
+    }
+
+    if (body.durationMinutes !== undefined || body.durationSeconds !== undefined) {
+      updates.durationSeconds = resolveDurationSecondsForCreate(body);
+    }
+
+    if (
+      body.negativeMarkingEnabled !== undefined ||
+      body.negativeMarkingPenalty !== undefined
+    ) {
+      const schoolId =
+        mockTest.schoolId != null
+          ? Number(mockTest.schoolId)
+          : Number(req.schoolId);
+      const marking = await resolveNegativeMarkingSnapshotForCreate(
+        Number.isInteger(schoolId) && schoolId > 0 ? schoolId : null,
+        body,
+      );
+      updates.negativeMarkingEnabled = marking.negativeMarkingEnabled;
+      updates.negativeMarkingPenalty = marking.negativeMarkingPenalty;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      throw new AppError("No valid fields to update", 400);
+    }
+
+    await mockTest.update(updates);
+    await mockTest.reload({ include: mockTestUserInclude });
+
+    res.json({
+      message: "mock test updated successfully",
+      mockTest: serializeMockTestDetail(mockTest, true, currentUser),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteMockTest = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const mockTest: any = await MockTest.findByPk(String(req.params.id));
+
+    if (!mockTest) {
+      return res.status(404).json({ message: "mockTest not found" });
+    }
+
+    ensureManagerCanModifyMockTest(req, mockTest);
+    await mockTest.destroy();
+
+    res.json({ message: "mock test deleted successfully" });
   } catch (err) {
     next(err);
   }

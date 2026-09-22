@@ -283,7 +283,7 @@ export const getUnreadCount = async (
       schoolId,
     });
 
-    res.json({ unreadCount: count });
+    res.json({ unreadCount: Math.max(0, Number(count) || 0) });
   } catch (err) {
     next(err);
   }
@@ -315,7 +315,7 @@ export const getSubjectUnread = async (
       schoolId,
     });
 
-    res.json({ unreadCount: count });
+    res.json({ unreadCount: Math.max(0, Number(count) || 0) });
   } catch (err) {
     next(err);
   }
