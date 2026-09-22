@@ -126,7 +126,48 @@ export async function markMessagesRead(params: {
     },
   );
 
-  return updated;
+  return Math.max(0, Number(updated) || 0);
+}
+
+export async function countUnreadFromSender(params: {
+  schoolId: number;
+  subjectId: number;
+  senderUserId: number;
+  receiverUserId: number;
+}) {
+  const count = await ChatMessage.count({
+    where: {
+      schoolId: params.schoolId,
+      subjectId: params.subjectId,
+      senderUserId: params.senderUserId,
+      receiverUserId: params.receiverUserId,
+      isRead: false,
+    },
+  });
+
+  return Math.max(0, Number(count) || 0);
+}
+
+export async function markMessagesReadWithCounts(params: {
+  schoolId: number;
+  subjectId: number;
+  senderUserId: number;
+  receiverUserId: number;
+}) {
+  const updated = await markMessagesRead(params);
+  const [conversationUnreadCount, unreadCount] = await Promise.all([
+    countUnreadFromSender(params),
+    getUnreadChatCount({
+      userId: params.receiverUserId,
+      schoolId: params.schoolId,
+    }),
+  ]);
+
+  return {
+    updated,
+    conversationUnreadCount,
+    unreadCount: Math.max(0, Number(unreadCount) || 0),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +212,7 @@ export async function listChatSubjects(params: {
       [sequelize.fn("MAX", sequelize.col("ChatMessage.createdAt")), "lastMessageAt"],
       [
         sequelize.literal(
-          `SUM(CASE WHEN receiverUserId = ${sequelize.escape(userId)} AND isRead = false THEN 1 ELSE 0 END)`,
+          `SUM(CASE WHEN receiverUserId = ${sequelize.escape(userId)} AND isRead = 0 THEN 1 ELSE 0 END)`,
         ),
         "unreadCount",
       ],
@@ -225,7 +266,7 @@ export async function listChatStudents(params: {
       [sequelize.fn("MAX", sequelize.col("ChatMessage.createdAt")), "lastMessageAt"],
       [
         sequelize.literal(
-          `SUM(CASE WHEN receiverUserId = ${sequelize.escape(teacherUserId)} AND isRead = false THEN 1 ELSE 0 END)`,
+          `SUM(CASE WHEN receiverUserId = ${sequelize.escape(teacherUserId)} AND senderUserId <> ${sequelize.escape(teacherUserId)} AND isRead = 0 THEN 1 ELSE 0 END)`,
         ),
         "unreadCount",
       ],
@@ -247,13 +288,16 @@ export async function listChatStudents(params: {
 
   const userMap = new Map(users.map((u: any) => [u.id, u]));
 
-  return results.map((row) => ({
-    studentUserId: row.studentUserId,
-    studentName: (userMap.get(row.studentUserId) as any)?.name ?? "Student",
-    avatarId: (userMap.get(row.studentUserId) as any)?.avatarId ?? null,
-    lastMessageAt: row.lastMessageAt,
-    unreadCount: Number(row.unreadCount) || 0,
-  }));
+  return results.map((row) => {
+    const studentUserId = Number(row.studentUserId) || 0;
+    return {
+      studentUserId,
+      studentName: (userMap.get(studentUserId) as any)?.name ?? "Student",
+      avatarId: (userMap.get(studentUserId) as any)?.avatarId ?? null,
+      lastMessageAt: row.lastMessageAt,
+      unreadCount: Math.max(0, Number(row.unreadCount) || 0),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -12,6 +12,7 @@ import {
   listChatStudents,
   getSubjectUnreadCount,
   markAllChatMessagesRead,
+  markMessagesReadWithCounts,
 } from "../services/chat.service";
 import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
@@ -152,7 +153,7 @@ export const getChatMessages = async (
     // Reading a conversation acknowledges messages received from the other
     // participant. Keeping this on the read endpoint makes the unread badge
     // reliable even if the app is closed before its follow-up request runs.
-    await markMessagesRead({
+    const readResult = await markMessagesReadWithCounts({
       schoolId,
       subjectId,
       senderUserId: withUserId,
@@ -162,6 +163,7 @@ export const getChatMessages = async (
     res.json({
       messages,
       pagination: buildPagination(page, limit, total),
+      ...readResult,
     });
   } catch (err) {
     next(err);
@@ -252,14 +254,17 @@ export const markAsRead = async (
       throw new AppError("Query parameter 'from' (user id) is required", 400);
     }
 
-    const updated = await markMessagesRead({
+    const readResult = await markMessagesReadWithCounts({
       schoolId,
       subjectId,
       senderUserId: fromUserId,
       receiverUserId: actor.userId,
     });
 
-    res.json({ message: "Messages marked as read", updated });
+    res.json({
+      message: "Messages marked as read",
+      ...readResult,
+    });
   } catch (err) {
     next(err);
   }
@@ -283,8 +288,16 @@ export const markAllAsRead = async (
       userId: actor.userId,
       schoolId,
     });
+    const unreadCount = await getUnreadChatCount({
+      userId: actor.userId,
+      schoolId,
+    });
 
-    res.json({ message: "All messages marked as read", updated });
+    res.json({
+      message: "All messages marked as read",
+      updated: Math.max(0, Number(updated) || 0),
+      unreadCount: Math.max(0, Number(unreadCount) || 0),
+    });
   } catch (err) {
     next(err);
   }
