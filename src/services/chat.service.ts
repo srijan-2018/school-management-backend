@@ -449,8 +449,28 @@ export async function markAllChatMessagesRead(params: {
   const userId = Number(params.userId);
   const schoolId = Number(params.schoolId);
 
-  return markInboundRowsRead({
+  let updated = await markInboundRowsRead({
     schoolId,
     receiverUserId: userId,
   });
+
+  let unreadCount = await getUnreadChatCount({ userId, schoolId });
+  if (unreadCount > 0) {
+    const subjects = await listChatSubjects({ userId, schoolId });
+    for (const subject of subjects) {
+      const result = await markSubjectMessagesReadWithCounts({
+        schoolId,
+        subjectId: subject.subjectId,
+        receiverUserId: userId,
+      });
+      updated += result.updated;
+    }
+    unreadCount = await getUnreadChatCount({ userId, schoolId });
+  }
+
+  if (unreadCount > 0) {
+    updated += await markInboundRowsRead({ receiverUserId: userId });
+  }
+
+  return updated;
 }
