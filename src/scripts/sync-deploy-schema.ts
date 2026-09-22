@@ -59,7 +59,20 @@ async function main() {
       }
     }
 
-    await model.sync({ alter: true });
+    try {
+      await model.sync({ alter: true });
+    } catch (error) {
+      const err = error as { name?: string; message?: string };
+      // MySQL may reference a dropped FK name during alter; table is already valid.
+      if (err.name === "SequelizeUnknownConstraintError") {
+        console.warn(
+          `Alter skipped for ${name} (${err.message ?? "unknown constraint"}); syncing without alter.`,
+        );
+        await model.sync();
+      } else {
+        throw error;
+      }
+    }
     console.log(`Synced ${name}`);
   }
 
