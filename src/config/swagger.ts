@@ -61,6 +61,40 @@ const messageResponse = (description: string) => ({
   },
 });
 
+const jsonResponse = (description: string, schemaRef: string) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        $ref: schemaRef,
+      },
+    },
+  },
+});
+
+const subjectIdParameter = () => ({
+  name: "subjectId",
+  in: "path",
+  required: true,
+  description: "Subject id",
+  schema: {
+    type: "integer",
+    minimum: 1,
+  },
+});
+
+const requiredQueryParameter = (
+  name: string,
+  description: string,
+  schema: Record<string, unknown>,
+) => ({
+  name,
+  in: "query",
+  required: true,
+  description,
+  schema,
+});
+
 const objectBody = (title: string) =>
   jsonContent({
     type: "object",
@@ -218,6 +252,7 @@ const options: swaggerJsdoc.Options = {
       { name: "Inventory" },
       { name: "E-Learning" },
       { name: "Notifications" },
+      { name: "Chat" },
       { name: "Transport" },
     ],
     components: {
@@ -290,6 +325,205 @@ const options: swaggerJsdoc.Options = {
           required: ["refreshToken"],
           properties: {
             refreshToken: { type: "string" },
+          },
+        },
+        ChatUnreadCountResponse: {
+          type: "object",
+          properties: {
+            unreadCount: {
+              type: "integer",
+              minimum: 0,
+              example: 0,
+              description:
+                "Total unread inbound chat messages for the current user",
+            },
+          },
+        },
+        ChatMarkReadResult: {
+          type: "object",
+          properties: {
+            updated: {
+              type: "integer",
+              minimum: 0,
+              example: 0,
+              description:
+                "Messages marked read in this request (0 if already read)",
+            },
+            conversationUnreadCount: {
+              type: "integer",
+              minimum: 0,
+              example: 0,
+              description:
+                "Unread messages from the other participant in this subject thread",
+            },
+            unreadCount: {
+              type: "integer",
+              minimum: 0,
+              example: 0,
+              description: "Total unread inbound messages for the current user",
+            },
+          },
+        },
+        ChatMarkReadResponse: {
+          type: "object",
+          properties: {
+            message: { type: "string", example: "Messages marked as read" },
+            updated: { type: "integer", minimum: 0, example: 2 },
+            conversationUnreadCount: { type: "integer", minimum: 0, example: 0 },
+            unreadCount: { type: "integer", minimum: 0, example: 0 },
+          },
+        },
+        ChatMarkAllReadResponse: {
+          type: "object",
+          properties: {
+            message: { type: "string", example: "All messages marked as read" },
+            updated: { type: "integer", minimum: 0, example: 5 },
+            unreadCount: { type: "integer", minimum: 0, example: 0 },
+          },
+        },
+        ChatSubjectItem: {
+          type: "object",
+          properties: {
+            subjectId: { type: "integer", example: 12 },
+            subjectName: { type: "string", example: "LIFE SCIENCE" },
+            lastMessageAt: {
+              type: "string",
+              format: "date-time",
+            },
+            unreadCount: { type: "integer", minimum: 0, example: 0 },
+          },
+        },
+        ChatSubjectsResponse: {
+          type: "object",
+          properties: {
+            subjects: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ChatSubjectItem" },
+            },
+          },
+        },
+        ChatStudentItem: {
+          type: "object",
+          properties: {
+            studentUserId: { type: "integer", example: 45 },
+            studentName: { type: "string", example: "Testing" },
+            avatarId: { type: "string", nullable: true, example: null },
+            lastMessageAt: {
+              type: "string",
+              format: "date-time",
+            },
+            unreadCount: { type: "integer", minimum: 0, example: 0 },
+          },
+        },
+        ChatStudentsResponse: {
+          type: "object",
+          properties: {
+            students: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ChatStudentItem" },
+            },
+          },
+        },
+        ChatUserPreview: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            name: { type: "string" },
+            avatarId: { type: "string", nullable: true },
+          },
+        },
+        ChatMessage: {
+          type: "object",
+          properties: {
+            id: { type: "integer", example: 101 },
+            schoolId: { type: "integer", example: 1 },
+            subjectId: { type: "integer", example: 12 },
+            senderUserId: { type: "integer", example: 45 },
+            receiverUserId: { type: "integer", example: 8 },
+            message: { type: "string", example: "Hi sir..." },
+            isRead: { type: "boolean", example: true },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+            sender: { $ref: "#/components/schemas/ChatUserPreview" },
+            receiver: { $ref: "#/components/schemas/ChatUserPreview" },
+          },
+        },
+        ChatPagination: {
+          type: "object",
+          properties: {
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 50 },
+            total: { type: "integer", example: 15 },
+            totalPages: { type: "integer", example: 1 },
+            hasNextPage: { type: "boolean", example: false },
+            hasPreviousPage: { type: "boolean", example: false },
+          },
+        },
+        ChatMessagesResponse: {
+          type: "object",
+          properties: {
+            messages: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ChatMessage" },
+            },
+            pagination: { $ref: "#/components/schemas/ChatPagination" },
+            updated: {
+              type: "integer",
+              minimum: 0,
+              description:
+                "Messages marked read when loading the conversation",
+            },
+            conversationUnreadCount: {
+              type: "integer",
+              minimum: 0,
+              description: "Unread from the other participant after this read",
+            },
+            unreadCount: {
+              type: "integer",
+              minimum: 0,
+              description: "Total unread for the current user after this read",
+            },
+          },
+        },
+        ChatSendMessageRequest: {
+          type: "object",
+          required: ["receiverUserId", "message"],
+          properties: {
+            receiverUserId: { type: "integer", example: 45 },
+            message: { type: "string", example: "Hello" },
+          },
+        },
+        ChatSendMessageResponse: {
+          type: "object",
+          properties: {
+            message: { type: "string", example: "Message sent" },
+            chatMessage: { $ref: "#/components/schemas/ChatMessage" },
+          },
+        },
+        ChatSubjectTeacher: {
+          type: "object",
+          properties: {
+            teacherId: { type: "integer", nullable: true },
+            userId: { type: "integer", nullable: true },
+            name: { type: "string", example: "Teacher Name" },
+            email: { type: "string", nullable: true },
+            avatarId: { type: "string", nullable: true },
+          },
+        },
+        ChatSubjectTeacherResponse: {
+          type: "object",
+          properties: {
+            teacher: {
+              oneOf: [
+                { $ref: "#/components/schemas/ChatSubjectTeacher" },
+                { type: "null" },
+              ],
+            },
+            message: {
+              type: "string",
+              description: "Present when no teacher is assigned",
+              example: "No teacher assigned to this subject",
+            },
           },
         },
       },
@@ -1649,7 +1883,23 @@ const options: swaggerJsdoc.Options = {
             ),
           ],
           responses: {
-            200: messageResponse("Unread notification count"),
+            200: {
+              description: "Unread notification count",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      unreadCount: {
+                        type: "integer",
+                        minimum: 0,
+                        example: 0,
+                      },
+                    },
+                  },
+                },
+              },
+            },
             400: messageResponse("Missing school context"),
             401: messageResponse("Unauthorized"),
           },
@@ -1690,7 +1940,27 @@ const options: swaggerJsdoc.Options = {
           summary: "Mark all notifications as read",
           security: [{ bearerAuth: [] }],
           responses: {
-            200: messageResponse("All notifications marked as read"),
+            200: {
+              description: "All notifications marked as read",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: {
+                        type: "string",
+                        example: "All notifications marked as read",
+                      },
+                      updated: {
+                        type: "integer",
+                        minimum: 0,
+                        example: 3,
+                      },
+                    },
+                  },
+                },
+              },
+            },
             401: messageResponse("Unauthorized"),
           },
         },
@@ -1706,6 +1976,181 @@ const options: swaggerJsdoc.Options = {
             400: messageResponse("Invalid notification id"),
             401: messageResponse("Unauthorized"),
             404: messageResponse("Notification not found"),
+          },
+        },
+      },
+      "/chat/subjects": {
+        get: {
+          tags: ["Chat"],
+          summary: "List subjects with active chats",
+          description:
+            "Returns subjects where the current user has sent or received messages, with per-subject unread counts.",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: jsonResponse(
+              "Chat subjects",
+              "#/components/schemas/ChatSubjectsResponse",
+            ),
+            401: messageResponse("Unauthorized"),
+            400: messageResponse("School context required"),
+          },
+        },
+      },
+      "/chat/unread-count": {
+        get: {
+          tags: ["Chat"],
+          summary: "Total unread chat count",
+          description:
+            "Inbound messages only (receiver is the current user, isRead is false).",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: jsonResponse(
+              "Unread count",
+              "#/components/schemas/ChatUnreadCountResponse",
+            ),
+            401: messageResponse("Unauthorized"),
+            400: messageResponse("School context required"),
+          },
+        },
+      },
+      "/chat/read-all": {
+        patch: {
+          tags: ["Chat"],
+          summary: "Mark all inbound chat messages as read",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: jsonResponse(
+              "All messages marked as read",
+              "#/components/schemas/ChatMarkAllReadResponse",
+            ),
+            401: messageResponse("Unauthorized"),
+            400: messageResponse("School context required"),
+          },
+        },
+      },
+      "/chat/subject/{subjectId}/teacher": {
+        get: {
+          tags: ["Chat"],
+          summary: "Get teacher assigned to a subject",
+          description: "Used by students to resolve who to message.",
+          security: [{ bearerAuth: [] }],
+          parameters: [subjectIdParameter()],
+          responses: {
+            200: jsonResponse(
+              "Subject teacher",
+              "#/components/schemas/ChatSubjectTeacherResponse",
+            ),
+            400: messageResponse("Invalid subject id"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/chat/subject/{subjectId}/students": {
+        get: {
+          tags: ["Chat"],
+          summary: "List students who chatted (teacher inbox)",
+          description:
+            "Per-student unread counts count inbound messages from that student only.",
+          security: [{ bearerAuth: [] }],
+          parameters: [subjectIdParameter()],
+          responses: {
+            200: jsonResponse(
+              "Students with active chats",
+              "#/components/schemas/ChatStudentsResponse",
+            ),
+            400: messageResponse("Invalid subject id"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/chat/subject/{subjectId}/messages": {
+        get: {
+          tags: ["Chat"],
+          summary: "Get conversation messages",
+          description:
+            "Marks inbound messages from the other participant as read and returns updated unread counts.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            subjectIdParameter(),
+            requiredQueryParameter(
+              "with",
+              "Other participant user id",
+              { type: "integer", minimum: 1, example: 45 },
+            ),
+            ...paginationParameters(),
+          ],
+          responses: {
+            200: jsonResponse(
+              "Messages and read state",
+              "#/components/schemas/ChatMessagesResponse",
+            ),
+            400: messageResponse("Invalid subject id or missing with user id"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+        post: {
+          tags: ["Chat"],
+          summary: "Send a chat message",
+          security: [{ bearerAuth: [] }],
+          parameters: [subjectIdParameter()],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ChatSendMessageRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            201: jsonResponse(
+              "Message sent",
+              "#/components/schemas/ChatSendMessageResponse",
+            ),
+            400: messageResponse("Validation error"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/chat/subject/{subjectId}/read": {
+        patch: {
+          tags: ["Chat"],
+          summary: "Mark conversation as read",
+          description:
+            "Marks inbound messages from `from` (sender user id) as read. Response includes `updated` (0 if already read) and current unread counts.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            subjectIdParameter(),
+            requiredQueryParameter(
+              "from",
+              "Sender user id (the other participant)",
+              { type: "integer", minimum: 1, example: 45 },
+            ),
+          ],
+          responses: {
+            200: jsonResponse(
+              "Messages marked as read",
+              "#/components/schemas/ChatMarkReadResponse",
+            ),
+            400: messageResponse("Invalid subject id or missing from user id"),
+            401: messageResponse("Unauthorized"),
+          },
+        },
+      },
+      "/chat/subject/{subjectId}/unread-count": {
+        get: {
+          tags: ["Chat"],
+          summary: "Unread count for a subject",
+          security: [{ bearerAuth: [] }],
+          parameters: [subjectIdParameter()],
+          responses: {
+            200: jsonResponse(
+              "Subject unread count",
+              "#/components/schemas/ChatUnreadCountResponse",
+            ),
+            400: messageResponse("Invalid subject id"),
+            401: messageResponse("Unauthorized"),
           },
         },
       },

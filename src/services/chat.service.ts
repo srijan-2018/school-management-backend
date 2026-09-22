@@ -6,6 +6,11 @@ import Subject from "../models/subject.model";
 import Teacher from "../models/teacher.model";
 import User from "../models/user.model";
 
+/** Match unread rows in MySQL (0/false) and SQLite (0/1). */
+function isUnreadWhere() {
+  return { [Op.or]: [{ isRead: false }, { isRead: 0 }] };
+}
+
 // ---------------------------------------------------------------------------
 // Teacher resolution
 // ---------------------------------------------------------------------------
@@ -124,7 +129,7 @@ export async function markMessagesRead(params: {
         subjectId,
         senderUserId,
         receiverUserId,
-        isRead: false,
+        ...isUnreadWhere(),
       },
     },
   );
@@ -144,7 +149,7 @@ export async function countUnreadFromSender(params: {
       subjectId: Number(params.subjectId),
       senderUserId: Number(params.senderUserId),
       receiverUserId: Number(params.receiverUserId),
-      isRead: false,
+      ...isUnreadWhere(),
     },
   });
 
@@ -188,7 +193,7 @@ export async function getUnreadChatCount(params: {
     where: {
       schoolId,
       receiverUserId: userId,
-      isRead: false,
+      ...isUnreadWhere(),
     },
   });
 
@@ -233,7 +238,7 @@ export async function listChatSubjects(params: {
           schoolId,
           subjectId,
           receiverUserId: userId,
-          isRead: false,
+          ...isUnreadWhere(),
         },
       });
 
@@ -346,11 +351,11 @@ export async function getSubjectUnreadCount(params: {
       schoolId,
       subjectId,
       receiverUserId: userId,
-      isRead: false,
+      ...isUnreadWhere(),
     },
   });
 
-  return count;
+  return Math.max(0, Number(count) || 0);
 }
 
 /** Mark every unread inbound message for this user (e.g. teacher inbox). */
@@ -358,7 +363,8 @@ export async function markAllChatMessagesRead(params: {
   userId: number;
   schoolId: number;
 }) {
-  const { userId, schoolId } = params;
+  const userId = Number(params.userId);
+  const schoolId = Number(params.schoolId);
 
   const [updated] = await ChatMessage.update(
     { isRead: true },
@@ -366,10 +372,10 @@ export async function markAllChatMessagesRead(params: {
       where: {
         schoolId,
         receiverUserId: userId,
-        isRead: false,
+        ...isUnreadWhere(),
       },
     },
   );
 
-  return updated;
+  return Math.max(0, Number(updated) || 0);
 }
