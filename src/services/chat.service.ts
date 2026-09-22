@@ -6,9 +6,70 @@ import Subject from "../models/subject.model";
 import Teacher from "../models/teacher.model";
 import User from "../models/user.model";
 
-/** Match unread rows in MySQL (0/false) and SQLite (0/1). */
+/** Match unread rows across MySQL/SQLite (0, false, NULL). */
 function isUnreadWhere() {
-  return { [Op.or]: [{ isRead: false }, { isRead: 0 }] };
+  return {
+    [Op.or]: [{ isRead: false }, { isRead: 0 }, { isRead: null }],
+  };
+}
+
+/** ORM + raw fallback so read state always persists on the server. */
+async function markInboundRowsRead(where: Record<string, unknown>) {
+  const [updated] = await ChatMessage.update(
+    { isRead: true },
+    {
+      where: {
+        ...where,
+        ...isUnreadWhere(),
+      },
+    },
+  );
+
+  let count = Math.max(0, Number(updated) || 0);
+  if (count > 0) {
+    return count;
+  }
+
+  const table = ChatMessage.getTableName();
+  const schoolId = Number(where.schoolId);
+  const receiverUserId = Number(where.receiverUserId);
+  if (!Number.isFinite(schoolId) || !Number.isFinite(receiverUserId)) {
+    return 0;
+  }
+
+  const subjectId = where.subjectId != null ? Number(where.subjectId) : null;
+  const senderUserId =
+    where.senderUserId != null ? Number(where.senderUserId) : null;
+
+  const parts = [
+    "`schoolId` = :schoolId",
+    "`receiverUserId` = :receiverUserId",
+    "(`isRead` = 0 OR `isRead` IS NULL OR `isRead` = false)",
+  ];
+  const replacements: Record<string, number> = {
+    schoolId,
+    receiverUserId,
+  };
+
+  if (Number.isFinite(subjectId) && subjectId! > 0) {
+    parts.push("`subjectId` = :subjectId");
+    replacements.subjectId = subjectId!;
+  }
+  if (Number.isFinite(senderUserId) && senderUserId! > 0) {
+    parts.push("`senderUserId` = :senderUserId");
+    replacements.senderUserId = senderUserId!;
+  }
+
+  const [, meta] = await sequelize.query(
+    `UPDATE \`${table}\` SET \`isRead\` = 1 WHERE ${parts.join(" AND ")}`,
+    { replacements },
+  );
+
+  const affected =
+    typeof meta === "object" && meta != null && "affectedRows" in meta
+      ? Number((meta as { affectedRows?: number }).affectedRows)
+      : 0;
+  return Math.max(0, affected || 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -121,20 +182,12 @@ export async function markMessagesRead(params: {
   const senderUserId = Number(params.senderUserId);
   const receiverUserId = Number(params.receiverUserId);
 
-  const [updated] = await ChatMessage.update(
-    { isRead: true },
-    {
-      where: {
-        schoolId,
-        subjectId,
-        senderUserId,
-        receiverUserId,
-        ...isUnreadWhere(),
-      },
-    },
-  );
-
-  return Math.max(0, Number(updated) || 0);
+  return markInboundRowsRead({
+    schoolId,
+    subjectId,
+    senderUserId,
+    receiverUserId,
+  });
 }
 
 export async function countUnreadFromSender(params: {
@@ -188,17 +241,11 @@ export async function markSubjectMessagesReadWithCounts(params: {
   const subjectId = Number(params.subjectId);
   const receiverUserId = Number(params.receiverUserId);
 
-  const [updated] = await ChatMessage.update(
-    { isRead: true },
-    {
-      where: {
-        schoolId,
-        subjectId,
-        receiverUserId,
-        ...isUnreadWhere(),
-      },
-    },
-  );
+  const updated = await markInboundRowsRead({
+    schoolId,
+    subjectId,
+    receiverUserId,
+  });
 
   const [conversationUnreadCount, unreadCount] = await Promise.all([
     getSubjectUnreadCount({ schoolId, subjectId, userId: receiverUserId }),
@@ -206,7 +253,7 @@ export async function markSubjectMessagesReadWithCounts(params: {
   ]);
 
   return {
-    updated: Math.max(0, Number(updated) || 0),
+    updated,
     conversationUnreadCount,
     unreadCount,
   };
@@ -378,7 +425,9 @@ export async function getSubjectUnreadCount(params: {
   userId: number;
   schoolId: number;
 }) {
-  const { subjectId, userId, schoolId } = params;
+  const subjectId = Number(params.subjectId);
+  const userId = Number(params.userId);
+  const schoolId = Number(params.schoolId);
 
   const count = await ChatMessage.count({
     where: {
@@ -400,16 +449,8 @@ export async function markAllChatMessagesRead(params: {
   const userId = Number(params.userId);
   const schoolId = Number(params.schoolId);
 
-  const [updated] = await ChatMessage.update(
-    { isRead: true },
-    {
-      where: {
-        schoolId,
-        receiverUserId: userId,
-        ...isUnreadWhere(),
-      },
-    },
-  );
-
-  return Math.max(0, Number(updated) || 0);
+  return markInboundRowsRead({
+    schoolId,
+    receiverUserId: userId,
+  });
 }

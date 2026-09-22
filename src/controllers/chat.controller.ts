@@ -26,7 +26,7 @@ function requireUser(req: Request) {
     throw new AppError("Unauthorized", 401);
   }
 
-  return { userId, role };
+  return { userId: Number(userId), role };
 }
 
 // ---------------------------------------------------------------------------
