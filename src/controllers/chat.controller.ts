@@ -11,6 +11,7 @@ import {
   listChatSubjects,
   listChatStudents,
   getSubjectUnreadCount,
+  markAllChatMessagesRead,
 } from "../services/chat.service";
 import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
@@ -259,6 +260,31 @@ export const markAsRead = async (
     });
 
     res.json({ message: "Messages marked as read", updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// PATCH /api/chat/read-all — mark all inbound messages read for current user
+// ---------------------------------------------------------------------------
+
+export const markAllAsRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const schoolId = requireSchoolId(req, res);
+    if (!schoolId) return;
+
+    const actor = requireUser(req);
+    const updated = await markAllChatMessagesRead({
+      userId: actor.userId,
+      schoolId,
+    });
+
+    res.json({ message: "All messages marked as read", updated });
   } catch (err) {
     next(err);
   }

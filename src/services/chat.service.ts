@@ -278,3 +278,24 @@ export async function getSubjectUnreadCount(params: {
 
   return count;
 }
+
+/** Mark every unread inbound message for this user (e.g. teacher inbox). */
+export async function markAllChatMessagesRead(params: {
+  userId: number;
+  schoolId: number;
+}) {
+  const { userId, schoolId } = params;
+
+  const [updated] = await ChatMessage.update(
+    { isRead: true },
+    {
+      where: {
+        schoolId,
+        receiverUserId: userId,
+        isRead: false,
+      },
+    },
+  );
+
+  return updated;
+}

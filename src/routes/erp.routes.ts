@@ -1092,6 +1092,12 @@ router.get(
   allowRoles(...CHAT_ACCESS_ROLES),
   chat.getUnreadCount,
 );
+router.patch(
+  "/chat/read-all",
+  requireSchoolContext,
+  allowRoles(...CHAT_ACCESS_ROLES),
+  chat.markAllAsRead,
+);
 router.get(
   "/chat/subject/:subjectId/teacher",
   requireSchoolContext,
