@@ -199,9 +199,9 @@ export async function listChatSubjects(params: {
   userId: number;
   schoolId: number;
 }) {
-  const { userId, schoolId } = params;
+  const userId = Number(params.userId);
+  const schoolId = Number(params.schoolId);
 
-  // Find all distinct subjectIds where this user has sent or received messages
   const results: any[] = await ChatMessage.findAll({
     where: {
       schoolId,
@@ -210,15 +210,8 @@ export async function listChatSubjects(params: {
     attributes: [
       "subjectId",
       [sequelize.fn("MAX", sequelize.col("ChatMessage.createdAt")), "lastMessageAt"],
-      [
-        sequelize.literal(
-          `SUM(CASE WHEN receiverUserId = ${sequelize.escape(userId)} AND isRead = 0 THEN 1 ELSE 0 END)`,
-        ),
-        "unreadCount",
-      ],
     ],
     group: ["subjectId"],
-    order: [[sequelize.literal("lastMessageAt"), "DESC"]],
     include: [
       {
         model: Subject,
@@ -228,12 +221,31 @@ export async function listChatSubjects(params: {
     raw: false,
   });
 
-  return results.map((row: any) => ({
-    subjectId: row.subjectId,
-    subjectName: row.Subject?.name ?? "Unknown",
-    lastMessageAt: row.getDataValue("lastMessageAt"),
-    unreadCount: Number(row.getDataValue("unreadCount")) || 0,
-  }));
+  const subjects = await Promise.all(
+    results.map(async (row: any) => {
+      const subjectId = Number(row.subjectId);
+      const unreadCount = await ChatMessage.count({
+        where: {
+          schoolId,
+          subjectId,
+          receiverUserId: userId,
+          isRead: false,
+        },
+      });
+
+      return {
+        subjectId,
+        subjectName: row.Subject?.name ?? "Unknown",
+        lastMessageAt: row.getDataValue("lastMessageAt"),
+        unreadCount: Math.max(0, Number(unreadCount) || 0),
+      };
+    }),
+  );
+
+  return subjects.sort(
+    (a, b) =>
+      new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -245,7 +257,9 @@ export async function listChatStudents(params: {
   subjectId: number;
   schoolId: number;
 }) {
-  const { teacherUserId, subjectId, schoolId } = params;
+  const teacherUserId = Number(params.teacherUserId);
+  const subjectId = Number(params.subjectId);
+  const schoolId = Number(params.schoolId);
 
   const results: any[] = await ChatMessage.findAll({
     where: {
@@ -264,20 +278,15 @@ export async function listChatStudents(params: {
         "studentUserId",
       ],
       [sequelize.fn("MAX", sequelize.col("ChatMessage.createdAt")), "lastMessageAt"],
-      [
-        sequelize.literal(
-          `SUM(CASE WHEN receiverUserId = ${sequelize.escape(teacherUserId)} AND senderUserId <> ${sequelize.escape(teacherUserId)} AND isRead = 0 THEN 1 ELSE 0 END)`,
-        ),
-        "unreadCount",
-      ],
     ],
     group: [sequelize.literal("studentUserId") as any],
     order: [[sequelize.literal("lastMessageAt"), "DESC"]],
     raw: true,
   });
 
-  // Fetch user info for students
-  const studentUserIds = results.map((r) => r.studentUserId).filter(Boolean);
+  const studentUserIds = results
+    .map((row) => Number(row.studentUserId) || 0)
+    .filter((id) => id > 0);
   if (studentUserIds.length === 0) return [];
 
   const users = await User.findAll({
@@ -286,18 +295,35 @@ export async function listChatStudents(params: {
     raw: true,
   });
 
-  const userMap = new Map(users.map((u: any) => [u.id, u]));
+  const userMap = new Map(users.map((u: any) => [Number(u.id), u]));
 
-  return results.map((row) => {
-    const studentUserId = Number(row.studentUserId) || 0;
-    return {
-      studentUserId,
-      studentName: (userMap.get(studentUserId) as any)?.name ?? "Student",
-      avatarId: (userMap.get(studentUserId) as any)?.avatarId ?? null,
-      lastMessageAt: row.lastMessageAt,
-      unreadCount: Math.max(0, Number(row.unreadCount) || 0),
-    };
-  });
+  const students = await Promise.all(
+    results.map(async (row) => {
+      const studentUserId = Number(row.studentUserId) || 0;
+      if (studentUserId <= 0) {
+        return null;
+      }
+
+      const unreadCount = await countUnreadFromSender({
+        schoolId,
+        subjectId,
+        senderUserId: studentUserId,
+        receiverUserId: teacherUserId,
+      });
+
+      return {
+        studentUserId,
+        studentName: (userMap.get(studentUserId) as any)?.name ?? "Student",
+        avatarId: (userMap.get(studentUserId) as any)?.avatarId ?? null,
+        lastMessageAt: row.lastMessageAt,
+        unreadCount,
+      };
+    }),
+  );
+
+  return students.filter(
+    (student): student is NonNullable<typeof student> => student != null,
+  );
 }
 
 // ---------------------------------------------------------------------------
