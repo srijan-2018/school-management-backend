@@ -111,7 +111,10 @@ export async function markMessagesRead(params: {
   senderUserId: number;
   receiverUserId: number;
 }) {
-  const { schoolId, subjectId, senderUserId, receiverUserId } = params;
+  const schoolId = Number(params.schoolId);
+  const subjectId = Number(params.subjectId);
+  const senderUserId = Number(params.senderUserId);
+  const receiverUserId = Number(params.receiverUserId);
 
   const [updated] = await ChatMessage.update(
     { isRead: true },
@@ -137,10 +140,10 @@ export async function countUnreadFromSender(params: {
 }) {
   const count = await ChatMessage.count({
     where: {
-      schoolId: params.schoolId,
-      subjectId: params.subjectId,
-      senderUserId: params.senderUserId,
-      receiverUserId: params.receiverUserId,
+      schoolId: Number(params.schoolId),
+      subjectId: Number(params.subjectId),
+      senderUserId: Number(params.senderUserId),
+      receiverUserId: Number(params.receiverUserId),
       isRead: false,
     },
   });
@@ -178,7 +181,8 @@ export async function getUnreadChatCount(params: {
   userId: number;
   schoolId: number;
 }) {
-  const { userId, schoolId } = params;
+  const userId = Number(params.userId);
+  const schoolId = Number(params.schoolId);
 
   const count = await ChatMessage.count({
     where: {
@@ -188,7 +192,7 @@ export async function getUnreadChatCount(params: {
     },
   });
 
-  return count;
+  return Math.max(0, Number(count) || 0);
 }
 
 // ---------------------------------------------------------------------------
