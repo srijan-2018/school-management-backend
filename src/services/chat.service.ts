@@ -178,6 +178,40 @@ export async function markMessagesReadWithCounts(params: {
   };
 }
 
+/** Mark every inbound message in a subject read, regardless of sender. */
+export async function markSubjectMessagesReadWithCounts(params: {
+  schoolId: number;
+  subjectId: number;
+  receiverUserId: number;
+}) {
+  const schoolId = Number(params.schoolId);
+  const subjectId = Number(params.subjectId);
+  const receiverUserId = Number(params.receiverUserId);
+
+  const [updated] = await ChatMessage.update(
+    { isRead: true },
+    {
+      where: {
+        schoolId,
+        subjectId,
+        receiverUserId,
+        ...isUnreadWhere(),
+      },
+    },
+  );
+
+  const [conversationUnreadCount, unreadCount] = await Promise.all([
+    getSubjectUnreadCount({ schoolId, subjectId, userId: receiverUserId }),
+    getUnreadChatCount({ userId: receiverUserId, schoolId }),
+  ]);
+
+  return {
+    updated: Math.max(0, Number(updated) || 0),
+    conversationUnreadCount,
+    unreadCount,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Get unread chat count for a user
 // ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import {
   getSubjectUnreadCount,
   markAllChatMessagesRead,
   markMessagesReadWithCounts,
+  markSubjectMessagesReadWithCounts,
 } from "../services/chat.service";
 import { buildPagination, getPagination } from "../utils/pagination";
 import { normalizeRole } from "../utils/roles";
@@ -153,12 +154,21 @@ export const getChatMessages = async (
     // Reading a conversation acknowledges messages received from the other
     // participant. Keeping this on the read endpoint makes the unread badge
     // reliable even if the app is closed before its follow-up request runs.
-    const readResult = await markMessagesReadWithCounts({
-      schoolId,
-      subjectId,
-      senderUserId: withUserId,
-      receiverUserId: actor.userId,
-    });
+    // A student's subject thread can contain replies from more than one
+    // teacher, so opening it acknowledges every inbound message in the subject.
+    const readResult =
+      actor.role === "student"
+        ? await markSubjectMessagesReadWithCounts({
+            schoolId,
+            subjectId,
+            receiverUserId: actor.userId,
+          })
+        : await markMessagesReadWithCounts({
+            schoolId,
+            subjectId,
+            senderUserId: withUserId,
+            receiverUserId: actor.userId,
+          });
 
     res.json({
       messages,
@@ -250,16 +260,23 @@ export const markAsRead = async (
     if (!Number.isInteger(subjectId) || subjectId <= 0) {
       throw new AppError("Invalid subject id", 400);
     }
-    if (!Number.isInteger(fromUserId) || fromUserId <= 0) {
-      throw new AppError("Query parameter 'from' (user id) is required", 400);
+    const hasFrom = req.query.from != null && req.query.from !== "";
+    if (hasFrom && (!Number.isInteger(fromUserId) || fromUserId <= 0)) {
+      throw new AppError("Query parameter 'from' must be a user id", 400);
     }
 
-    const readResult = await markMessagesReadWithCounts({
-      schoolId,
-      subjectId,
-      senderUserId: fromUserId,
-      receiverUserId: actor.userId,
-    });
+    const readResult = hasFrom
+      ? await markMessagesReadWithCounts({
+          schoolId,
+          subjectId,
+          senderUserId: fromUserId,
+          receiverUserId: actor.userId,
+        })
+      : await markSubjectMessagesReadWithCounts({
+          schoolId,
+          subjectId,
+          receiverUserId: actor.userId,
+        });
 
     res.json({
       message: "Messages marked as read",

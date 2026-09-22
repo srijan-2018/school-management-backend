@@ -2068,7 +2068,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Chat"],
           summary: "Get conversation messages",
           description:
-            "Marks inbound messages from the other participant as read and returns updated unread counts.",
+            "Marks inbound messages from the other participant as read (students: every inbound message in the subject) and returns updated unread counts.",
           security: [{ bearerAuth: [] }],
           parameters: [
             subjectIdParameter(),
@@ -2118,13 +2118,13 @@ const options: swaggerJsdoc.Options = {
           tags: ["Chat"],
           summary: "Mark conversation as read",
           description:
-            "Marks inbound messages from `from` (sender user id) as read. Response includes `updated` (0 if already read) and current unread counts.",
+            "Marks inbound messages from `from` (sender user id) as read. Omit `from` to mark every inbound message in the subject as read. Response includes `updated` (0 if already read) and current unread counts.",
           security: [{ bearerAuth: [] }],
           parameters: [
             subjectIdParameter(),
-            requiredQueryParameter(
+            queryParameter(
               "from",
-              "Sender user id (the other participant)",
+              "Sender user id (the other participant). Optional.",
               { type: "integer", minimum: 1, example: 45 },
             ),
           ],
