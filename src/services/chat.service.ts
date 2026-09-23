@@ -13,13 +13,37 @@ function isUnreadWhere() {
   };
 }
 
+type InboundReadScope = {
+  schoolId?: number;
+  receiverUserId: number;
+  subjectId?: number;
+  senderUserId?: number;
+  /** When present, acknowledge only these messages rather than a whole thread. */
+  messageIds?: number[];
+};
+
 /** ORM + raw fallback so read state always persists on the server. */
-async function markInboundRowsRead(where: Record<string, unknown>) {
+async function markInboundRowsRead(where: InboundReadScope) {
+  const { messageIds: rawMessageIds, ...scope } = where;
+  const messageIds =
+    rawMessageIds === undefined
+      ? undefined
+      : [...new Set(rawMessageIds.map(Number))].filter(
+          (id) => Number.isInteger(id) && id > 0,
+        );
+
+  // A page containing no inbound messages must not turn into an unbounded
+  // subject/conversation update.
+  if (messageIds !== undefined && messageIds.length === 0) {
+    return 0;
+  }
+
   const [updated] = await ChatMessage.update(
     { isRead: true },
     {
       where: {
-        ...where,
+        ...scope,
+        ...(messageIds ? { id: { [Op.in]: messageIds } } : {}),
         ...isUnreadWhere(),
       },
     },
@@ -31,25 +55,29 @@ async function markInboundRowsRead(where: Record<string, unknown>) {
   }
 
   const table = ChatMessage.getTableName();
-  const schoolId = Number(where.schoolId);
-  const receiverUserId = Number(where.receiverUserId);
-  if (!Number.isFinite(schoolId) || !Number.isFinite(receiverUserId)) {
+  const schoolId =
+    scope.schoolId != null ? Number(scope.schoolId) : Number.NaN;
+  const receiverUserId = Number(scope.receiverUserId);
+  if (!Number.isFinite(receiverUserId)) {
     return 0;
   }
 
-  const subjectId = where.subjectId != null ? Number(where.subjectId) : null;
+  const subjectId = scope.subjectId != null ? Number(scope.subjectId) : null;
   const senderUserId =
-    where.senderUserId != null ? Number(where.senderUserId) : null;
+    scope.senderUserId != null ? Number(scope.senderUserId) : null;
 
   const parts = [
-    "`schoolId` = :schoolId",
     "`receiverUserId` = :receiverUserId",
     "(`isRead` = 0 OR `isRead` IS NULL OR `isRead` = false)",
   ];
   const replacements: Record<string, number> = {
-    schoolId,
     receiverUserId,
   };
+
+  if (Number.isFinite(schoolId)) {
+    parts.unshift("`schoolId` = :schoolId");
+    replacements.schoolId = schoolId;
+  }
 
   if (Number.isFinite(subjectId) && subjectId! > 0) {
     parts.push("`subjectId` = :subjectId");
@@ -58,6 +86,14 @@ async function markInboundRowsRead(where: Record<string, unknown>) {
   if (Number.isFinite(senderUserId) && senderUserId! > 0) {
     parts.push("`senderUserId` = :senderUserId");
     replacements.senderUserId = senderUserId!;
+  }
+  if (messageIds) {
+    const placeholders = messageIds.map((messageId, index) => {
+      const key = `messageId${index}`;
+      replacements[key] = messageId;
+      return `:${key}`;
+    });
+    parts.push(`\`id\` IN (${placeholders.join(", ")})`);
   }
 
   const [, meta] = await sequelize.query(
@@ -227,6 +263,50 @@ export async function markMessagesReadWithCounts(params: {
   return {
     updated,
     conversationUnreadCount,
+    unreadCount: Math.max(0, Number(unreadCount) || 0),
+  };
+}
+
+/**
+ * Acknowledge only inbound messages that were actually returned to the client.
+ * This prevents a paginated chat request from clearing newer, unseen messages.
+ */
+export async function markVisibleMessagesReadWithCounts(params: {
+  schoolId: number;
+  subjectId: number;
+  senderUserId: number;
+  receiverUserId: number;
+  messageIds: number[];
+  countWholeSubject?: boolean;
+}) {
+  const schoolId = Number(params.schoolId);
+  const subjectId = Number(params.subjectId);
+  const senderUserId = Number(params.senderUserId);
+  const receiverUserId = Number(params.receiverUserId);
+
+  const updated = await markInboundRowsRead({
+    schoolId,
+    subjectId,
+    senderUserId,
+    receiverUserId,
+    messageIds: params.messageIds,
+  });
+
+  const [conversationUnreadCount, unreadCount] = await Promise.all([
+    params.countWholeSubject
+      ? getSubjectUnreadCount({ schoolId, subjectId, userId: receiverUserId })
+      : countUnreadFromSender({
+          schoolId,
+          subjectId,
+          senderUserId,
+          receiverUserId,
+        }),
+    getUnreadChatCount({ userId: receiverUserId, schoolId }),
+  ]);
+
+  return {
+    updated,
+    conversationUnreadCount: Math.max(0, Number(conversationUnreadCount) || 0),
     unreadCount: Math.max(0, Number(unreadCount) || 0),
   };
 }
@@ -455,6 +535,7 @@ export async function markAllChatMessagesRead(params: {
   });
 
   let unreadCount = await getUnreadChatCount({ userId, schoolId });
+
   if (unreadCount > 0) {
     const subjects = await listChatSubjects({ userId, schoolId });
     for (const subject of subjects) {
@@ -470,7 +551,11 @@ export async function markAllChatMessagesRead(params: {
 
   if (unreadCount > 0) {
     updated += await markInboundRowsRead({ receiverUserId: userId });
+    unreadCount = await getUnreadChatCount({ userId, schoolId });
   }
 
-  return updated;
+  return {
+    updated,
+    unreadCount,
+  };
 }

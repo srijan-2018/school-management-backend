@@ -20,6 +20,7 @@
     "db:sync-mock-test-negative-marking": "node dist/scripts/sync-mock-test-negative-marking.js",
     "db:sync-mock-test-negative-marking:src": "ts-node src/scripts/sync-mock-test-negative-marking.ts",
     "test:mock-test-attempt": "ts-node src/scripts/test-mock-test-attempt.ts",
+    "test:chat-unread": "ts-node src/scripts/test-chat-unread.ts",
     "fonts:pdf": "bash scripts/download-pdf-fonts.sh",
     "postinstall": "bash scripts/download-pdf-fonts.sh || true",
     "db:sync-sections": "node dist/scripts/sync-section-columns.js",

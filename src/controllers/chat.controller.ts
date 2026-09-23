@@ -6,7 +6,6 @@ import {
   getTeacherForSubject,
   sendChatMessage,
   getConversation,
-  markMessagesRead,
   getUnreadChatCount,
   listChatSubjects,
   listChatStudents,
@@ -151,11 +150,8 @@ export const getChatMessages = async (
       limit,
     });
 
-    // Reading a conversation acknowledges messages received from the other
-    // participant. Keeping this on the read endpoint makes the unread badge
-    // reliable even if the app is closed before its follow-up request runs.
-    // A student's subject thread can contain replies from more than one
-    // teacher, so opening it acknowledges every inbound message in the subject.
+    // Opening a thread acknowledges every inbound message in that thread
+    // (student: whole subject; teacher: this student conversation).
     const readResult =
       actor.role === "student"
         ? await markSubjectMessagesReadWithCounts({
@@ -169,6 +165,16 @@ export const getChatMessages = async (
             senderUserId: withUserId,
             receiverUserId: actor.userId,
           });
+
+    for (const message of messages as any[]) {
+      if (Number(message.receiverUserId) === Number(actor.userId)) {
+        if (typeof message.setDataValue === "function") {
+          message.setDataValue("isRead", true);
+        } else {
+          message.isRead = true;
+        }
+      }
+    }
 
     res.json({
       messages,
@@ -221,10 +227,7 @@ export const sendMessage = async (
       message,
     });
 
-    // A reply acknowledges every unread message in this conversation. This
-    // keeps the unread badge correct even if the client was opened offline or
-    // is closed before its separate mark-as-read request completes.
-    await markMessagesRead({
+    const readResult = await markMessagesReadWithCounts({
       schoolId,
       subjectId,
       senderUserId: receiverUserId,
@@ -234,6 +237,7 @@ export const sendMessage = async (
     res.status(201).json({
       message: "Message sent",
       chatMessage,
+      ...readResult,
     });
   } catch (err) {
     next(err);
@@ -301,11 +305,7 @@ export const markAllAsRead = async (
     if (!schoolId) return;
 
     const actor = requireUser(req);
-    const updated = await markAllChatMessagesRead({
-      userId: actor.userId,
-      schoolId,
-    });
-    const unreadCount = await getUnreadChatCount({
+    const { updated, unreadCount } = await markAllChatMessagesRead({
       userId: actor.userId,
       schoolId,
     });

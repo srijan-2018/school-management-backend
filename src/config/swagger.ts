@@ -471,12 +471,13 @@ const options: swaggerJsdoc.Options = {
               type: "integer",
               minimum: 0,
               description:
-                "Messages marked read when loading the conversation",
+                "Returned inbound messages marked read when loading this page",
             },
             conversationUnreadCount: {
               type: "integer",
               minimum: 0,
-              description: "Unread from the other participant after this read",
+              description:
+                "Unread in this thread after this read (for students, all inbound replies in the subject)",
             },
             unreadCount: {
               type: "integer",
@@ -2068,7 +2069,7 @@ const options: swaggerJsdoc.Options = {
           tags: ["Chat"],
           summary: "Get conversation messages",
           description:
-            "Marks inbound messages from the other participant as read (students: every inbound message in the subject) and returns updated unread counts.",
+            "Marks only inbound messages returned in this page as read, then returns updated unread counts.",
           security: [{ bearerAuth: [] }],
           parameters: [
             subjectIdParameter(),
